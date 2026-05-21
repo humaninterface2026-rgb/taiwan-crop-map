@@ -4534,35 +4534,135 @@ const _aggregateDaily = (daily, keyFn) => {
     volume: g.vsum
   }));
 };
-const useTomatoMarket = () => {
-  const [data, setData] = React.useState(
-    () => _tmCache || typeof window !== "undefined" && window.DATASETS && window.DATASETS.tomato_market || null
-  );
+const NONGZHIDAO_MAP = {
+  "\u756A\u8304": "code_FJ3",
+  "\u725B\u8543\u8304": "code_FJ3",
+  "\u91CB\u8FE6": "fruit_31"
+};
+const _rocToISO = (roc) => {
+  const m = String(roc || "").match(/^(\d+)[\/.](\d+)[\/.](\d+)$/);
+  if (!m) return null;
+  return `${parseInt(m[1], 10) + 1911}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+};
+const _moaCropName = (name) => (name || "").split("-")[0];
+async function _fetchFromMOA(cropName) {
+  const today = /* @__PURE__ */ new Date();
+  const from = new Date(today.getTime() - 5 * 365 * 24 * 3600 * 1e3);
+  const fmt = (d) => d.toISOString().slice(0, 10);
+  const url = `https://data.moa.gov.tw/api/v1/AgriProductsTransType/?Start-Date=${fmt(from)}&End-Date=${fmt(today)}&CropName=${encodeURIComponent(_moaCropName(cropName))}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`MOA ${res.status}`);
+  const json = await res.json();
+  const rows = (json.Data || json.data || []).map((r) => ({
+    date: _rocToISO(r.TransDate || r.tdate),
+    price: Number(r.Avg_Price ?? r.avg_price),
+    volume: Number(r.Trans_Quantity ?? r.volume),
+    market: r.MarketName || r.market,
+    crop: r.CropName || ""
+  })).filter((r) => r.date && !isNaN(r.price) && r.crop !== "\u4F11\u5E02" && r.price > 0);
+  rows.sort((a, b) => a.date < b.date ? -1 : 1);
+  const daily = _aggregateDaily(rows, (r) => r.date).map((d) => ({ date: d.key, price: d.price, volume: d.volume }));
+  const weekly = _aggregateDaily(rows, (r) => _isoYearWeek(r.date));
+  const monthly = _aggregateDaily(rows, (r) => r.date.slice(0, 7));
+  const yearly = _aggregateDaily(rows, (r) => r.date.slice(0, 4));
+  const latest_price = daily.length ? { date: daily[daily.length - 1].date, price: daily[daily.length - 1].price } : null;
+  const latestMonth = monthly.length ? monthly[monthly.length - 1].key : null;
+  const lastMonthRows = latestMonth ? rows.filter((r) => r.date.slice(0, 7) === latestMonth) : [];
+  const byMarket = {};
+  for (const r of lastMonthRows) {
+    if (!byMarket[r.market]) byMarket[r.market] = { vsum: 0, pvsum: 0 };
+    byMarket[r.market].vsum += r.volume || 0;
+    byMarket[r.market].pvsum += (r.price || 0) * (r.volume || 0);
+  }
+  const markets_volume = Object.entries(byMarket).map(([market, g]) => ({ market, volume: Math.round(g.vsum) })).filter((x) => x.volume > 0).sort((a, b) => b.volume - a.volume);
+  const markets_price = Object.entries(byMarket).map(([market, g]) => ({ market, price: g.vsum > 0 ? Math.round(g.pvsum / g.vsum * 100) / 100 : 0 })).filter((x) => x.price > 0).sort((a, b) => a.price - b.price);
+  return {
+    code: "MOA",
+    name: cropName,
+    updated_at: (/* @__PURE__ */ new Date()).toISOString(),
+    latest_price,
+    daily,
+    weekly,
+    monthly,
+    yearly,
+    market_compare: { month: latestMonth, markets_volume, markets_price }
+  };
+}
+const _cropMarketCache = /* @__PURE__ */ new Map();
+const _cropMarketListeners = /* @__PURE__ */ new Map();
+const _cropMarketInflight = /* @__PURE__ */ new Map();
+async function _fetchCropMarket(cropName) {
+  const code = NONGZHIDAO_MAP[cropName];
+  if (code) {
+    try {
+      const r = await fetch(`https://wyaoguang3-code.github.io/nongzhidao/data/${code}.json`);
+      if (r.ok) {
+        const j = await r.json();
+        if (j && Array.isArray(j.daily) && j.daily.length) {
+          j.weekly = _aggregateDaily(j.daily, (r2) => _isoYearWeek(r2.date));
+          j.monthly = _aggregateDaily(j.daily, (r2) => r2.date.slice(0, 7));
+          j.yearly = _aggregateDaily(j.daily, (r2) => r2.date.slice(0, 4));
+          if (!j.latest_price || j.latest_price.price == null) {
+            const last = j.daily[j.daily.length - 1];
+            if (last && last.price != null) j.latest_price = { date: last.date, price: last.price };
+          }
+        }
+        return j;
+      }
+    } catch (e) {
+      console.warn(`[crop-market] nongzhidao ${code} failed`, e && e.message);
+    }
+  }
+  return _fetchFromMOA(cropName);
+}
+const useCropMarket = (cropName) => {
+  const [data, setData] = React.useState(() => {
+    if (!cropName) return null;
+    if (_cropMarketCache.has(cropName)) return _cropMarketCache.get(cropName);
+    if ((cropName === "\u756A\u8304" || cropName === "\u725B\u8543\u8304") && typeof window !== "undefined" && window.DATASETS && window.DATASETS.tomato_market) {
+      const tm = window.DATASETS.tomato_market;
+      _cropMarketCache.set(cropName, tm);
+      return tm;
+    }
+    return null;
+  });
   usePageDataReady();
   React.useEffect(() => {
-    if (!_tmCache && typeof window !== "undefined" && window.DATASETS && window.DATASETS.tomato_market) {
-      _tmCache = window.DATASETS.tomato_market;
-      setData(_tmCache);
+    if (!cropName) {
+      setData(null);
+      return;
     }
-    _tmListeners.add(setData);
-    if (!_tmFetched) {
-      _tmFetched = true;
-      fetch("https://wyaoguang3-code.github.io/nongzhidao/data/code_FJ3.json").then((r) => r.ok ? r.json() : Promise.reject(r.status)).then((j) => {
-        if (j && Array.isArray(j.daily) && j.daily.length) {
-          j.weekly = _aggregateDaily(j.daily, (r) => _isoYearWeek(r.date));
-          j.monthly = _aggregateDaily(j.daily, (r) => r.date.slice(0, 7));
-          j.yearly = _aggregateDaily(j.daily, (r) => r.date.slice(0, 4));
-          _tmCache = j;
-          for (const fn of _tmListeners) fn(j);
-        }
-      }).catch((err) => console.warn("[tomato_market] live fetch failed, using bundled:", err));
+    if (!_cropMarketCache.has(cropName) && (cropName === "\u756A\u8304" || cropName === "\u725B\u8543\u8304") && typeof window !== "undefined" && window.DATASETS && window.DATASETS.tomato_market) {
+      const tm = window.DATASETS.tomato_market;
+      _cropMarketCache.set(cropName, tm);
+      setData(tm);
+    } else if (_cropMarketCache.has(cropName)) {
+      setData(_cropMarketCache.get(cropName));
+    }
+    if (!_cropMarketListeners.has(cropName)) _cropMarketListeners.set(cropName, /* @__PURE__ */ new Set());
+    _cropMarketListeners.get(cropName).add(setData);
+    if (!_cropMarketInflight.has(cropName)) {
+      _cropMarketInflight.set(
+        cropName,
+        _fetchCropMarket(cropName).then((d) => {
+          _cropMarketCache.set(cropName, d);
+          _cropMarketInflight.delete(cropName);
+          const ls = _cropMarketListeners.get(cropName);
+          if (ls) for (const fn of ls) fn(d);
+        }).catch((err) => {
+          console.warn(`[crop-market] ${cropName} fetch failed:`, err && err.message);
+          _cropMarketInflight.delete(cropName);
+        })
+      );
     }
     return () => {
-      _tmListeners.delete(setData);
+      const ls = _cropMarketListeners.get(cropName);
+      if (ls) ls.delete(setData);
     };
-  }, []);
+  }, [cropName]);
   return data;
 };
+const useTomatoMarket = () => useCropMarket("\u756A\u8304");
 let _dsCache = typeof window !== "undefined" && window.DATASETS && window.DATASETS.disaster_yearly || null;
 let _dsFetched = false;
 const _dsListeners = /* @__PURE__ */ new Set();
@@ -4592,8 +4692,8 @@ const useDisasterYearly = () => {
   }, []);
   return data;
 };
-const PricePanelCard = () => {
-  const m = useTomatoMarket();
+const PricePanelCard = ({ cropName }) => {
+  const m = useCropMarket(cropName || "\u756A\u8304");
   const latest = m?.latest_price?.price ?? null;
   const latestDate = m?.latest_price?.date ?? null;
   const daily = m?.daily || [];
@@ -4622,8 +4722,8 @@ const PricePanelCard = () => {
     fontFamily: "'Noto Sans TC',sans-serif"
   } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff5e8", borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 0 #f0e0c8", display: "flex", flexDirection: "column", justifyContent: "space-evenly" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 900, color: "#a85a16", letterSpacing: 1 } }, "\u50F9\u683C\u9762\u677F (AMIS)"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#a89070" } }, latestDate ? latestDate.replace(/-/g, "/") : "")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, display: "flex", alignItems: "baseline", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#7a5418", fontWeight: 700 } }, "\u6700\u65B0\u5747\u50F9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#5a3a18" } }, "$", fmt(latest), " / \u516C\u65A4"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#a89070" } }, "($", fmt(taikinPrice), " / \u53F0\u65A4)"))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff5e8", borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 0 #f0e0c8", display: "flex", flexDirection: "column", justifyContent: "space-evenly" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 900, color: "#a85a16", letterSpacing: 1 } }, "\u8A66\u7B97\u9810\u4F30\u96F6\u552E\u50F9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#a89070" } }, "(\u53E3\u5F91A: \u6279\u767C \xD7 2)")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, display: "flex", alignItems: "baseline", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#5a3a18" } }, "$", retailKg ?? "\u2014", " / \u516C\u65A4"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#c8a070" } }, "|"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#5a3a18" } }, "$", retailTaikin ?? "\u2014", " / \u53F0\u65A4"))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff5e8", borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 0 #f0e0c8", display: "flex", flexDirection: "column", justifyContent: "space-evenly" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 900, color: "#a85a16", letterSpacing: 1, marginBottom: 6 } }, "\u8FD1\u671F\u4EA4\u6613\u6307\u6A19"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 14, fontSize: 12, color: "#7a5418", alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", null, "\u8CFC\u8CB7\u5EFA\u8B70"), /* @__PURE__ */ React.createElement("span", { style: { padding: "3px 10px", borderRadius: 10, background: buyTag.bg, color: buyTag.fg, fontWeight: 700 } }, buyTag.label), /* @__PURE__ */ React.createElement("div", null, "\u8CE3\u51FA\u5EFA\u8B70"), /* @__PURE__ */ React.createElement("span", { style: { padding: "3px 10px", borderRadius: 10, background: sellTag.bg, color: sellTag.fg, fontWeight: 700 } }, sellTag.label))));
 };
-const TrendChartCard = () => {
-  const m = useTomatoMarket();
+const TrendChartCard = ({ cropName }) => {
+  const m = useCropMarket(cropName || "\u756A\u8304");
   const chartReady = useChart();
   const [period, setPeriod] = useState("weekly");
   const canvasRef = React.useRef(null);
@@ -4715,8 +4815,8 @@ const TrendChartCard = () => {
     fontWeight: 700
   } }, label)))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff", border: "1px solid #e3e6cd", borderRadius: 10, padding: "8px 10px", position: "relative", minHeight: 0 } }, /* @__PURE__ */ React.createElement("canvas", { ref: canvasRef })));
 };
-const VolumeBarsCard = () => {
-  const m = useTomatoMarket();
+const VolumeBarsCard = ({ cropName }) => {
+  const m = useCropMarket(cropName || "\u756A\u8304");
   const chartReady = useChart();
   const canvasRef = React.useRef(null);
   const chartRef = React.useRef(null);
@@ -4766,8 +4866,8 @@ const VolumeBarsCard = () => {
     fontFamily: "'Noto Sans TC',sans-serif"
   } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 17, fontWeight: 900, color: "#256b78", letterSpacing: 1.5 } }, "\u6279\u767C\u5E02\u5834\u6210\u4EA4\u91CF\u6BD4\u8F03"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#7a9a9e" } }, "(\u7576\u6708\u4EA4\u6613\u65E5\u7D2F\u7A4D", m?.market_compare?.month ? "\u30FB" + m.market_compare.month : "", ")")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff", border: "1px solid #cfe3e7", borderRadius: 10, padding: "8px 10px", position: "relative", minHeight: 0 } }, /* @__PURE__ */ React.createElement("canvas", { ref: canvasRef })));
 };
-const PriceBarsCard = () => {
-  const m = useTomatoMarket();
+const PriceBarsCard = ({ cropName }) => {
+  const m = useCropMarket(cropName || "\u756A\u8304");
   const chartReady = useChart();
   const canvasRef = React.useRef(null);
   const chartRef = React.useRef(null);
@@ -5154,44 +5254,48 @@ const CharacterCard = ({ county, cropOverride }) => {
     height: 22.461
   }, dangerouslySetInnerHTML: { __html: _HEART_SVG } }));
 };
-const Dashboard = ({ onBack, selected, cropOverride }) => /* @__PURE__ */ React.createElement("div", { style: {
-  position: "relative",
-  width: "100%",
-  maxWidth: 1440,
-  margin: "0 auto",
-  aspectRatio: "1440 / 1468",
-  overflow: "hidden",
-  containerType: "inline-size"
-} }, /* @__PURE__ */ React.createElement("div", { style: {
-  position: "absolute",
-  inset: 0,
-  width: 1440,
-  height: 1468,
-  transformOrigin: "top left",
-  transform: "scale(calc(100cqw / 1440px))"
-} }, /* @__PURE__ */ React.createElement(
-  "div",
-  {
-    onClick: onBack,
-    title: "\u8FD4\u56DE\u9996\u9801",
-    style: {
-      position: "absolute",
-      left: 16,
-      top: 6,
-      width: 200,
-      height: 56,
-      cursor: "pointer",
-      zIndex: 5
+const Dashboard = ({ onBack, selected, cropOverride }) => {
+  const region = REGIONS_DATA[selected] || REGIONS_DATA.taoyuan;
+  const cropName = cropOverride || region.cropApi || "\u756A\u8304";
+  return /* @__PURE__ */ React.createElement("div", { style: {
+    position: "relative",
+    width: "100%",
+    maxWidth: 1440,
+    margin: "0 auto",
+    aspectRatio: "1440 / 1468",
+    overflow: "hidden",
+    containerType: "inline-size"
+  } }, /* @__PURE__ */ React.createElement("div", { style: {
+    position: "absolute",
+    inset: 0,
+    width: 1440,
+    height: 1468,
+    transformOrigin: "top left",
+    transform: "scale(calc(100cqw / 1440px))"
+  } }, /* @__PURE__ */ React.createElement(
+    "div",
+    {
+      onClick: onBack,
+      title: "\u8FD4\u56DE\u9996\u9801",
+      style: {
+        position: "absolute",
+        left: 16,
+        top: 6,
+        width: 200,
+        height: 56,
+        cursor: "pointer",
+        zIndex: 5
+      }
     }
-  }
-), /* @__PURE__ */ React.createElement(
-  DesignImage,
-  {
-    name: "tomato_dashboard",
-    alt: "\u6843\u5712\u5E02 \u756A\u8304\u5E02\u5834\u5100\u8868\u677F",
-    style: { display: "block", width: 1440, height: "auto", userSelect: "none" }
-  }
-), /* @__PURE__ */ React.createElement(CharacterCard, { county: selected, cropOverride }), /* @__PURE__ */ React.createElement(PricePanelCard, null), /* @__PURE__ */ React.createElement(TrendChartCard, null), /* @__PURE__ */ React.createElement(VolumeBarsCard, null), /* @__PURE__ */ React.createElement(PriceBarsCard, null), /* @__PURE__ */ React.createElement(ExportTrendChart, null), /* @__PURE__ */ React.createElement(DisasterChartCard, null)));
+  ), /* @__PURE__ */ React.createElement(
+    DesignImage,
+    {
+      name: "tomato_dashboard",
+      alt: "\u6843\u5712\u5E02 \u756A\u8304\u5E02\u5834\u5100\u8868\u677F",
+      style: { display: "block", width: 1440, height: "auto", userSelect: "none" }
+    }
+  ), /* @__PURE__ */ React.createElement(CharacterCard, { county: selected, cropOverride }), /* @__PURE__ */ React.createElement(PricePanelCard, { cropName }), /* @__PURE__ */ React.createElement(TrendChartCard, { cropName }), /* @__PURE__ */ React.createElement(VolumeBarsCard, { cropName }), /* @__PURE__ */ React.createElement(PriceBarsCard, { cropName }), /* @__PURE__ */ React.createElement(ExportTrendChart, null), /* @__PURE__ */ React.createElement(DisasterChartCard, null)));
+};
 const App = () => {
   const [selected, setSelected] = useState(() => localStorage.getItem("tw-map-sel") || "taoyuan");
   const [taoyuanCrop, setTaoyuanCrop] = useState(null);

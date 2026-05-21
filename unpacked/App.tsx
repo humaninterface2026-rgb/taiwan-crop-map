@@ -1248,44 +1248,169 @@ const _aggregateDaily = (daily, keyFn) => {
     }));
 };
 
-const useTomatoMarket = () => {
-  // Initialise from window.DATASETS at every call — the bootloader fetches it
-  // async, so the very first render gets an empty object.
-  const [data, setData] = React.useState(() =>
-    _tmCache ||
-    (typeof window !== 'undefined' && window.DATASETS && window.DATASETS.tomato_market) ||
-    null
-  );
-  usePageDataReady();   // re-render when the page-data fetch lands
-  React.useEffect(() => {
-    // If the bundled fallback only just became available, pick it up.
-    if (!_tmCache && typeof window !== 'undefined' && window.DATASETS && window.DATASETS.tomato_market) {
-      _tmCache = window.DATASETS.tomato_market;
-      setData(_tmCache);
-    }
-    _tmListeners.add(setData);
-    if (!_tmFetched) {
-      _tmFetched = true;
-      // Live snapshot from nongzhidao's daily-updated cron. Fall back silently to the
-      // bundled copy if the cross-origin fetch fails (offline, CORS rejection, etc).
-      fetch('https://wyaoguang3-code.github.io/nongzhidao/data/code_FJ3.json')
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(j => {
-          if (j && Array.isArray(j.daily) && j.daily.length) {
-            // Rebuild stale aggregations from the fresh daily array.
-            j.weekly  = _aggregateDaily(j.daily, r => _isoYearWeek(r.date));
-            j.monthly = _aggregateDaily(j.daily, r => r.date.slice(0, 7));
-            j.yearly  = _aggregateDaily(j.daily, r => r.date.slice(0, 4));
-            _tmCache = j;
-            for (const fn of _tmListeners) fn(j);
+// ── Crop market dispatcher ────────────────────────────────────────────────
+// Given a crop name (e.g. "番茄", "釋迦", "香蕉"), return market data in the
+// same shape regardless of source. Two paths:
+//   1. nongzhidao   pre-aggregated daily/weekly/monthly/yearly + market_compare.
+//                   Covers 番茄 (code_FJ3) and 釋迦 (fruit_31). Fast.
+//   2. MOA agri API daily transactions per crop, aggregated client-side here.
+//                   Covers every other crop in the wholesale catalogue.
+const NONGZHIDAO_MAP = {
+  '番茄':   'code_FJ3',
+  '牛蕃茄': 'code_FJ3',
+  '釋迦':   'fruit_31',
+};
+
+// MOA returns dates as either "115/05/21" or "115.05.21" — accept both separators.
+const _rocToISO = (roc) => {
+  const m = String(roc || '').match(/^(\d+)[\/.](\d+)[\/.](\d+)$/);
+  if (!m) return null;
+  return `${parseInt(m[1], 10) + 1911}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+};
+
+// Normalise hyphenated taoyuan crops like "甘藍-初秋" / "番茄-牛番茄" to the
+// broader CropName MOA expects (just the prefix before the dash).
+const _moaCropName = (name) => (name || '').split('-')[0];
+
+async function _fetchFromMOA(cropName) {
+  const today = new Date();
+  const from = new Date(today.getTime() - 5 * 365 * 24 * 3600 * 1000);
+  const fmt = (d) => d.toISOString().slice(0, 10);
+  const url = `https://data.moa.gov.tw/api/v1/AgriProductsTransType/?Start-Date=${fmt(from)}&End-Date=${fmt(today)}&CropName=${encodeURIComponent(_moaCropName(cropName))}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`MOA ${res.status}`);
+  const json = await res.json();
+  const rows = (json.Data || json.data || []).map(r => ({
+    date:   _rocToISO(r.TransDate || r.tdate),
+    price:  Number(r.Avg_Price ?? r.avg_price),
+    volume: Number(r.Trans_Quantity ?? r.volume),
+    market: r.MarketName || r.market,
+    crop:   r.CropName || '',
+  })).filter(r => r.date && !isNaN(r.price) && r.crop !== '休市' && r.price > 0);
+  // MOA returns the queried crop AND any sub-variety rows (e.g. 香蕉,
+  // 香蕉-芭蕉紅芭蕉, 香蕉-旦蕉) — aggregate them all together so the panel
+  // reflects the broad market for that crop.
+  rows.sort((a, b) => a.date < b.date ? -1 : 1);
+  const daily = _aggregateDaily(rows, r => r.date)
+    .map(d => ({ date: d.key, price: d.price, volume: d.volume }));
+  const weekly  = _aggregateDaily(rows, r => _isoYearWeek(r.date));
+  const monthly = _aggregateDaily(rows, r => r.date.slice(0, 7));
+  const yearly  = _aggregateDaily(rows, r => r.date.slice(0, 4));
+  const latest_price = daily.length ? { date: daily[daily.length-1].date, price: daily[daily.length-1].price } : null;
+  // market_compare: latest-month group-by-market.
+  const latestMonth = monthly.length ? monthly[monthly.length-1].key : null;
+  const lastMonthRows = latestMonth ? rows.filter(r => r.date.slice(0, 7) === latestMonth) : [];
+  const byMarket = {};
+  for (const r of lastMonthRows) {
+    if (!byMarket[r.market]) byMarket[r.market] = { vsum: 0, pvsum: 0 };
+    byMarket[r.market].vsum  += r.volume || 0;
+    byMarket[r.market].pvsum += (r.price || 0) * (r.volume || 0);
+  }
+  const markets_volume = Object.entries(byMarket)
+    .map(([market, g]) => ({ market, volume: Math.round(g.vsum) }))
+    .filter(x => x.volume > 0)
+    .sort((a, b) => b.volume - a.volume);
+  const markets_price = Object.entries(byMarket)
+    .map(([market, g]) => ({ market, price: g.vsum > 0 ? Math.round(g.pvsum / g.vsum * 100) / 100 : 0 }))
+    .filter(x => x.price > 0)
+    .sort((a, b) => a.price - b.price);
+  return {
+    code: 'MOA',
+    name: cropName,
+    updated_at: new Date().toISOString(),
+    latest_price,
+    daily,
+    weekly,
+    monthly,
+    yearly,
+    market_compare: { month: latestMonth, markets_volume, markets_price },
+  };
+}
+
+const _cropMarketCache     = new Map();   // cropName → data
+const _cropMarketListeners = new Map();   // cropName → Set<setter>
+const _cropMarketInflight  = new Map();   // cropName → Promise (in-flight fetch)
+
+async function _fetchCropMarket(cropName) {
+  const code = NONGZHIDAO_MAP[cropName];
+  if (code) {
+    try {
+      const r = await fetch(`https://wyaoguang3-code.github.io/nongzhidao/data/${code}.json`);
+      if (r.ok) {
+        const j = await r.json();
+        if (j && Array.isArray(j.daily) && j.daily.length) {
+          // Rebuild stale aggregations from fresh daily array.
+          j.weekly  = _aggregateDaily(j.daily, r => _isoYearWeek(r.date));
+          j.monthly = _aggregateDaily(j.daily, r => r.date.slice(0, 7));
+          j.yearly  = _aggregateDaily(j.daily, r => r.date.slice(0, 4));
+          // Some nongzhidao files (e.g. fruit_31 釋迦) have latest_price: null
+          // even though `daily` is populated — derive it from the tail.
+          if (!j.latest_price || j.latest_price.price == null) {
+            const last = j.daily[j.daily.length - 1];
+            if (last && last.price != null) j.latest_price = { date: last.date, price: last.price };
           }
-        })
-        .catch(err => console.warn('[tomato_market] live fetch failed, using bundled:', err));
+        }
+        return j;
+      }
+    } catch (e) { console.warn(`[crop-market] nongzhidao ${code} failed`, e && e.message); }
+  }
+  return _fetchFromMOA(cropName);
+}
+
+const useCropMarket = (cropName) => {
+  const [data, setData] = React.useState(() => {
+    if (!cropName) return null;
+    if (_cropMarketCache.has(cropName)) return _cropMarketCache.get(cropName);
+    // Special: 番茄/牛蕃茄 get instant-render from bundled DATASETS.tomato_market
+    // (no need to wait for any network round-trip on cold load).
+    if ((cropName === '番茄' || cropName === '牛蕃茄') &&
+        typeof window !== 'undefined' && window.DATASETS && window.DATASETS.tomato_market) {
+      const tm = window.DATASETS.tomato_market;
+      _cropMarketCache.set(cropName, tm);
+      return tm;
     }
-    return () => { _tmListeners.delete(setData); };
-  }, []);
+    return null;
+  });
+  usePageDataReady();
+  React.useEffect(() => {
+    if (!cropName) { setData(null); return; }
+    // Prime from bundled tomato_market if it landed after first render.
+    if (!_cropMarketCache.has(cropName) &&
+        (cropName === '番茄' || cropName === '牛蕃茄') &&
+        typeof window !== 'undefined' && window.DATASETS && window.DATASETS.tomato_market) {
+      const tm = window.DATASETS.tomato_market;
+      _cropMarketCache.set(cropName, tm);
+      setData(tm);
+    } else if (_cropMarketCache.has(cropName)) {
+      setData(_cropMarketCache.get(cropName));
+    }
+    if (!_cropMarketListeners.has(cropName)) _cropMarketListeners.set(cropName, new Set());
+    _cropMarketListeners.get(cropName).add(setData);
+    if (!_cropMarketInflight.has(cropName)) {
+      _cropMarketInflight.set(cropName,
+        _fetchCropMarket(cropName)
+          .then(d => {
+            _cropMarketCache.set(cropName, d);
+            _cropMarketInflight.delete(cropName);
+            const ls = _cropMarketListeners.get(cropName);
+            if (ls) for (const fn of ls) fn(d);
+          })
+          .catch(err => {
+            console.warn(`[crop-market] ${cropName} fetch failed:`, err && err.message);
+            _cropMarketInflight.delete(cropName);
+          }));
+    }
+    return () => {
+      const ls = _cropMarketListeners.get(cropName);
+      if (ls) ls.delete(setData);
+    };
+  }, [cropName]);
   return data;
 };
+
+// Backward-compat wrapper — PriceOverlay and other non-dashboard callers still
+// use this. New dashboard cards take cropName explicitly via useCropMarket.
+const useTomatoMarket = () => useCropMarket('番茄');
 
 // Disaster yearly — fetch the same JSON nongzhidao's FJ3.html uses.
 let _dsCache = (typeof window !== 'undefined' && window.DATASETS && window.DATASETS.disaster_yearly) || null;
@@ -1326,8 +1451,8 @@ const useDisasterYearly = () => {
 // until nongzhidao starts populating that endpoint.
 
 /* ── CARD 1: 價格面板 (AMIS) ────────────────────────────────────────────── */
-const PricePanelCard = () => {
-  const m = useTomatoMarket();
+const PricePanelCard = ({cropName}) => {
+  const m = useCropMarket(cropName || '番茄');
   const latest = m?.latest_price?.price ?? null;
   const latestDate = m?.latest_price?.date ?? null;
 
@@ -1413,8 +1538,8 @@ const PricePanelCard = () => {
 };
 
 /* ── CARD 2: 批發市場行情趨勢圖 (toggle 每週/每月/一年/每年) ──────────── */
-const TrendChartCard = () => {
-  const m = useTomatoMarket();
+const TrendChartCard = ({cropName}) => {
+  const m = useCropMarket(cropName || '番茄');
   const chartReady = useChart();
   const [period, setPeriod] = useState('weekly');
   const canvasRef = React.useRef(null);
@@ -1499,8 +1624,8 @@ const TrendChartCard = () => {
 };
 
 /* ── CARD 3: 批發市場成交量比較 ─────────────────────────────────────────── */
-const VolumeBarsCard = () => {
-  const m = useTomatoMarket();
+const VolumeBarsCard = ({cropName}) => {
+  const m = useCropMarket(cropName || '番茄');
   const chartReady = useChart();
   const canvasRef = React.useRef(null);
   const chartRef  = React.useRef(null);
@@ -1557,8 +1682,8 @@ const VolumeBarsCard = () => {
 };
 
 /* ── CARD 4: 批發市場價格比較 ───────────────────────────────────────────── */
-const PriceBarsCard = () => {
-  const m = useTomatoMarket();
+const PriceBarsCard = ({cropName}) => {
+  const m = useCropMarket(cropName || '番茄');
   const chartReady = useChart();
   const canvasRef = React.useRef(null);
   const chartRef  = React.useRef(null);
@@ -2023,7 +2148,13 @@ const CharacterCard = ({county, cropOverride}) => {
   );
 };
 
-const Dashboard = ({onBack, selected, cropOverride}) => (
+const Dashboard = ({onBack, selected, cropOverride}) => {
+  const region = REGIONS_DATA[selected] || REGIONS_DATA.taoyuan;
+  // cropOverride (set when a taoyuan township is clicked) wins over the
+  // county's default cropApi. Falls back to 番茄 so the card stays populated
+  // even if region.cropApi is missing for some reason.
+  const cropName = cropOverride || region.cropApi || '番茄';
+  return (
   <div style={{
     position:'relative',
     width:'100%',
@@ -2058,15 +2189,16 @@ const Dashboard = ({onBack, selected, cropOverride}) => (
         style={{display:'block', width:1440, height:'auto', userSelect:'none'}}
       />
       <CharacterCard county={selected} cropOverride={cropOverride}/>
-      <PricePanelCard/>
-      <TrendChartCard/>
-      <VolumeBarsCard/>
-      <PriceBarsCard/>
+      <PricePanelCard cropName={cropName}/>
+      <TrendChartCard cropName={cropName}/>
+      <VolumeBarsCard cropName={cropName}/>
+      <PriceBarsCard cropName={cropName}/>
       <ExportTrendChart/>
       <DisasterChartCard/>
     </div>
   </div>
-);
+  );
+};
 
 /* ── MAIN APP ────────────────────────────────────────────────────────────── */
 const App = () => {
