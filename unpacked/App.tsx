@@ -2143,7 +2143,16 @@ const App = () => {
   // Shared: when a taoyuan township is clicked (either in Page's leftMapView
   // overlay or in the dedicated TaoyuanDetail page), stash the crop and
   // navigate to the dashboard so it can render with cropOverride.
-  const onCropSelect = (crop) => { setTaoyuanCrop(crop); window.location.hash = 'dashboard'; };
+  // Also force `selected` to 'taoyuan' — clicking the 桃園 polygon only
+  // switches the LEFT map (setLeftMapView) without updating selected, so if
+  // the user had picked a non-taoyuan county earlier, the override gate
+  // (`county === 'taoyuan'`) in CharacterCard would never trip and the panel
+  // would show the previous county's defaults instead of the township crop.
+  const onCropSelect = (crop) => {
+    handleSelect('taoyuan');
+    setTaoyuanCrop(crop);
+    window.location.hash = 'dashboard';
+  };
 
   if (view === 'dashboard') {
     return <Dashboard onBack={() => { window.location.hash = ''; }} selected={selected} cropOverride={taoyuanCrop}/>;

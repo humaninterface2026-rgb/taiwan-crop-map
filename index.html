@@ -5251,6 +5251,7 @@ const App = () => {
     };
   }, []);
   const onCropSelect = (crop) => {
+    handleSelect("taoyuan");
     setTaoyuanCrop(crop);
     window.location.hash = "dashboard";
   };
