@@ -1372,7 +1372,7 @@ const PricePanelCard = () => {
       fontFamily:"'Noto Sans TC',sans-serif",
     }}>
       {/* Sub-card: 價格面板 (AMIS) */}
-      <div style={{background:'#fff5e8', borderRadius:10, padding:'8px 12px', boxShadow:'0 1px 0 #f0e0c8'}}>
+      <div style={{flex:1, background:'#fff5e8', borderRadius:10, padding:'10px 12px', boxShadow:'0 1px 0 #f0e0c8', display:'flex', flexDirection:'column', justifyContent:'space-evenly'}}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline'}}>
           <div style={{fontSize:15, fontWeight:900, color:'#a85a16', letterSpacing:1}}>價格面板 (AMIS)</div>
           <div style={{fontSize:9, color:'#a89070'}}>{latestDate ? latestDate.replace(/-/g,'/') : ''}</div>
@@ -1384,7 +1384,7 @@ const PricePanelCard = () => {
         </div>
       </div>
       {/* Sub-card: 試算預估零售價 */}
-      <div style={{background:'#fff5e8', borderRadius:10, padding:'8px 12px', boxShadow:'0 1px 0 #f0e0c8'}}>
+      <div style={{flex:1, background:'#fff5e8', borderRadius:10, padding:'10px 12px', boxShadow:'0 1px 0 #f0e0c8', display:'flex', flexDirection:'column', justifyContent:'space-evenly'}}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline'}}>
           <div style={{fontSize:15, fontWeight:900, color:'#a85a16', letterSpacing:1}}>試算預估零售價</div>
           <div style={{fontSize:9, color:'#a89070'}}>(口徑A: 批發 × 2)</div>
@@ -1396,7 +1396,7 @@ const PricePanelCard = () => {
         </div>
       </div>
       {/* Sub-card: 近期交易指標 */}
-      <div style={{background:'#fff5e8', borderRadius:10, padding:'8px 12px', boxShadow:'0 1px 0 #f0e0c8'}}>
+      <div style={{flex:1, background:'#fff5e8', borderRadius:10, padding:'10px 12px', boxShadow:'0 1px 0 #f0e0c8', display:'flex', flexDirection:'column', justifyContent:'space-evenly'}}>
         <div style={{fontSize:15, fontWeight:900, color:'#a85a16', letterSpacing:1, marginBottom:6}}>近期交易指標</div>
         <div style={{display:'flex', gap:14, fontSize:12, color:'#7a5418', alignItems:'center', flexWrap:'wrap'}}>
           <div>購買建議</div>
