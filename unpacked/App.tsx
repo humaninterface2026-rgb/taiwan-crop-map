@@ -1916,64 +1916,102 @@ const TaoyuanDetail = ({onBack}) => {
   );
 };
 
-/* ── CharacterCard — dynamic top-left card on dashboard ───────────────────
- * Overlays the baked 番茄 character card with the selected county's character +
- * county name + crop name. For taoyuan we hide the overlay so the baked card
- * (with its 番茄-牛番茄 detail) shows through unchanged.
- * Card spec from Figma node 39-1506: 292×287, #fdf7ea bg, #efd8c6 border, 15px
- * radius, 📍 縣市名 on top, character SVG center, crop name below.
+/* ── CharacterCard — Figma-faithful template for all 19 counties ──────────
+ * Source: Figma node 39-2695 (Group 23). SVG assets (pin, heart, grass) are
+ * the original Figma exports — inlined to avoid extra fetches + repack churn.
+ * Positions / sizes are in design-canvas px (the parent <Dashboard> renders
+ * the whole 1440×1468 canvas and CSS-transform scales it; values here scale
+ * along with everything else).
+ *
+ * Layout (card-relative px — card origin is (34, 87) in design canvas):
+ *   card frame    : 292 × 287, bg #fdf7ea, border 1.5px #efd8c6, radius 15
+ *   pin icon      : (22.27, 14), 18.45 × 22.54
+ *   county name   : (49, 14), font 16 bold, color #3b6826
+ *   crop name     : (15, 48), font 30 bold (replaces baked "番茄" text)
+ *   heart icon    : (253, 15), 22.46 × 22.46
+ *   grass         : (-8.5, 229), 321 × 88 — overflows card; clipped by overflow:hidden
+ *   character     : (57.64, 72), 172.72 × 190.57 from window.COUNTY_CHARS[a_xx]
+ *
+ * Renders for ALL counties including taoyuan — fully overlays the baked
+ * tomato card.
  */
+const _PIN_SVG = `<svg preserveAspectRatio="none" width="100%" height="100%" viewBox="0 0 18.454 22.5391" fill="none" xmlns="http://www.w3.org/2000/svg"><g><path d="M4.52809 9.49983C4.52809 6.90471 6.63185 4.80095 9.22698 4.80095C11.8221 4.80095 13.9259 6.90471 13.9259 9.49983C13.9259 12.095 11.8221 14.1987 9.22698 14.1987C6.63185 14.1987 4.52809 12.095 4.52809 9.49983Z" fill="#95AB52"/><path fill-rule="evenodd" clip-rule="evenodd" d="M0.0328606 8.24517C0.416921 3.58585 4.3105 0 8.98563 0H9.46838C14.1435 0 18.0371 3.58585 18.4211 8.24517C18.6279 10.7538 17.853 13.2448 16.2597 15.1934L10.9028 21.7447C10.0367 22.8039 8.41732 22.8039 7.55119 21.7447L2.19433 15.1934C0.600977 13.2448 -0.173921 10.7538 0.0328606 8.24517Z" fill="#95AB52"/></g><ellipse cx="8.98424" cy="8.98442" rx="4.49221" ry="4.49221" fill="#FDF8EB"/></svg>`;
+const _HEART_SVG = `<svg preserveAspectRatio="none" width="100%" height="100%" viewBox="0 0 22.461 22.461" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11.2305" cy="11.2305" r="11.2305" fill="#FFE2C9"/><path d="M8.82838 7.01908C7.09336 7.01908 5.61521 8.31639 5.61521 10.0013C5.61521 11.1636 6.15948 12.1422 6.88082 12.9528C7.59968 13.7606 8.52712 14.4387 9.36556 15.0062L10.8122 15.9855C10.9706 16.0927 11.1784 16.0927 11.3368 15.9855L12.7834 15.0062C13.6219 14.4387 14.5493 13.7606 15.2682 12.9528C15.9895 12.1422 16.5338 11.1636 16.5338 10.0013C16.5338 8.31639 15.0556 7.01908 13.3206 7.01908C12.4262 7.01908 11.6392 7.43844 11.0745 7.98105C10.5097 7.43844 9.72275 7.01908 8.82838 7.01908Z" fill="#BB561E"/></svg>`;
+const _GRASS_SVG = `<svg preserveAspectRatio="none" width="100%" height="100%" viewBox="0 0 320.999 87.7973" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="160.499" cy="45.27" rx="160.499" ry="42.5272" fill="#C4D588"/><ellipse cx="150.453" cy="29.8055" rx="58.547" ry="8.50545" fill="#BBCA7A"/><ellipse cx="60.0611" cy="47.4164" rx="8.58016" ry="3.4795" fill="#FDEBBF"/><ellipse cx="265.985" cy="55.7085" rx="8.58016" ry="3.4795" fill="#FDEBBF"/><ellipse cx="251.854" cy="38.5349" rx="8.58016" ry="3.4795" fill="#FDEBBF"/><ellipse cx="236.353" cy="28.9998" rx="5.07176" ry="2.01853" fill="#FDEBBF"/><path d="M283.493 34.3251C282.196 35.8582 286.838 30.2098 290.346 31.774C291.686 32.3705 293.825 34.5059 292.49 37.1565C288.859 44.3622 279.232 43.5558 270.844 40.3242C262.456 37.0926 260.848 26.5965 268.259 26.5024C272.58 26.4476 273.721 31.6568 273.721 31.6568C273.721 31.6568 273.432 24.6005 278.763 23.958C284.095 23.3155 288.872 27.9682 283.493 34.3251Z" fill="#67B225"/><path d="M45.3124 13.3301C45.7007 15.3412 44.1458 8.02173 48.9352 6.89183C50.7642 6.45905 54.2256 6.48692 55.7217 9.36658C59.7895 17.1944 47.9365 24.7507 37.0039 27.8368C26.0713 30.9229 16.8163 22.4128 23.4593 17.4608C27.3331 14.5733 33.6974 17.7528 33.6974 17.7528C33.6974 17.7528 29.5061 10.8881 33.6974 6.89179C37.8887 2.89551 43.703 4.99076 45.3124 13.3301Z" fill="#67B225"/></svg>`;
+
 const CharacterCard = ({county}) => {
   usePageDataReady();
   const region = REGIONS_DATA[county] || REGIONS_DATA.taoyuan;
-  // For taoyuan keep the baked card (user explicit: 桃園維持現狀)
-  if (county === 'taoyuan') return null;
   const charKey = REGION_TO_CHAR_KEY[county];
-  const charSrc = charKey && (typeof window !== 'undefined' && window.COUNTY_CHARS) ? window.COUNTY_CHARS[charKey] : null;
-  const cropName = region.priceVariety || region.cropApi || '';
-  // Position pinned to baked card slot on tomato_dashboard.avif (top-left).
+  const charSrc = (charKey && typeof window !== 'undefined' && window.COUNTY_CHARS) ? window.COUNTY_CHARS[charKey] : null;
+  // Use cropApi (the canonical crop name) — priceVariety like "番茄-牛番茄" goes
+  // in the price sub-cards, not the big visual label.
+  const cropName = region.cropApi || '';
   return (
     <div style={{
       position:'absolute',
-      left: 16, top: 87,
-      width: 292, height: 293,
+      // Figma Group 23: x=34, y=87, w=292, h=287 (percent of 1440×1468 canvas)
+      left:   `${34/1440*100}%`,
+      top:    `${87/1468*100}%`,
+      width:  `${292/1440*100}%`,
+      height: `${287/1468*100}%`,
       background:'#fdf7ea',
       border:'1.5px solid #efd8c6',
       borderRadius:15,
-      boxSizing:'border-box',
-      padding:'14px 16px',
-      display:'flex', flexDirection:'column', alignItems:'center',
-      fontFamily:"'Noto Sans TC', sans-serif",
+      overflow:'hidden',
+      fontFamily:"'Noto Sans CJK TC', 'Noto Sans TC', sans-serif",
       zIndex: 3,
     }}>
-      {/* 📍 縣市名 */}
+      {/* Grass (bottom band — anchored to design (-8.5, 229), 321×88) */}
       <div style={{
-        alignSelf:'flex-start',
-        fontSize:16, fontWeight:700,
-        color:'#5a7028', letterSpacing:1,
-        display:'flex', alignItems:'center', gap:4,
-      }}>
-        <span>📍</span><span>{region.name}</span>
-      </div>
-      {/* character SVG center */}
+        position:'absolute',
+        left: -8.5, top: 229, width: 321, height: 88,
+        pointerEvents:'none',
+      }} dangerouslySetInnerHTML={{__html: _GRASS_SVG}}/>
+
+      {/* Character SVG — design (91.64, 159), 172.72×190.57 → card-relative origin */}
+      {charSrc && (
+        <img src={charSrc} alt={region.name}
+          style={{
+            position:'absolute',
+            left: 57.64, top: 72,
+            width: 172.72, height: 190.57,
+            objectFit:'contain',
+            pointerEvents:'none',
+          }}/>
+      )}
+
+      {/* Pin icon — design (56.27, 101) → card-relative (22.27, 14) */}
       <div style={{
-        flex:1, width:'100%',
-        display:'flex', alignItems:'center', justifyContent:'center',
-        marginTop: 4,
-      }}>
-        {charSrc && (
-          <img src={charSrc} alt={region.name}
-            style={{width:160, height:160, objectFit:'contain'}}/>
-        )}
-      </div>
-      {/* crop name */}
+        position:'absolute',
+        left: 22.27, top: 14,
+        width: 18.454, height: 22.539,
+      }} dangerouslySetInnerHTML={{__html: _PIN_SVG}}/>
+
+      {/* County name — design (83, 101) → card-relative (49, 14) */}
       <div style={{
-        fontSize:22, fontWeight:900,
-        color:'#3c2f1e', letterSpacing:1.5,
-        marginTop: 4,
-      }}>
-        {cropName}
-      </div>
+        position:'absolute',
+        left: 49, top: 14,
+        fontSize: 16, fontWeight: 700,
+        color: '#3b6826', letterSpacing: 1.6,
+        lineHeight: '22px',
+      }}>{region.name}</div>
+
+      {/* Crop name (large) — design (49, 135) → card-relative (15, 48). Replaces baked "番茄" text */}
+      <div style={{
+        position:'absolute',
+        left: 15, top: 48,
+        fontSize: 30, fontWeight: 900,
+        color: '#3b6826', letterSpacing: 2,
+        lineHeight: '40px',
+      }}>{cropName}</div>
+
+      {/* Heart icon — design (287, 102) → card-relative (253, 15) */}
+      <div style={{
+        position:'absolute',
+        left: 253, top: 15,
+        width: 22.461, height: 22.461,
+      }} dangerouslySetInnerHTML={{__html: _HEART_SVG}}/>
     </div>
   );
 };
