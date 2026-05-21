@@ -4537,6 +4537,8 @@ const _aggregateDaily = (daily, keyFn) => {
 const NONGZHIDAO_MAP = {
   "\u756A\u8304": "code_FJ3",
   "\u725B\u8543\u8304": "code_FJ3",
+  "\u756A\u8304-\u725B\u756A\u8304": "code_FJ3",
+  // priceVariety form (taoyuan default) still maps to FJ3
   "\u91CB\u8FE6": "fruit_31"
 };
 const _rocToISO = (roc) => {
@@ -4553,13 +4555,17 @@ async function _fetchFromMOA(cropName) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`MOA ${res.status}`);
   const json = await res.json();
-  const rows = (json.Data || json.data || []).map((r) => ({
+  let rows = (json.Data || json.data || []).map((r) => ({
     date: _rocToISO(r.TransDate || r.tdate),
     price: Number(r.Avg_Price ?? r.avg_price),
     volume: Number(r.Trans_Quantity ?? r.volume),
     market: r.MarketName || r.market,
     crop: r.CropName || ""
   })).filter((r) => r.date && !isNaN(r.price) && r.crop !== "\u4F11\u5E02" && r.price > 0);
+  if (cropName.includes("-")) {
+    const exact = rows.filter((r) => r.crop === cropName);
+    if (exact.length > 0) rows = exact;
+  }
   rows.sort((a, b) => a.date < b.date ? -1 : 1);
   const daily = _aggregateDaily(rows, (r) => r.date).map((d) => ({ date: d.key, price: d.price, volume: d.volume }));
   const weekly = _aggregateDaily(rows, (r) => _isoYearWeek(r.date));
@@ -5256,7 +5262,7 @@ const CharacterCard = ({ county, cropOverride }) => {
 };
 const Dashboard = ({ onBack, selected, cropOverride }) => {
   const region = REGIONS_DATA[selected] || REGIONS_DATA.taoyuan;
-  const cropName = cropOverride || region.cropApi || "\u756A\u8304";
+  const cropName = cropOverride || region.priceVariety || region.cropApi || "\u756A\u8304";
   return /* @__PURE__ */ React.createElement("div", { style: {
     position: "relative",
     width: "100%",

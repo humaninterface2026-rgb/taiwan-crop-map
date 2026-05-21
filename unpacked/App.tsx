@@ -1256,9 +1256,10 @@ const _aggregateDaily = (daily, keyFn) => {
 //   2. MOA agri API daily transactions per crop, aggregated client-side here.
 //                   Covers every other crop in the wholesale catalogue.
 const NONGZHIDAO_MAP = {
-  '番茄':   'code_FJ3',
-  '牛蕃茄': 'code_FJ3',
-  '釋迦':   'fruit_31',
+  '番茄':         'code_FJ3',
+  '牛蕃茄':       'code_FJ3',
+  '番茄-牛番茄':  'code_FJ3',   // priceVariety form (taoyuan default) still maps to FJ3
+  '釋迦':         'fruit_31',
 };
 
 // MOA returns dates as either "115/05/21" or "115.05.21" — accept both separators.
@@ -1280,16 +1281,21 @@ async function _fetchFromMOA(cropName) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`MOA ${res.status}`);
   const json = await res.json();
-  const rows = (json.Data || json.data || []).map(r => ({
+  let rows = (json.Data || json.data || []).map(r => ({
     date:   _rocToISO(r.TransDate || r.tdate),
     price:  Number(r.Avg_Price ?? r.avg_price),
     volume: Number(r.Trans_Quantity ?? r.volume),
     market: r.MarketName || r.market,
     crop:   r.CropName || '',
   })).filter(r => r.date && !isNaN(r.price) && r.crop !== '休市' && r.price > 0);
-  // MOA returns the queried crop AND any sub-variety rows (e.g. 香蕉,
-  // 香蕉-芭蕉紅芭蕉, 香蕉-旦蕉) — aggregate them all together so the panel
-  // reflects the broad market for that crop.
+  // If a specific variety was requested (cropName contains '-', e.g. "西瓜-大西瓜"
+  // matching REGIONS_DATA.hualien.priceVariety), filter to exact CropName match.
+  // Fallback: if no exact rows exist, fall back to the broad set so the panel
+  // doesn't go empty (some varieties may have sparse trading days).
+  if (cropName.includes('-')) {
+    const exact = rows.filter(r => r.crop === cropName);
+    if (exact.length > 0) rows = exact;
+  }
   rows.sort((a, b) => a.date < b.date ? -1 : 1);
   const daily = _aggregateDaily(rows, r => r.date)
     .map(d => ({ date: d.key, price: d.price, volume: d.volume }));
@@ -2150,10 +2156,14 @@ const CharacterCard = ({county, cropOverride}) => {
 
 const Dashboard = ({onBack, selected, cropOverride}) => {
   const region = REGIONS_DATA[selected] || REGIONS_DATA.taoyuan;
-  // cropOverride (set when a taoyuan township is clicked) wins over the
-  // county's default cropApi. Falls back to 番茄 so the card stays populated
-  // even if region.cropApi is missing for some reason.
-  const cropName = cropOverride || region.cropApi || '番茄';
+  // Precedence:
+  //   1. cropOverride  (taoyuan township click — already a fully-qualified name)
+  //   2. priceVariety  ("西瓜-大西瓜", "番茄-牛番茄" etc. — narrows MOA filter to
+  //                     the county's headline sub-variety; nongzhidao map also
+  //                     covers the variety forms so 桃園 still hits FJ3 fast path)
+  //   3. cropApi       ("西瓜", "番茄"); broad fallback when no variety set
+  //   4. literal '番茄' final safety net
+  const cropName = cropOverride || region.priceVariety || region.cropApi || '番茄';
   return (
   <div style={{
     position:'relative',
