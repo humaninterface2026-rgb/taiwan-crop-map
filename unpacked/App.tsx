@@ -661,7 +661,7 @@ const COUNTY_NAMES = {
  * positioned cards (Weather, Price) that overlay the static data figures so
  * they show live values from Open-Meteo + 農業部交易行情 APIs.
  */
-const Page = ({selected, onSelect}) => {
+const Page = ({selected, onSelect, onCropSelect}) => {
   // Subscribe to async page-data load so we re-render once COUNTY_CHARS /
   // BUTTON_SVGS / TAOYUAN_CROPS land. Before that, hover overlays render as
   // empty (existing `?.` chains already handle missing keys gracefully).
@@ -885,7 +885,10 @@ const Page = ({selected, onSelect}) => {
                   onMouseLeave={() => setHovered(null)}
                   onClick={() => {
                     // 牛蕃茄 (1_30) → 番茄市場儀表板
-                    if (t.crop === '牛蕃茄') window.location.hash = 'dashboard';
+                    // Click any township polygon → carry its crop into the
+                    // dashboard via onCropSelect (App-level state).
+                    if (onCropSelect) onCropSelect(t.crop);
+                    else if (t.crop === '牛蕃茄') window.location.hash = 'dashboard';
                   }}
                 />
               </svg>
@@ -1872,7 +1875,7 @@ const ExportTrendChart = () => {
  * Phase 1：純底圖 + 「回上一頁」back button。
  * Phase 2：每個鄉鎮 polygon 支援 hover 變色 + 角色浮現（待補）。
  */
-const TaoyuanDetail = ({onBack}) => {
+const TaoyuanDetail = ({onBack, onCropSelect}) => {
   // AI 渲染的圖原始 size 是 2403×3000（design 1201.5×1500）
   // 圖內已有「← 回上一頁」label，shape 大約在 design coord (62-176, 30-72) 範圍
   // 用透明 click area 覆蓋該位置觸發 onBack
@@ -1939,14 +1942,18 @@ const _PIN_SVG = `<svg preserveAspectRatio="none" width="100%" height="100%" vie
 const _HEART_SVG = `<svg preserveAspectRatio="none" width="100%" height="100%" viewBox="0 0 22.461 22.461" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11.2305" cy="11.2305" r="11.2305" fill="#FFE2C9"/><path d="M8.82838 7.01908C7.09336 7.01908 5.61521 8.31639 5.61521 10.0013C5.61521 11.1636 6.15948 12.1422 6.88082 12.9528C7.59968 13.7606 8.52712 14.4387 9.36556 15.0062L10.8122 15.9855C10.9706 16.0927 11.1784 16.0927 11.3368 15.9855L12.7834 15.0062C13.6219 14.4387 14.5493 13.7606 15.2682 12.9528C15.9895 12.1422 16.5338 11.1636 16.5338 10.0013C16.5338 8.31639 15.0556 7.01908 13.3206 7.01908C12.4262 7.01908 11.6392 7.43844 11.0745 7.98105C10.5097 7.43844 9.72275 7.01908 8.82838 7.01908Z" fill="#BB561E"/></svg>`;
 const _GRASS_SVG = `<svg preserveAspectRatio="none" width="100%" height="100%" viewBox="0 0 320.999 87.7973" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="160.499" cy="45.27" rx="160.499" ry="42.5272" fill="#C4D588"/><ellipse cx="150.453" cy="29.8055" rx="58.547" ry="8.50545" fill="#BBCA7A"/><ellipse cx="60.0611" cy="47.4164" rx="8.58016" ry="3.4795" fill="#FDEBBF"/><ellipse cx="265.985" cy="55.7085" rx="8.58016" ry="3.4795" fill="#FDEBBF"/><ellipse cx="251.854" cy="38.5349" rx="8.58016" ry="3.4795" fill="#FDEBBF"/><ellipse cx="236.353" cy="28.9998" rx="5.07176" ry="2.01853" fill="#FDEBBF"/><path d="M283.493 34.3251C282.196 35.8582 286.838 30.2098 290.346 31.774C291.686 32.3705 293.825 34.5059 292.49 37.1565C288.859 44.3622 279.232 43.5558 270.844 40.3242C262.456 37.0926 260.848 26.5965 268.259 26.5024C272.58 26.4476 273.721 31.6568 273.721 31.6568C273.721 31.6568 273.432 24.6005 278.763 23.958C284.095 23.3155 288.872 27.9682 283.493 34.3251Z" fill="#67B225"/><path d="M45.3124 13.3301C45.7007 15.3412 44.1458 8.02173 48.9352 6.89183C50.7642 6.45905 54.2256 6.48692 55.7217 9.36658C59.7895 17.1944 47.9365 24.7507 37.0039 27.8368C26.0713 30.9229 16.8163 22.4128 23.4593 17.4608C27.3331 14.5733 33.6974 17.7528 33.6974 17.7528C33.6974 17.7528 29.5061 10.8881 33.6974 6.89179C37.8887 2.89551 43.703 4.99076 45.3124 13.3301Z" fill="#67B225"/></svg>`;
 
-const CharacterCard = ({county}) => {
+const CharacterCard = ({county, cropOverride}) => {
   usePageDataReady();
   const region = REGIONS_DATA[county] || REGIONS_DATA.taoyuan;
+  // When a taoyuan township polygon was clicked, cropOverride carries that
+  // township's crop name (e.g. '綠竹筍'). The matching character SVG lives in
+  // window.TAOYUAN_CROPS (10 township-level SVGs), not COUNTY_CHARS.
+  const useOverride = !!cropOverride && county === 'taoyuan';
+  const cropName = useOverride ? cropOverride : (region.cropApi || '');
   const charKey = REGION_TO_CHAR_KEY[county];
-  const charSrc = (charKey && typeof window !== 'undefined' && window.COUNTY_CHARS) ? window.COUNTY_CHARS[charKey] : null;
-  // Use cropApi (the canonical crop name) — priceVariety like "番茄-牛番茄" goes
-  // in the price sub-cards, not the big visual label.
-  const cropName = region.cropApi || '';
+  const charSrc = useOverride
+    ? ((typeof window !== 'undefined' && window.TAOYUAN_CROPS) ? window.TAOYUAN_CROPS[cropOverride] : null)
+    : ((charKey && typeof window !== 'undefined' && window.COUNTY_CHARS) ? window.COUNTY_CHARS[charKey] : null);
   return (
     <div style={{
       position:'absolute',
@@ -2016,7 +2023,7 @@ const CharacterCard = ({county}) => {
   );
 };
 
-const Dashboard = ({onBack, selected}) => (
+const Dashboard = ({onBack, selected, cropOverride}) => (
   <div style={{
     position:'relative',
     width:'100%',
@@ -2050,7 +2057,7 @@ const Dashboard = ({onBack, selected}) => (
         alt="桃園市 番茄市場儀表板"
         style={{display:'block', width:1440, height:'auto', userSelect:'none'}}
       />
-      <CharacterCard county={selected}/>
+      <CharacterCard county={selected} cropOverride={cropOverride}/>
       <PricePanelCard/>
       <TrendChartCard/>
       <VolumeBarsCard/>
@@ -2064,6 +2071,11 @@ const Dashboard = ({onBack, selected}) => (
 /* ── MAIN APP ────────────────────────────────────────────────────────────── */
 const App = () => {
   const [selected, setSelected] = useState(()=>localStorage.getItem('tw-map-sel')||'taoyuan');
+  // When the user clicks a township polygon inside the taoyuan-detail view,
+  // this carries the township's crop name through to the dashboard's
+  // CharacterCard so it shows e.g. 綠竹筍 + the matching TAOYUAN_CROPS SVG.
+  // null = no override (use county-level cropApi).
+  const [taoyuanCrop, setTaoyuanCrop] = useState(null);
   const computeView = () => {
     const h = window.location.hash;
     if (h === '#dashboard') return 'dashboard';
@@ -2128,13 +2140,24 @@ const App = () => {
     };
   }, []);
 
+  // Shared: when a taoyuan township is clicked (either in Page's leftMapView
+  // overlay or in the dedicated TaoyuanDetail page), stash the crop and
+  // navigate to the dashboard so it can render with cropOverride.
+  const onCropSelect = (crop) => { setTaoyuanCrop(crop); window.location.hash = 'dashboard'; };
+
   if (view === 'dashboard') {
-    return <Dashboard onBack={() => { window.location.hash = ''; }} selected={selected}/>;
+    return <Dashboard onBack={() => { window.location.hash = ''; }} selected={selected} cropOverride={taoyuanCrop}/>;
   }
   if (view === 'taoyuan-detail') {
-    return <TaoyuanDetail onBack={() => { window.location.hash = 'dashboard'; }}/>;
+    return <TaoyuanDetail onBack={() => { window.location.hash = 'dashboard'; }} onCropSelect={onCropSelect}/>;
   }
-  return <Page selected={selected} onSelect={handleSelect}/>;
+  // Clicking a non-taoyuan county on the main map should drop any stale
+  // taoyuan-crop override.
+  return <Page
+    selected={selected}
+    onSelect={(id) => { handleSelect(id); if (id !== 'taoyuan') setTaoyuanCrop(null); }}
+    onCropSelect={onCropSelect}
+  />;
 };
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
