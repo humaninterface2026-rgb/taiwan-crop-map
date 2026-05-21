@@ -83,15 +83,52 @@ const useChart = () => {
  * we have a per-region static fallback before live data arrives.
  */
 const REGIONS_DATA = {
-  taipei:    { name:'台北市', coords:[25.0330,121.5654], cropApi:'菠菜',   weather:{temp:24,desc:'晴時多雲',hum:72,rain:15,fore:[{l:'明天',t:23,icon:'cloud'},{l:'後天',t:22,icon:'cloud'},{l:'週五',t:25,icon:'sun'}]} },
+  taipei:    { name:'台北市', coords:[25.0330,121.5654], cropApi:'綠竹筍', weather:{temp:24,desc:'晴時多雲',hum:72,rain:15,fore:[{l:'明天',t:23,icon:'cloud'},{l:'後天',t:22,icon:'cloud'},{l:'週五',t:25,icon:'sun'}]} },
   taoyuan:   { name:'桃園市', coords:[24.9937,121.3010], cropApi:'番茄',   priceVariety:'番茄-牛番茄', weather:{temp:26,desc:'晴天',hum:65,rain:5,fore:[{l:'明天',t:25,icon:'sun'},{l:'後天',t:24,icon:'sun'},{l:'週五',t:26,icon:'cloud'}]} },
-  yilan:     { name:'宜蘭縣', coords:[24.7021,121.7377], cropApi:'蘿蔔',   weather:{temp:22,desc:'多雲有雨',hum:85,rain:45,fore:[{l:'明天',t:22,icon:'cloud'},{l:'後天',t:21,icon:'cloud'},{l:'週五',t:23,icon:'cloud'}]} },
-  taichung:  { name:'台中市', coords:[24.1477,120.6736], cropApi:'南瓜',   weather:{temp:27,desc:'多雲',hum:68,rain:12,fore:[{l:'明天',t:26,icon:'cloud'},{l:'後天',t:25,icon:'sun'},{l:'週五',t:27,icon:'sun'}]} },
-  hualien:   { name:'花蓮縣', coords:[23.9871,121.6015], cropApi:'茄子',   weather:{temp:26,desc:'晴天',hum:70,rain:8,fore:[{l:'明天',t:25,icon:'sun'},{l:'後天',t:26,icon:'sun'},{l:'週五',t:27,icon:'sun'}]} },
-  yunlin:    { name:'雲林縣', coords:[23.7092,120.4313], cropApi:'洋蔥',   weather:{temp:29,desc:'晴天',hum:62,rain:5,fore:[{l:'明天',t:28,icon:'sun'},{l:'後天',t:27,icon:'sun'},{l:'週五',t:30,icon:'sun'}]} },
-  tainan:    { name:'台南市', coords:[22.9999,120.2269], cropApi:'彩椒',   weather:{temp:28,desc:'多雲時晴',hum:70,rain:10,fore:[{l:'明天',t:27,icon:'cloud'},{l:'後天',t:26,icon:'cloud'},{l:'週五',t:28,icon:'sun'}]} },
-  kaohsiung: { name:'高雄市', coords:[22.6273,120.3014], cropApi:'花椰菜', weather:{temp:30,desc:'晴天',hum:65,rain:5,fore:[{l:'明天',t:29,icon:'sun'},{l:'後天',t:28,icon:'sun'},{l:'週五',t:31,icon:'sun'}]} },
-  pingtung:  { name:'屏東縣', coords:[22.6690,120.4873], cropApi:'鳳梨',   weather:{temp:32,desc:'大晴天',hum:60,rain:3,fore:[{l:'明天',t:31,icon:'sun'},{l:'後天',t:30,icon:'sun'},{l:'週五',t:32,icon:'sun'}]} },
+  yilan:     { name:'宜蘭縣', coords:[24.7021,121.7377], cropApi:'青蔥', priceVariety:'青蔥-粉蔥', weather:{temp:22,desc:'多雲有雨',hum:85,rain:45,fore:[{l:'明天',t:22,icon:'cloud'},{l:'後天',t:21,icon:'cloud'},{l:'週五',t:23,icon:'cloud'}]} },
+  taichung:  { name:'台中市', coords:[24.1477,120.6736], cropApi:'梨', priceVariety:'梨-寶島甘露梨', weather:{temp:27,desc:'多雲',hum:68,rain:12,fore:[{l:'明天',t:26,icon:'cloud'},{l:'後天',t:25,icon:'sun'},{l:'週五',t:27,icon:'sun'}]} },
+  hualien:   { name:'花蓮縣', coords:[23.9871,121.6015], cropApi:'西瓜', priceVariety:'西瓜-大西瓜', weather:{temp:26,desc:'晴天',hum:70,rain:8,fore:[{l:'明天',t:25,icon:'sun'},{l:'後天',t:26,icon:'sun'},{l:'週五',t:27,icon:'sun'}]} },
+  yunlin:    { name:'雲林縣', coords:[23.7092,120.4313], cropApi:'大蒜', priceVariety:'大蒜-硬梗', weather:{temp:29,desc:'晴天',hum:62,rain:5,fore:[{l:'明天',t:28,icon:'sun'},{l:'後天',t:27,icon:'sun'},{l:'週五',t:30,icon:'sun'}]} },
+  tainan:    { name:'台南市', coords:[22.9999,120.2269], cropApi:'芒果', weather:{temp:28,desc:'多雲時晴',hum:70,rain:10,fore:[{l:'明天',t:27,icon:'cloud'},{l:'後天',t:26,icon:'cloud'},{l:'週五',t:28,icon:'sun'}]} },
+  kaohsiung: { name:'高雄市', coords:[22.6273,120.3014], cropApi:'芭樂', weather:{temp:30,desc:'晴天',hum:65,rain:5,fore:[{l:'明天',t:29,icon:'sun'},{l:'後天',t:28,icon:'sun'},{l:'週五',t:31,icon:'sun'}]} },
+  pingtung:  { name:'屏東縣', coords:[22.6690,120.4873], cropApi:'洋蔥', weather:{temp:32,desc:'大晴天',hum:60,rain:3,fore:[{l:'明天',t:31,icon:'sun'},{l:'後天',t:30,icon:'sun'},{l:'週五',t:32,icon:'sun'}]} },
+  newtaipei:      { name:'新北市', coords:[25.0123,121.4674], cropApi:'包種茶', weather:{temp:25,desc:'多雲',hum:75,rain:20,fore:[{l:'明天',t:24,icon:'cloud'},{l:'後天',t:25,icon:'cloud'},{l:'週五',t:26,icon:'sun'}]} },
+  taitung:        { name:'台東縣', coords:[22.7583,121.1444], cropApi:'釋迦', weather:{temp:27,desc:'多雲時晴',hum:75,rain:15,fore:[{l:'明天',t:26,icon:'cloud'},{l:'後天',t:27,icon:'sun'},{l:'週五',t:28,icon:'sun'}]} },
+  chiayi_city:    { name:'嘉義市', coords:[23.4801,120.4491], cropApi:'哈蜜瓜', weather:{temp:29,desc:'晴天',hum:65,rain:5,fore:[{l:'明天',t:28,icon:'sun'},{l:'後天',t:29,icon:'sun'},{l:'週五',t:30,icon:'sun'}]} },
+  hsinchu_city:   { name:'新竹市', coords:[24.8138,120.9675], cropApi:'水稻', weather:{temp:26,desc:'多雲',hum:70,rain:15,fore:[{l:'明天',t:25,icon:'cloud'},{l:'後天',t:26,icon:'cloud'},{l:'週五',t:27,icon:'sun'}]} },
+  chiayi_county:  { name:'嘉義縣', coords:[23.4523,120.2552], cropApi:'鳳梨', weather:{temp:29,desc:'晴天',hum:68,rain:8,fore:[{l:'明天',t:28,icon:'sun'},{l:'後天',t:29,icon:'sun'},{l:'週五',t:30,icon:'sun'}]} },
+  miaoli:         { name:'苗栗縣', coords:[24.5602,120.8214], cropApi:'草莓', weather:{temp:26,desc:'晴時多雲',hum:68,rain:10,fore:[{l:'明天',t:25,icon:'cloud'},{l:'後天',t:26,icon:'sun'},{l:'週五',t:27,icon:'sun'}]} },
+  changhua:       { name:'彰化縣', coords:[24.0758,120.5418], cropApi:'葡萄', weather:{temp:28,desc:'多雲時晴',hum:70,rain:10,fore:[{l:'明天',t:27,icon:'cloud'},{l:'後天',t:28,icon:'sun'},{l:'週五',t:29,icon:'sun'}]} },
+  hsinchu_county: { name:'新竹縣', coords:[24.8389,121.0177], cropApi:'甜柿', weather:{temp:26,desc:'多雲',hum:72,rain:18,fore:[{l:'明天',t:25,icon:'cloud'},{l:'後天',t:26,icon:'cloud'},{l:'週五',t:27,icon:'sun'}]} },
+  nantou:         { name:'南投縣', coords:[23.9100,120.6878], cropApi:'香蕉', weather:{temp:27,desc:'多雲時晴',hum:72,rain:15,fore:[{l:'明天',t:26,icon:'cloud'},{l:'後天',t:27,icon:'sun'},{l:'週五',t:28,icon:'sun'}]} },
+  keelung:        { name:'基隆市', coords:[25.1276,121.7392], cropApi:'山藥', weather:{temp:24,desc:'多雲有雨',hum:82,rain:35,fore:[{l:'明天',t:23,icon:'cloud'},{l:'後天',t:24,icon:'cloud'},{l:'週五',t:25,icon:'cloud'}]} },
+};
+
+/* ── REGION KEY → COUNTY_CHARS KEY ───────────────────────────────────────
+ * REGIONS_DATA uses english region keys (nantou, taipei...) while county_chars
+ * uses alphabetical-prefixed keys (o_nantou, p_taipei...). This map bridges
+ * the two for the dashboard CharacterCard overlay.
+ */
+const REGION_TO_CHAR_KEY = {
+  newtaipei:      'a_newtaipei',
+  taoyuan:        'b_taoyuan',
+  taitung:        'c_taitung',
+  hualien:        'd_hualien',
+  kaohsiung:      'e_kaohsiung',
+  pingtung:       'f_pingtung',
+  taichung:       'g_taichung',
+  yilan:          'h_yilan',
+  chiayi_county:  'i_chiayi_county',
+  tainan:         'j_tainan',
+  miaoli:         'k_miaoli',
+  yunlin:         'l_yunlin',
+  changhua:       'm_changhua',
+  hsinchu_county: 'n_hsinchu_county',
+  nantou:         'o_nantou',
+  taipei:         'p_taipei',
+  keelung:        'q_keelung',
+  chiayi_city:    'extra_chiayi_city',
+  hsinchu_city:   'extra_hsinchu_city',
 };
 
 /* ── WEATHER ICONS ─────────────────────────────────────────────────────── */
@@ -928,6 +965,14 @@ const Page = ({selected, onSelect}) => {
                 if (c.id === TAOYUAN_POLYGON_ID) {
                   setLeftMapView('taoyuan');
                   setHovered(null);
+                  return;
+                }
+                // 其餘 16 個 polygon county → 切 selected + 開 dashboard
+                const charKey = COUNTY_CHAR_MAP[c.id];
+                if (charKey) {
+                  const regionKey = charKey.replace(/^[a-q]_/, '');
+                  onSelect(regionKey);
+                  window.location.hash = 'dashboard';
                 }
               }}
             />
@@ -943,6 +988,11 @@ const Page = ({selected, onSelect}) => {
             style={{cursor:'pointer'}}
             onMouseEnter={() => setHovered(h.id)}
             onMouseLeave={() => setHovered(null)}
+            onClick={() => {
+              const regionKey = h.id.replace(/^extra_/, '');
+              onSelect(regionKey);
+              window.location.hash = 'dashboard';
+            }}
           />
         ))}
 
@@ -1298,13 +1348,17 @@ const PricePanelCard = () => {
 
   const fmt = v => (v == null ? '—' : v.toLocaleString('zh-TW', {maximumFractionDigits:2}));
 
-  // Position over the design's 價格面板 slot. Outer card y=87-380.
+  // Position over the design's 價格面板 slot. Figma node 39-1506:
+  //   character card (Group 23):  x=34,  width=292 → right edge 326
+  //   3 price-panel cards (Groups 171/175/176): x=337, width=377, y=87/187/287, h=88 each
+  //   gap between character and price panel = 337 − 326 = 11 px
+  // Outer wrapper covers all 3 sub-cards y=87 to y=380 (small bottom slack).
   return (
     <div style={{
       position:'absolute',
-      left:   `${320/1440*100}%`,
+      left:   `${337/1440*100}%`,
       top:    `${87/1468*100}%`,
-      width:  `${(715-320)/1440*100}%`,
+      width:  `${377/1440*100}%`,
       height: `${(380-87)/1468*100}%`,
       background:'#fceadb',
       border:'1.5px solid #ead1bb',
@@ -1859,7 +1913,69 @@ const TaoyuanDetail = ({onBack}) => {
   );
 };
 
-const Dashboard = ({onBack}) => (
+/* ── CharacterCard — dynamic top-left card on dashboard ───────────────────
+ * Overlays the baked 番茄 character card with the selected county's character +
+ * county name + crop name. For taoyuan we hide the overlay so the baked card
+ * (with its 番茄-牛番茄 detail) shows through unchanged.
+ * Card spec from Figma node 39-1506: 292×287, #fdf7ea bg, #efd8c6 border, 15px
+ * radius, 📍 縣市名 on top, character SVG center, crop name below.
+ */
+const CharacterCard = ({county}) => {
+  usePageDataReady();
+  const region = REGIONS_DATA[county] || REGIONS_DATA.taoyuan;
+  // For taoyuan keep the baked card (user explicit: 桃園維持現狀)
+  if (county === 'taoyuan') return null;
+  const charKey = REGION_TO_CHAR_KEY[county];
+  const charSrc = charKey && (typeof window !== 'undefined' && window.COUNTY_CHARS) ? window.COUNTY_CHARS[charKey] : null;
+  const cropName = region.priceVariety || region.cropApi || '';
+  // Position pinned to baked card slot on tomato_dashboard.avif (top-left).
+  return (
+    <div style={{
+      position:'absolute',
+      left: 16, top: 87,
+      width: 292, height: 293,
+      background:'#fdf7ea',
+      border:'1.5px solid #efd8c6',
+      borderRadius:15,
+      boxSizing:'border-box',
+      padding:'14px 16px',
+      display:'flex', flexDirection:'column', alignItems:'center',
+      fontFamily:"'Noto Sans TC', sans-serif",
+      zIndex: 3,
+    }}>
+      {/* 📍 縣市名 */}
+      <div style={{
+        alignSelf:'flex-start',
+        fontSize:16, fontWeight:700,
+        color:'#5a7028', letterSpacing:1,
+        display:'flex', alignItems:'center', gap:4,
+      }}>
+        <span>📍</span><span>{region.name}</span>
+      </div>
+      {/* character SVG center */}
+      <div style={{
+        flex:1, width:'100%',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        marginTop: 4,
+      }}>
+        {charSrc && (
+          <img src={charSrc} alt={region.name}
+            style={{width:160, height:160, objectFit:'contain'}}/>
+        )}
+      </div>
+      {/* crop name */}
+      <div style={{
+        fontSize:22, fontWeight:900,
+        color:'#3c2f1e', letterSpacing:1.5,
+        marginTop: 4,
+      }}>
+        {cropName}
+      </div>
+    </div>
+  );
+};
+
+const Dashboard = ({onBack, selected}) => (
   <div style={{
     position:'relative',
     width:'100%',
@@ -1893,6 +2009,7 @@ const Dashboard = ({onBack}) => (
         alt="桃園市 番茄市場儀表板"
         style={{display:'block', width:1440, height:'auto', userSelect:'none'}}
       />
+      <CharacterCard county={selected}/>
       <PricePanelCard/>
       <TrendChartCard/>
       <VolumeBarsCard/>
@@ -1971,7 +2088,7 @@ const App = () => {
   }, []);
 
   if (view === 'dashboard') {
-    return <Dashboard onBack={() => { window.location.hash = ''; }}/>;
+    return <Dashboard onBack={() => { window.location.hash = ''; }} selected={selected}/>;
   }
   if (view === 'taoyuan-detail') {
     return <TaoyuanDetail onBack={() => { window.location.hash = 'dashboard'; }}/>;

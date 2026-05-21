@@ -3455,15 +3455,46 @@ const useChart = () => {
   return ok;
 };
 const REGIONS_DATA = {
-  taipei: { name: "\u53F0\u5317\u5E02", coords: [25.033, 121.5654], cropApi: "\u83E0\u83DC", weather: { temp: 24, desc: "\u6674\u6642\u591A\u96F2", hum: 72, rain: 15, fore: [{ l: "\u660E\u5929", t: 23, icon: "cloud" }, { l: "\u5F8C\u5929", t: 22, icon: "cloud" }, { l: "\u9031\u4E94", t: 25, icon: "sun" }] } },
+  taipei: { name: "\u53F0\u5317\u5E02", coords: [25.033, 121.5654], cropApi: "\u7DA0\u7AF9\u7B4D", weather: { temp: 24, desc: "\u6674\u6642\u591A\u96F2", hum: 72, rain: 15, fore: [{ l: "\u660E\u5929", t: 23, icon: "cloud" }, { l: "\u5F8C\u5929", t: 22, icon: "cloud" }, { l: "\u9031\u4E94", t: 25, icon: "sun" }] } },
   taoyuan: { name: "\u6843\u5712\u5E02", coords: [24.9937, 121.301], cropApi: "\u756A\u8304", priceVariety: "\u756A\u8304-\u725B\u756A\u8304", weather: { temp: 26, desc: "\u6674\u5929", hum: 65, rain: 5, fore: [{ l: "\u660E\u5929", t: 25, icon: "sun" }, { l: "\u5F8C\u5929", t: 24, icon: "sun" }, { l: "\u9031\u4E94", t: 26, icon: "cloud" }] } },
-  yilan: { name: "\u5B9C\u862D\u7E23", coords: [24.7021, 121.7377], cropApi: "\u863F\u8514", weather: { temp: 22, desc: "\u591A\u96F2\u6709\u96E8", hum: 85, rain: 45, fore: [{ l: "\u660E\u5929", t: 22, icon: "cloud" }, { l: "\u5F8C\u5929", t: 21, icon: "cloud" }, { l: "\u9031\u4E94", t: 23, icon: "cloud" }] } },
-  taichung: { name: "\u53F0\u4E2D\u5E02", coords: [24.1477, 120.6736], cropApi: "\u5357\u74DC", weather: { temp: 27, desc: "\u591A\u96F2", hum: 68, rain: 12, fore: [{ l: "\u660E\u5929", t: 26, icon: "cloud" }, { l: "\u5F8C\u5929", t: 25, icon: "sun" }, { l: "\u9031\u4E94", t: 27, icon: "sun" }] } },
-  hualien: { name: "\u82B1\u84EE\u7E23", coords: [23.9871, 121.6015], cropApi: "\u8304\u5B50", weather: { temp: 26, desc: "\u6674\u5929", hum: 70, rain: 8, fore: [{ l: "\u660E\u5929", t: 25, icon: "sun" }, { l: "\u5F8C\u5929", t: 26, icon: "sun" }, { l: "\u9031\u4E94", t: 27, icon: "sun" }] } },
-  yunlin: { name: "\u96F2\u6797\u7E23", coords: [23.7092, 120.4313], cropApi: "\u6D0B\u8525", weather: { temp: 29, desc: "\u6674\u5929", hum: 62, rain: 5, fore: [{ l: "\u660E\u5929", t: 28, icon: "sun" }, { l: "\u5F8C\u5929", t: 27, icon: "sun" }, { l: "\u9031\u4E94", t: 30, icon: "sun" }] } },
-  tainan: { name: "\u53F0\u5357\u5E02", coords: [22.9999, 120.2269], cropApi: "\u5F69\u6912", weather: { temp: 28, desc: "\u591A\u96F2\u6642\u6674", hum: 70, rain: 10, fore: [{ l: "\u660E\u5929", t: 27, icon: "cloud" }, { l: "\u5F8C\u5929", t: 26, icon: "cloud" }, { l: "\u9031\u4E94", t: 28, icon: "sun" }] } },
-  kaohsiung: { name: "\u9AD8\u96C4\u5E02", coords: [22.6273, 120.3014], cropApi: "\u82B1\u6930\u83DC", weather: { temp: 30, desc: "\u6674\u5929", hum: 65, rain: 5, fore: [{ l: "\u660E\u5929", t: 29, icon: "sun" }, { l: "\u5F8C\u5929", t: 28, icon: "sun" }, { l: "\u9031\u4E94", t: 31, icon: "sun" }] } },
-  pingtung: { name: "\u5C4F\u6771\u7E23", coords: [22.669, 120.4873], cropApi: "\u9CF3\u68A8", weather: { temp: 32, desc: "\u5927\u6674\u5929", hum: 60, rain: 3, fore: [{ l: "\u660E\u5929", t: 31, icon: "sun" }, { l: "\u5F8C\u5929", t: 30, icon: "sun" }, { l: "\u9031\u4E94", t: 32, icon: "sun" }] } }
+  yilan: { name: "\u5B9C\u862D\u7E23", coords: [24.7021, 121.7377], cropApi: "\u9752\u8525", priceVariety: "\u9752\u8525-\u7C89\u8525", weather: { temp: 22, desc: "\u591A\u96F2\u6709\u96E8", hum: 85, rain: 45, fore: [{ l: "\u660E\u5929", t: 22, icon: "cloud" }, { l: "\u5F8C\u5929", t: 21, icon: "cloud" }, { l: "\u9031\u4E94", t: 23, icon: "cloud" }] } },
+  taichung: { name: "\u53F0\u4E2D\u5E02", coords: [24.1477, 120.6736], cropApi: "\u68A8", priceVariety: "\u68A8-\u5BF6\u5CF6\u7518\u9732\u68A8", weather: { temp: 27, desc: "\u591A\u96F2", hum: 68, rain: 12, fore: [{ l: "\u660E\u5929", t: 26, icon: "cloud" }, { l: "\u5F8C\u5929", t: 25, icon: "sun" }, { l: "\u9031\u4E94", t: 27, icon: "sun" }] } },
+  hualien: { name: "\u82B1\u84EE\u7E23", coords: [23.9871, 121.6015], cropApi: "\u897F\u74DC", priceVariety: "\u897F\u74DC-\u5927\u897F\u74DC", weather: { temp: 26, desc: "\u6674\u5929", hum: 70, rain: 8, fore: [{ l: "\u660E\u5929", t: 25, icon: "sun" }, { l: "\u5F8C\u5929", t: 26, icon: "sun" }, { l: "\u9031\u4E94", t: 27, icon: "sun" }] } },
+  yunlin: { name: "\u96F2\u6797\u7E23", coords: [23.7092, 120.4313], cropApi: "\u5927\u849C", priceVariety: "\u5927\u849C-\u786C\u6897", weather: { temp: 29, desc: "\u6674\u5929", hum: 62, rain: 5, fore: [{ l: "\u660E\u5929", t: 28, icon: "sun" }, { l: "\u5F8C\u5929", t: 27, icon: "sun" }, { l: "\u9031\u4E94", t: 30, icon: "sun" }] } },
+  tainan: { name: "\u53F0\u5357\u5E02", coords: [22.9999, 120.2269], cropApi: "\u8292\u679C", weather: { temp: 28, desc: "\u591A\u96F2\u6642\u6674", hum: 70, rain: 10, fore: [{ l: "\u660E\u5929", t: 27, icon: "cloud" }, { l: "\u5F8C\u5929", t: 26, icon: "cloud" }, { l: "\u9031\u4E94", t: 28, icon: "sun" }] } },
+  kaohsiung: { name: "\u9AD8\u96C4\u5E02", coords: [22.6273, 120.3014], cropApi: "\u82AD\u6A02", weather: { temp: 30, desc: "\u6674\u5929", hum: 65, rain: 5, fore: [{ l: "\u660E\u5929", t: 29, icon: "sun" }, { l: "\u5F8C\u5929", t: 28, icon: "sun" }, { l: "\u9031\u4E94", t: 31, icon: "sun" }] } },
+  pingtung: { name: "\u5C4F\u6771\u7E23", coords: [22.669, 120.4873], cropApi: "\u6D0B\u8525", weather: { temp: 32, desc: "\u5927\u6674\u5929", hum: 60, rain: 3, fore: [{ l: "\u660E\u5929", t: 31, icon: "sun" }, { l: "\u5F8C\u5929", t: 30, icon: "sun" }, { l: "\u9031\u4E94", t: 32, icon: "sun" }] } },
+  newtaipei: { name: "\u65B0\u5317\u5E02", coords: [25.0123, 121.4674], cropApi: "\u5305\u7A2E\u8336", weather: { temp: 25, desc: "\u591A\u96F2", hum: 75, rain: 20, fore: [{ l: "\u660E\u5929", t: 24, icon: "cloud" }, { l: "\u5F8C\u5929", t: 25, icon: "cloud" }, { l: "\u9031\u4E94", t: 26, icon: "sun" }] } },
+  taitung: { name: "\u53F0\u6771\u7E23", coords: [22.7583, 121.1444], cropApi: "\u91CB\u8FE6", weather: { temp: 27, desc: "\u591A\u96F2\u6642\u6674", hum: 75, rain: 15, fore: [{ l: "\u660E\u5929", t: 26, icon: "cloud" }, { l: "\u5F8C\u5929", t: 27, icon: "sun" }, { l: "\u9031\u4E94", t: 28, icon: "sun" }] } },
+  chiayi_city: { name: "\u5609\u7FA9\u5E02", coords: [23.4801, 120.4491], cropApi: "\u54C8\u871C\u74DC", weather: { temp: 29, desc: "\u6674\u5929", hum: 65, rain: 5, fore: [{ l: "\u660E\u5929", t: 28, icon: "sun" }, { l: "\u5F8C\u5929", t: 29, icon: "sun" }, { l: "\u9031\u4E94", t: 30, icon: "sun" }] } },
+  hsinchu_city: { name: "\u65B0\u7AF9\u5E02", coords: [24.8138, 120.9675], cropApi: "\u6C34\u7A3B", weather: { temp: 26, desc: "\u591A\u96F2", hum: 70, rain: 15, fore: [{ l: "\u660E\u5929", t: 25, icon: "cloud" }, { l: "\u5F8C\u5929", t: 26, icon: "cloud" }, { l: "\u9031\u4E94", t: 27, icon: "sun" }] } },
+  chiayi_county: { name: "\u5609\u7FA9\u7E23", coords: [23.4523, 120.2552], cropApi: "\u9CF3\u68A8", weather: { temp: 29, desc: "\u6674\u5929", hum: 68, rain: 8, fore: [{ l: "\u660E\u5929", t: 28, icon: "sun" }, { l: "\u5F8C\u5929", t: 29, icon: "sun" }, { l: "\u9031\u4E94", t: 30, icon: "sun" }] } },
+  miaoli: { name: "\u82D7\u6817\u7E23", coords: [24.5602, 120.8214], cropApi: "\u8349\u8393", weather: { temp: 26, desc: "\u6674\u6642\u591A\u96F2", hum: 68, rain: 10, fore: [{ l: "\u660E\u5929", t: 25, icon: "cloud" }, { l: "\u5F8C\u5929", t: 26, icon: "sun" }, { l: "\u9031\u4E94", t: 27, icon: "sun" }] } },
+  changhua: { name: "\u5F70\u5316\u7E23", coords: [24.0758, 120.5418], cropApi: "\u8461\u8404", weather: { temp: 28, desc: "\u591A\u96F2\u6642\u6674", hum: 70, rain: 10, fore: [{ l: "\u660E\u5929", t: 27, icon: "cloud" }, { l: "\u5F8C\u5929", t: 28, icon: "sun" }, { l: "\u9031\u4E94", t: 29, icon: "sun" }] } },
+  hsinchu_county: { name: "\u65B0\u7AF9\u7E23", coords: [24.8389, 121.0177], cropApi: "\u751C\u67FF", weather: { temp: 26, desc: "\u591A\u96F2", hum: 72, rain: 18, fore: [{ l: "\u660E\u5929", t: 25, icon: "cloud" }, { l: "\u5F8C\u5929", t: 26, icon: "cloud" }, { l: "\u9031\u4E94", t: 27, icon: "sun" }] } },
+  nantou: { name: "\u5357\u6295\u7E23", coords: [23.91, 120.6878], cropApi: "\u9999\u8549", weather: { temp: 27, desc: "\u591A\u96F2\u6642\u6674", hum: 72, rain: 15, fore: [{ l: "\u660E\u5929", t: 26, icon: "cloud" }, { l: "\u5F8C\u5929", t: 27, icon: "sun" }, { l: "\u9031\u4E94", t: 28, icon: "sun" }] } },
+  keelung: { name: "\u57FA\u9686\u5E02", coords: [25.1276, 121.7392], cropApi: "\u5C71\u85E5", weather: { temp: 24, desc: "\u591A\u96F2\u6709\u96E8", hum: 82, rain: 35, fore: [{ l: "\u660E\u5929", t: 23, icon: "cloud" }, { l: "\u5F8C\u5929", t: 24, icon: "cloud" }, { l: "\u9031\u4E94", t: 25, icon: "cloud" }] } }
+};
+const REGION_TO_CHAR_KEY = {
+  newtaipei: "a_newtaipei",
+  taoyuan: "b_taoyuan",
+  taitung: "c_taitung",
+  hualien: "d_hualien",
+  kaohsiung: "e_kaohsiung",
+  pingtung: "f_pingtung",
+  taichung: "g_taichung",
+  yilan: "h_yilan",
+  chiayi_county: "i_chiayi_county",
+  tainan: "j_tainan",
+  miaoli: "k_miaoli",
+  yunlin: "l_yunlin",
+  changhua: "m_changhua",
+  hsinchu_county: "n_hsinchu_county",
+  nantou: "o_nantou",
+  taipei: "p_taipei",
+  keelung: "q_keelung",
+  chiayi_city: "extra_chiayi_city",
+  hsinchu_city: "extra_hsinchu_city"
 };
 const SunIcon = ({ size = 28 }) => /* @__PURE__ */ React.createElement("svg", { width: size, height: size, viewBox: "0 0 40 40" }, /* @__PURE__ */ React.createElement("circle", { cx: "20", cy: "20", r: "9", fill: "#f8c840" }), [0, 45, 90, 135, 180, 225, 270, 315].map((a) => /* @__PURE__ */ React.createElement(
   "line",
@@ -4221,6 +4252,13 @@ const Page = ({ selected, onSelect }) => {
             if (c.id === TAOYUAN_POLYGON_ID) {
               setLeftMapView("taoyuan");
               setHovered(null);
+              return;
+            }
+            const charKey = COUNTY_CHAR_MAP[c.id];
+            if (charKey) {
+              const regionKey = charKey.replace(/^[a-q]_/, "");
+              onSelect(regionKey);
+              window.location.hash = "dashboard";
             }
           }
         }
@@ -4236,7 +4274,12 @@ const Page = ({ selected, onSelect }) => {
         fill: "transparent",
         style: { cursor: "pointer" },
         onMouseEnter: () => setHovered(h.id),
-        onMouseLeave: () => setHovered(null)
+        onMouseLeave: () => setHovered(null),
+        onClick: () => {
+          const regionKey = h.id.replace(/^extra_/, "");
+          onSelect(regionKey);
+          window.location.hash = "dashboard";
+        }
       }
     )),
     hovered && (() => {
@@ -4563,9 +4606,9 @@ const PricePanelCard = () => {
   const fmt = (v) => v == null ? "\u2014" : v.toLocaleString("zh-TW", { maximumFractionDigits: 2 });
   return /* @__PURE__ */ React.createElement("div", { style: {
     position: "absolute",
-    left: `${320 / 1440 * 100}%`,
+    left: `${337 / 1440 * 100}%`,
     top: `${87 / 1468 * 100}%`,
-    width: `${(715 - 320) / 1440 * 100}%`,
+    width: `${377 / 1440 * 100}%`,
     height: `${(380 - 87) / 1468 * 100}%`,
     background: "#fceadb",
     border: "1.5px solid #ead1bb",
@@ -5033,7 +5076,61 @@ const TaoyuanDetail = ({ onBack }) => {
     }
   ));
 };
-const Dashboard = ({ onBack }) => /* @__PURE__ */ React.createElement("div", { style: {
+const CharacterCard = ({ county }) => {
+  usePageDataReady();
+  const region = REGIONS_DATA[county] || REGIONS_DATA.taoyuan;
+  if (county === "taoyuan") return null;
+  const charKey = REGION_TO_CHAR_KEY[county];
+  const charSrc = charKey && (typeof window !== "undefined" && window.COUNTY_CHARS) ? window.COUNTY_CHARS[charKey] : null;
+  const cropName = region.priceVariety || region.cropApi || "";
+  return /* @__PURE__ */ React.createElement("div", { style: {
+    position: "absolute",
+    left: 16,
+    top: 87,
+    width: 292,
+    height: 293,
+    background: "#fdf7ea",
+    border: "1.5px solid #efd8c6",
+    borderRadius: 15,
+    boxSizing: "border-box",
+    padding: "14px 16px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    fontFamily: "'Noto Sans TC', sans-serif",
+    zIndex: 3
+  } }, /* @__PURE__ */ React.createElement("div", { style: {
+    alignSelf: "flex-start",
+    fontSize: 16,
+    fontWeight: 700,
+    color: "#5a7028",
+    letterSpacing: 1,
+    display: "flex",
+    alignItems: "center",
+    gap: 4
+  } }, /* @__PURE__ */ React.createElement("span", null, "\u{1F4CD}"), /* @__PURE__ */ React.createElement("span", null, region.name)), /* @__PURE__ */ React.createElement("div", { style: {
+    flex: 1,
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4
+  } }, charSrc && /* @__PURE__ */ React.createElement(
+    "img",
+    {
+      src: charSrc,
+      alt: region.name,
+      style: { width: 160, height: 160, objectFit: "contain" }
+    }
+  )), /* @__PURE__ */ React.createElement("div", { style: {
+    fontSize: 22,
+    fontWeight: 900,
+    color: "#3c2f1e",
+    letterSpacing: 1.5,
+    marginTop: 4
+  } }, cropName));
+};
+const Dashboard = ({ onBack, selected }) => /* @__PURE__ */ React.createElement("div", { style: {
   position: "relative",
   width: "100%",
   maxWidth: 1440,
@@ -5070,7 +5167,7 @@ const Dashboard = ({ onBack }) => /* @__PURE__ */ React.createElement("div", { s
     alt: "\u6843\u5712\u5E02 \u756A\u8304\u5E02\u5834\u5100\u8868\u677F",
     style: { display: "block", width: 1440, height: "auto", userSelect: "none" }
   }
-), /* @__PURE__ */ React.createElement(PricePanelCard, null), /* @__PURE__ */ React.createElement(TrendChartCard, null), /* @__PURE__ */ React.createElement(VolumeBarsCard, null), /* @__PURE__ */ React.createElement(PriceBarsCard, null), /* @__PURE__ */ React.createElement(ExportTrendChart, null), /* @__PURE__ */ React.createElement(DisasterChartCard, null)));
+), /* @__PURE__ */ React.createElement(CharacterCard, { county: selected }), /* @__PURE__ */ React.createElement(PricePanelCard, null), /* @__PURE__ */ React.createElement(TrendChartCard, null), /* @__PURE__ */ React.createElement(VolumeBarsCard, null), /* @__PURE__ */ React.createElement(PriceBarsCard, null), /* @__PURE__ */ React.createElement(ExportTrendChart, null), /* @__PURE__ */ React.createElement(DisasterChartCard, null)));
 const App = () => {
   const [selected, setSelected] = useState(() => localStorage.getItem("tw-map-sel") || "taoyuan");
   const computeView = () => {
@@ -5131,7 +5228,7 @@ const App = () => {
   if (view === "dashboard") {
     return /* @__PURE__ */ React.createElement(Dashboard, { onBack: () => {
       window.location.hash = "";
-    } });
+    }, selected });
   }
   if (view === "taoyuan-detail") {
     return /* @__PURE__ */ React.createElement(TaoyuanDetail, { onBack: () => {
