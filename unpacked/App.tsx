@@ -1349,23 +1349,26 @@ const PricePanelCard = () => {
   const fmt = v => (v == null ? '—' : v.toLocaleString('zh-TW', {maximumFractionDigits:2}));
 
   // Position over the design's 價格面板 slot. Figma node 39-1506:
-  //   character card (Group 23):  x=34,  width=292 → right edge 326
-  //   3 price-panel cards (Groups 171/175/176): x=337, width=377, y=87/187/287, h=88 each
-  //   gap between character and price panel = 337 − 326 = 11 px
-  // Outer wrapper covers all 3 sub-cards y=87 to y=380 (small bottom slack).
+  //   character card (Group 23):  x=34,  y=87, w=292, h=287 → bottom 374
+  //   trend chart   (Group 179):  x=726, y=87, w=682, h=287 → bottom 374
+  //   3 price cards (Groups 171/175/176): x=337, w=377, y=87/187/287, h=88 each
+  //     → 3rd card bottom = 287+88 = 375 (≈ 374, aligns with neighbouring panels)
+  //     → 12 px gap between adjacent cards
+  // Match neighbours by using h=287 (same as character card); evenly space the
+  // 3 sub-cards inside (top padding ≡ inter-card gap ≡ bottom padding = 12 px).
   return (
     <div style={{
       position:'absolute',
       left:   `${337/1440*100}%`,
       top:    `${87/1468*100}%`,
       width:  `${377/1440*100}%`,
-      height: `${(380-87)/1468*100}%`,
+      height: `${287/1468*100}%`,
       background:'#fceadb',
       border:'1.5px solid #ead1bb',
       borderRadius:14,
-      padding:'14px 18px',
+      padding:'12px 18px',
       boxSizing:'border-box',
-      display:'flex', flexDirection:'column', gap:8,
+      display:'flex', flexDirection:'column', gap:12,
       fontFamily:"'Noto Sans TC',sans-serif",
     }}>
       {/* Sub-card: 價格面板 (AMIS) */}
