@@ -3457,7 +3457,7 @@ const useChart = () => {
 const REGIONS_DATA = {
   taipei: { name: "\u53F0\u5317\u5E02", coords: [25.033, 121.5654], cropApi: "\u7DA0\u7AF9\u7B4D", weather: { temp: 24, desc: "\u6674\u6642\u591A\u96F2", hum: 72, rain: 15, fore: [{ l: "\u660E\u5929", t: 23, icon: "cloud" }, { l: "\u5F8C\u5929", t: 22, icon: "cloud" }, { l: "\u9031\u4E94", t: 25, icon: "sun" }] } },
   taoyuan: { name: "\u6843\u5712\u5E02", coords: [24.9937, 121.301], cropApi: "\u756A\u8304", priceVariety: "\u756A\u8304-\u725B\u756A\u8304", weather: { temp: 26, desc: "\u6674\u5929", hum: 65, rain: 5, fore: [{ l: "\u660E\u5929", t: 25, icon: "sun" }, { l: "\u5F8C\u5929", t: 24, icon: "sun" }, { l: "\u9031\u4E94", t: 26, icon: "cloud" }] } },
-  yilan: { name: "\u5B9C\u862D\u7E23", coords: [24.7021, 121.7377], cropApi: "\u9752\u8525", priceVariety: "\u9752\u8525-\u7C89\u8525", weather: { temp: 22, desc: "\u591A\u96F2\u6709\u96E8", hum: 85, rain: 45, fore: [{ l: "\u660E\u5929", t: 22, icon: "cloud" }, { l: "\u5F8C\u5929", t: 21, icon: "cloud" }, { l: "\u9031\u4E94", t: 23, icon: "cloud" }] } },
+  yilan: { name: "\u5B9C\u862D\u7E23", coords: [24.7021, 121.7377], cropApi: "\u9752\u8525", priceVariety: "\u9752\u8525-\u5317\u8525", weather: { temp: 22, desc: "\u591A\u96F2\u6709\u96E8", hum: 85, rain: 45, fore: [{ l: "\u660E\u5929", t: 22, icon: "cloud" }, { l: "\u5F8C\u5929", t: 21, icon: "cloud" }, { l: "\u9031\u4E94", t: 23, icon: "cloud" }] } },
   taichung: { name: "\u53F0\u4E2D\u5E02", coords: [24.1477, 120.6736], cropApi: "\u68A8", priceVariety: "\u68A8-\u5BF6\u5CF6\u7518\u9732\u68A8", weather: { temp: 27, desc: "\u591A\u96F2", hum: 68, rain: 12, fore: [{ l: "\u660E\u5929", t: 26, icon: "cloud" }, { l: "\u5F8C\u5929", t: 25, icon: "sun" }, { l: "\u9031\u4E94", t: 27, icon: "sun" }] } },
   hualien: { name: "\u82B1\u84EE\u7E23", coords: [23.9871, 121.6015], cropApi: "\u897F\u74DC", priceVariety: "\u897F\u74DC-\u5927\u897F\u74DC", weather: { temp: 26, desc: "\u6674\u5929", hum: 70, rain: 8, fore: [{ l: "\u660E\u5929", t: 25, icon: "sun" }, { l: "\u5F8C\u5929", t: 26, icon: "sun" }, { l: "\u9031\u4E94", t: 27, icon: "sun" }] } },
   yunlin: { name: "\u96F2\u6797\u7E23", coords: [23.7092, 120.4313], cropApi: "\u5927\u849C", priceVariety: "\u5927\u849C-\u786C\u6897", weather: { temp: 29, desc: "\u6674\u5929", hum: 62, rain: 5, fore: [{ l: "\u660E\u5929", t: 28, icon: "sun" }, { l: "\u5F8C\u5929", t: 27, icon: "sun" }, { l: "\u9031\u4E94", t: 30, icon: "sun" }] } },
@@ -4574,10 +4574,12 @@ const NONGZHIDAO_MAP = {
   // 高雄 (珍珠芭, AMIS=番石榴)
   "\u6D0B\u8525": "code_SD1",
   // 屏東 (本產)
-  "\u9752\u8525": "code_SE6",
-  // 宜蘭 broad fallback
+  "\u9752\u8525": "code_SE2",
+  // 宜蘭 broad fallback (北蔥/三星蔥)
+  "\u9752\u8525-\u5317\u8525": "code_SE2",
+  // 宜蘭 priceVariety (三星蔥 cultivar)
   "\u9752\u8525-\u7C89\u8525": "code_SE6",
-  // 宜蘭 priceVariety
+  // 桃園 township slot (different cultivar)
   "\u91CB\u8FE6": "fruit_31",
   // 台東
   // 4 taoyuan township crops backfilled 2026-05-22

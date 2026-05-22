@@ -85,7 +85,7 @@ const useChart = () => {
 const REGIONS_DATA = {
   taipei:    { name:'台北市', coords:[25.0330,121.5654], cropApi:'綠竹筍', weather:{temp:24,desc:'晴時多雲',hum:72,rain:15,fore:[{l:'明天',t:23,icon:'cloud'},{l:'後天',t:22,icon:'cloud'},{l:'週五',t:25,icon:'sun'}]} },
   taoyuan:   { name:'桃園市', coords:[24.9937,121.3010], cropApi:'番茄',   priceVariety:'番茄-牛番茄', weather:{temp:26,desc:'晴天',hum:65,rain:5,fore:[{l:'明天',t:25,icon:'sun'},{l:'後天',t:24,icon:'sun'},{l:'週五',t:26,icon:'cloud'}]} },
-  yilan:     { name:'宜蘭縣', coords:[24.7021,121.7377], cropApi:'青蔥', priceVariety:'青蔥-粉蔥', weather:{temp:22,desc:'多雲有雨',hum:85,rain:45,fore:[{l:'明天',t:22,icon:'cloud'},{l:'後天',t:21,icon:'cloud'},{l:'週五',t:23,icon:'cloud'}]} },
+  yilan:     { name:'宜蘭縣', coords:[24.7021,121.7377], cropApi:'青蔥', priceVariety:'青蔥-北蔥', weather:{temp:22,desc:'多雲有雨',hum:85,rain:45,fore:[{l:'明天',t:22,icon:'cloud'},{l:'後天',t:21,icon:'cloud'},{l:'週五',t:23,icon:'cloud'}]} },
   taichung:  { name:'台中市', coords:[24.1477,120.6736], cropApi:'梨', priceVariety:'梨-寶島甘露梨', weather:{temp:27,desc:'多雲',hum:68,rain:12,fore:[{l:'明天',t:26,icon:'cloud'},{l:'後天',t:25,icon:'sun'},{l:'週五',t:27,icon:'sun'}]} },
   hualien:   { name:'花蓮縣', coords:[23.9871,121.6015], cropApi:'西瓜', priceVariety:'西瓜-大西瓜', weather:{temp:26,desc:'晴天',hum:70,rain:8,fore:[{l:'明天',t:25,icon:'sun'},{l:'後天',t:26,icon:'sun'},{l:'週五',t:27,icon:'sun'}]} },
   yunlin:    { name:'雲林縣', coords:[23.7092,120.4313], cropApi:'大蒜', priceVariety:'大蒜-硬梗', weather:{temp:29,desc:'晴天',hum:62,rain:5,fore:[{l:'明天',t:28,icon:'sun'},{l:'後天',t:27,icon:'sun'},{l:'週五',t:30,icon:'sun'}]} },
@@ -1280,8 +1280,9 @@ const NONGZHIDAO_MAP = {
   '芒果':         'fruit_R1',  // 台南 (愛文)
   '芭樂':         'fruit_P1',  // 高雄 (珍珠芭, AMIS=番石榴)
   '洋蔥':         'code_SD1',  // 屏東 (本產)
-  '青蔥':         'code_SE6',  // 宜蘭 broad fallback
-  '青蔥-粉蔥':    'code_SE6',  // 宜蘭 priceVariety
+  '青蔥':         'code_SE2',  // 宜蘭 broad fallback (北蔥/三星蔥)
+  '青蔥-北蔥':    'code_SE2',  // 宜蘭 priceVariety (三星蔥 cultivar)
+  '青蔥-粉蔥':    'code_SE6',  // 桃園 township slot (different cultivar)
   '釋迦':         'fruit_31',  // 台東
   // 4 taoyuan township crops backfilled 2026-05-22
   '甘藍':         'code_LA1',  // 桃園 township (初秋 cultivar)
