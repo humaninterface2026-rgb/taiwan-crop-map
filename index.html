@@ -4500,8 +4500,9 @@ const Page = ({ selected, onSelect, onCropSelect }) => {
     }
   )), (() => {
     const charsLib = typeof window !== "undefined" && window.COUNTY_CHARS || {};
+    const tyCrops = typeof window !== "undefined" && window.TAOYUAN_CROPS || {};
     const charKey = REGION_TO_CHAR_KEY[selected];
-    const svgStr = charKey ? charsLib[charKey] : null;
+    const svgStr = selected === "taoyuan" ? tyCrops["\u725B\u8543\u8304"] || (charKey ? charsLib[charKey] : null) : charKey ? charsLib[charKey] : null;
     return /* @__PURE__ */ React.createElement(ScaledOverlay, { x: 770, y: 85, w: 200, h: 210 }, svgStr ? /* @__PURE__ */ React.createElement(
       "img",
       {

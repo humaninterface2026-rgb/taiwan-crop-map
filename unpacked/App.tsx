@@ -1191,11 +1191,17 @@ const Page = ({selected, onSelect, onCropSelect}) => {
       {/* === DYNAMIC HERO PANEL (county-specific character + name + greeting) ===
           Replaces the baked-in 桃園/番茄 content; repack.py paints over those
           regions with cream so this overlay is the sole visual. */}
-      {/* (1) 角色 SVG from COUNTY_CHARS */}
+      {/* (1) 角色 SVG — 18 counties use COUNTY_CHARS (crop-themed mascots);
+          桃園 overrides to TAOYUAN_CROPS['牛蕃茄'] because COUNTY_CHARS.b_taoyuan
+          is a 桃 (peach) county mascot, not the 番茄 crop the landing page
+          headlines. */}
       {(() => {
-        const charsLib = (typeof window !== 'undefined' && window.COUNTY_CHARS) || {};
-        const charKey  = REGION_TO_CHAR_KEY[selected];
-        const svgStr   = charKey ? charsLib[charKey] : null;
+        const charsLib  = (typeof window !== 'undefined' && window.COUNTY_CHARS) || {};
+        const tyCrops   = (typeof window !== 'undefined' && window.TAOYUAN_CROPS) || {};
+        const charKey   = REGION_TO_CHAR_KEY[selected];
+        const svgStr    = selected === 'taoyuan'
+          ? (tyCrops['牛蕃茄'] || (charKey ? charsLib[charKey] : null))
+          : (charKey ? charsLib[charKey] : null);
         return (
           <ScaledOverlay x={770} y={85} w={200} h={210}>
             {svgStr ? (
