@@ -4504,7 +4504,7 @@ const Page = ({ selected, onSelect, onCropSelect }) => {
     const charKey = REGION_TO_CHAR_KEY[selected];
     const svgStr = selected === "taoyuan" ? tyCrops["\u725B\u8543\u8304"] || (charKey ? charsLib[charKey] : null) : charKey ? charsLib[charKey] : null;
     const w = 181, h = 200;
-    const cx = 846, footY = 128 + h;
+    const cx = 846, footY = 148 + h;
     return /* @__PURE__ */ React.createElement(ScaledOverlay, { x: cx - w / 2, y: footY - h, w, h }, svgStr ? /* @__PURE__ */ React.createElement(
       "img",
       {
