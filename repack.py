@@ -90,9 +90,9 @@ _BTN_PAINT_RECTS = {
     # Paint over those so the React overlay can render dynamic per-county text.
     "full_page":      [
         (48, 605, 158, 882), (640, 808, 680, 884),                # baked pill + +/- buttons
-        (1015, 100, 1320, 145, (253, 247, 233)),                  # 桃園市 badge (cream panel)
-        (1015, 140, 1200, 200, (253, 247, 233)),                  # 番茄 large text (cream panel)
-        (1010, 200, 1340, 320, (254, 250, 241)),                  # 3-line hello text inside speech bubble (avoid 查看更多 button)
+        (1015, 100, 1320, 140, (253, 247, 233)),                  # 桃園市 badge (cream panel)
+        (1015, 138, 1200, 178, (253, 247, 233)),                  # 番茄 large text (cream panel)
+        (1025, 222, 1330, 313, (254, 250, 241)),                  # 3-line hello text inside bubble (inset to preserve bubble outline)
     ],
     "taoyuan_detail": [(35, 1255, 285, 1905), (1465, 1735, 1545, 1905)],
 }
