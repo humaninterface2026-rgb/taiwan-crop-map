@@ -92,7 +92,7 @@ _BTN_PAINT_RECTS = {
         (48, 605, 158, 882), (640, 808, 680, 884),                # baked pill + +/- buttons
         (1015, 100, 1320, 140, (253, 247, 233)),                  # 桃園市 badge (cream panel)
         (1015, 138, 1200, 178, (253, 247, 233)),                  # 番茄 large text (cream panel)
-        (990, 185, 1360, 360, (253, 247, 233)),                   # paint full speech bubble area with PANEL cream (bubble gone); React draws its own CSS bubble on top
+        (1030, 210, 1320, 322, (254, 250, 241)),                  # paint INSIDE the bubble only (interior color); keeps the Figma-baked bubble outline + tail intact
     ],
     "taoyuan_detail": [(35, 1255, 285, 1905), (1465, 1735, 1545, 1905)],
 }
