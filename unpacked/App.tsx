@@ -1256,11 +1256,44 @@ const _aggregateDaily = (daily, keyFn) => {
 //   2. MOA agri API daily transactions per crop, aggregated client-side here.
 //                   Covers every other crop in the wholesale catalogue.
 const NONGZHIDAO_MAP = {
+  // taoyuan 番茄 牛蕃茄 (FJ3)
   '番茄':         'code_FJ3',
   '牛蕃茄':       'code_FJ3',
-  '番茄-牛番茄':  'code_FJ3',   // priceVariety form (taoyuan default) still maps to FJ3
-  '釋迦':         'fruit_31',
+  '番茄-牛番茄':  'code_FJ3',
+  // hualien 西瓜 大西瓜 (T1)
+  '西瓜':         'fruit_T1',
+  '大西瓜':       'fruit_T1',
+  '西瓜-大西瓜':  'fruit_T1',
+  // 14 county crops backfilled 2026-05-22 (batch via scripts/backfill_amis.py)
+  '綠竹筍':       'code_SH2',  // 台北
+  '山藥':         'code_SU2',  // 基隆 (白薯蕷)
+  '甜柿':         'fruit_Z0',  // 新竹縣 (柿子)
+  '草莓':         'fruit_45',  // 苗栗
+  '梨':           'fruit_O10', // 台中 broad fallback
+  '梨-寶島甘露梨':'fruit_O10', // 台中 priceVariety
+  '葡萄':         'fruit_S1',  // 彰化 (巨峰)
+  '香蕉':         'fruit_A1',  // 南投
+  '大蒜':         'code_SG1',  // 雲林 broad fallback
+  '大蒜-硬梗':    'code_SG1',  // 雲林 priceVariety
+  '哈蜜瓜':       'fruit_W1',  // 嘉義市 (網狀紅肉洋香瓜)
+  '鳳梨':         'fruit_B2',  // 嘉義縣 (金鑽鳳梨)
+  '芒果':         'fruit_R1',  // 台南 (愛文)
+  '芭樂':         'fruit_P1',  // 高雄 (珍珠芭, AMIS=番石榴)
+  '洋蔥':         'code_SD1',  // 屏東 (本產)
+  '青蔥':         'code_SE6',  // 宜蘭 broad fallback
+  '青蔥-粉蔥':    'code_SE6',  // 宜蘭 priceVariety
+  '釋迦':         'fruit_31',  // 台東
 };
+
+// Crops with no AMIS wholesale market data (sold via different channels —
+// tea trade goes through 茶業改良場, rice through 糧食署 / 農糧署). Dashboard
+// wholesale cards check this set and render a 「無批發資料」 placeholder
+// instead of falling back to the broken MOA OpenData API (which returns
+// only ~3-4 days of data).
+const WHOLESALE_NO_DATA = new Set([
+  '包種茶',
+  '水稻',
+]);
 
 // MOA returns dates as either "115/05/21" or "115.05.21" — accept both separators.
 const _rocToISO = (roc) => {
@@ -1418,6 +1451,102 @@ const useCropMarket = (cropName) => {
 // use this. New dashboard cards take cropName explicitly via useCropMarket.
 const useTomatoMarket = () => useCropMarket('番茄');
 
+/* ── TRADE DATA (MOA TradeCoa export 量+值, per-country, monthly + yearly) ──
+ * Mirrors the watermelon (T1) wholesale pipeline but pulled from
+ * agrstat.moa.gov.tw/sdweb/public/trade/TradeCoa.aspx via
+ * scripts/backfill_trade_export.py + monthly launchd. Each file is keyed by
+ * the COA wildcard code (## → xx in filename).
+ *
+ * Map crop name → COA code. 番茄/蕃茄 has both AMIS wholesale + TradeCoa
+ * trade, the others depend on whether anyone has run backfill yet.
+ */
+const TRADE_COA_MAP = {
+  // hualien 西瓜 (103##10) — original target
+  '西瓜':         '103xx10',
+  '大西瓜':       '103xx10',
+  '西瓜-大西瓜':  '103xx10',
+  // 16 crops backfilled 2026-05-22 (batch via scripts/backfill_trade_export.py)
+  '綠竹筍':       '103xx15',     // 台北 (竹筍 aggregate)
+  '包種茶':       '109xxxx',     // 新北 (茶葉及其製品 aggregate)
+  '山藥':         '0714302000',  // 基隆 (CCC 山藥生鮮冷藏)
+  '水稻':         '101xx01',     // 新竹市 (稻米 aggregate)
+  '甜柿':         '104xx25',     // 新竹縣 (柿子 aggregate)
+  '草莓':         '0810100000',  // 苗栗 (CCC 鮮草莓)
+  '梨':           '104xx10',     // 台中 broad
+  '梨-寶島甘露梨':'104xx10',     // 台中 priceVariety
+  '葡萄':         '104xx08',     // 彰化
+  '香蕉':         '104xx03',     // 南投
+  '大蒜':         '103xx26',     // 雲林 broad
+  '大蒜-硬梗':    '103xx26',     // 雲林 priceVariety
+  '哈蜜瓜':       '0807191000',  // 嘉義市 (CCC 鮮蜜瓜)
+  '鳳梨':         '104xx04',     // 嘉義縣
+  '芒果':         '104xx05',     // 台南
+  '芭樂':         '104xx46',     // 高雄 (番石榴)
+  '洋蔥':         '103xx03',     // 屏東
+  '釋迦':         '104xx38',     // 台東
+  // 宜蘭 青蔥-粉蔥 intentionally omitted — MOA's 103##03 conflates 洋蔥+蔥;
+  // showing 洋蔥 numbers under a 青蔥 label would be misleading, so the trade
+  // card renders a placeholder for 宜蘭 instead.
+};
+
+const _tradeCache     = new Map();
+const _tradeListeners = new Map();
+const _tradeInflight  = new Map();
+
+// Shared placeholder for any wholesale card when the crop has no AMIS data.
+// 4 sister cards (PricePanel / TrendChart / VolumeBars / PriceBars) each
+// render their own variant — this is the inner content. Each card supplies
+// its own outer card wrapper so colour + position match the design.
+const _WholesaleNoDataMsg = ({title, subtitle}) => (
+  <div style={{
+    flex:1, background:'#fff', border:'1px solid #eee', borderRadius:10,
+    display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+    color:'#888', fontSize:12, textAlign:'center', padding:'12px',
+    fontFamily:"'Noto Sans TC',sans-serif",
+  }}>
+    <div style={{fontSize:13, marginBottom:4}}>{title || '本作物無批發市場交易資料'}</div>
+    <div style={{fontSize:10, color:'#aaa'}}>{subtitle || '(此作物不在 AMIS 蔬果拍賣系統，請改參考主管機關)'}</div>
+  </div>
+);
+
+async function _fetchTrade(slug) {
+  const url = `https://wyaoguang3-code.github.io/nongzhidao/data/trade_${slug}.json`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`trade fetch ${slug} → ${r.status}`);
+  return await r.json();
+}
+
+// Returns the loaded trade JSON or null while inflight / unsupported crop.
+const useCropTrade = (cropName) => {
+  const slug = cropName ? TRADE_COA_MAP[cropName] : null;
+  const [data, setData] = React.useState(() => (slug ? _tradeCache.get(slug) || null : null));
+  usePageDataReady();
+  React.useEffect(() => {
+    if (!slug) { setData(null); return; }
+    const cached = _tradeCache.get(slug);
+    if (cached) { setData(cached); return; }
+    let ls = _tradeListeners.get(slug);
+    if (!ls) { ls = new Set(); _tradeListeners.set(slug, ls); }
+    ls.add(setData);
+    if (!_tradeInflight.has(slug)) {
+      _tradeInflight.set(slug,
+        _fetchTrade(slug)
+          .then(j => {
+            _tradeCache.set(slug, j);
+            (_tradeListeners.get(slug) || new Set()).forEach(fn => fn(j));
+          })
+          .catch(e => console.warn(`[trade] ${slug} failed`, e && e.message))
+          .finally(() => _tradeInflight.delete(slug))
+      );
+    }
+    return () => {
+      const ls2 = _tradeListeners.get(slug);
+      if (ls2) ls2.delete(setData);
+    };
+  }, [slug]);
+  return data;
+};
+
 // Disaster yearly — fetch the same JSON nongzhidao's FJ3.html uses.
 let _dsCache = (typeof window !== 'undefined' && window.DATASETS && window.DATASETS.disaster_yearly) || null;
 let _dsFetched = false;
@@ -1458,6 +1587,24 @@ const useDisasterYearly = () => {
 
 /* ── CARD 1: 價格面板 (AMIS) ────────────────────────────────────────────── */
 const PricePanelCard = ({cropName}) => {
+  // Crops with no AMIS wholesale data (e.g. 茶, 稻穀): show a clear placeholder
+  // covering all 3 mini-cards so users don't see broken MOA-fallback numbers.
+  if (cropName && WHOLESALE_NO_DATA.has(cropName)) {
+    return (
+      <div style={{
+        position:'absolute',
+        left:`${337/1440*100}%`, top:`${87/1468*100}%`,
+        width:`${(714-337)/1440*100}%`, height:`${(375-87)/1468*100}%`,
+        background:'#fff7ec', border:'1.5px solid #e8d8b8', borderRadius:14,
+        padding:'14px 18px', boxSizing:'border-box',
+        display:'flex', flexDirection:'column', gap:8,
+        fontFamily:"'Noto Sans TC',sans-serif",
+      }}>
+        <div style={{fontSize:14, fontWeight:900, color:'#7a5418', letterSpacing:1.5}}>價格面板 · {cropName}</div>
+        <_WholesaleNoDataMsg/>
+      </div>
+    );
+  }
   const m = useCropMarket(cropName || '番茄');
   const latest = m?.latest_price?.price ?? null;
   const latestDate = m?.latest_price?.date ?? null;
@@ -1545,6 +1692,22 @@ const PricePanelCard = ({cropName}) => {
 
 /* ── CARD 2: 批發市場行情趨勢圖 (toggle 每週/每月/一年/每年) ──────────── */
 const TrendChartCard = ({cropName}) => {
+  if (cropName && WHOLESALE_NO_DATA.has(cropName)) {
+    return (
+      <div style={{
+        position:'absolute',
+        left:`${726/1440*100}%`, top:`${87/1468*100}%`,
+        width:`${(1407-726)/1440*100}%`, height:`${(374-87)/1468*100}%`,
+        background:'#f4f6e8', border:'1.5px solid #d8dcc0', borderRadius:14,
+        padding:'10px 14px', boxSizing:'border-box',
+        display:'flex', flexDirection:'column', gap:6,
+        fontFamily:"'Noto Sans TC',sans-serif",
+      }}>
+        <div style={{fontSize:17, fontWeight:900, color:'#5a7028', letterSpacing:1.5}}>批發市場行情趨勢圖 · {cropName}</div>
+        <_WholesaleNoDataMsg/>
+      </div>
+    );
+  }
   const m = useCropMarket(cropName || '番茄');
   const chartReady = useChart();
   const [period, setPeriod] = useState('weekly');
@@ -1631,6 +1794,22 @@ const TrendChartCard = ({cropName}) => {
 
 /* ── CARD 3: 批發市場成交量比較 ─────────────────────────────────────────── */
 const VolumeBarsCard = ({cropName}) => {
+  if (cropName && WHOLESALE_NO_DATA.has(cropName)) {
+    return (
+      <div style={{
+        position:'absolute',
+        left:`${34/1440*100}%`, top:`${385/1468*100}%`,
+        width:`${(713-34)/1440*100}%`, height:`${(829-385)/1468*100}%`,
+        background:'#dceef0', border:'1.5px solid #b6d7da', borderRadius:14,
+        padding:'10px 14px', boxSizing:'border-box',
+        display:'flex', flexDirection:'column', gap:6,
+        fontFamily:"'Noto Sans TC',sans-serif",
+      }}>
+        <div style={{fontSize:17, fontWeight:900, color:'#256b78', letterSpacing:1.5}}>批發市場成交量比較 · {cropName}</div>
+        <_WholesaleNoDataMsg/>
+      </div>
+    );
+  }
   const m = useCropMarket(cropName || '番茄');
   const chartReady = useChart();
   const canvasRef = React.useRef(null);
@@ -1689,6 +1868,22 @@ const VolumeBarsCard = ({cropName}) => {
 
 /* ── CARD 4: 批發市場價格比較 ───────────────────────────────────────────── */
 const PriceBarsCard = ({cropName}) => {
+  if (cropName && WHOLESALE_NO_DATA.has(cropName)) {
+    return (
+      <div style={{
+        position:'absolute',
+        left:`${726/1440*100}%`, top:`${385/1468*100}%`,
+        width:`${(1407-726)/1440*100}%`, height:`${(829-385)/1468*100}%`,
+        background:'#fde9d4', border:'1.5px solid #ebcfa9', borderRadius:14,
+        padding:'10px 14px', boxSizing:'border-box',
+        display:'flex', flexDirection:'column', gap:6,
+        fontFamily:"'Noto Sans TC',sans-serif",
+      }}>
+        <div style={{fontSize:17, fontWeight:900, color:'#a8581a', letterSpacing:1.5}}>批發市場價格比較 · {cropName}</div>
+        <_WholesaleNoDataMsg/>
+      </div>
+    );
+  }
   const m = useCropMarket(cropName || '番茄');
   const chartReady = useChart();
   const canvasRef = React.useRef(null);
@@ -1824,14 +2019,33 @@ const DisasterChartCard = () => {
  */
 const COUNTRY_OPTIONS = ['全球','APEC','CPTPP(12)','CPTPP','東協六國','歐盟','新南向國家','TPP','區域全面經濟夥伴關係協定'];
 
-const ExportTrendChart = () => {
+const ExportTrendChart = ({cropName} = {}) => {
   usePageDataReady();
   const chartReady = useChart();
-  const data = (typeof window !== 'undefined' && window.DATASETS) ? window.DATASETS.tomato_export : null;
+  // Two data paths:
+  //   1. cropName has a TRADE_COA_MAP entry (e.g. 西瓜) → fetch trade_<slug>.json
+  //      from nongzhidao GH Pages, shape { code, name, data: {country: {yearly, monthly}} }.
+  //   2. cropName IS 番茄 (any form) → fall back to legacy window.DATASETS.tomato_export.
+  //   3. otherwise → no data; show placeholder so we don't mislabel 番茄 numbers
+  //      as a different county's crop.
+  const tradeJson = useCropTrade(cropName);
+  const isTomato  = !!cropName && /(?:^|[-·])(?:番茄|蕃茄|牛番茄|牛蕃茄)(?:$|[-·])/.test(`-${cropName}-`);
+  const fallback  = (isTomato && typeof window !== 'undefined' && window.DATASETS) ? window.DATASETS.tomato_export : null;
+  const data      = tradeJson || fallback;
+  const headlineCrop = tradeJson ? tradeJson.name : (cropName || '番茄');
   const [country, setCountry] = useState('全球');
   const [period, setPeriod] = useState('yearly');
   const canvasRef = React.useRef(null);
   const chartRef = React.useRef(null);
+
+  // When trade JSON loads (or cropName changes), reset `country` to whatever's
+  // available — '全球' if the new data has it, else the first listed country.
+  React.useEffect(() => {
+    if (!tradeJson) return;
+    const cs = Object.keys(tradeJson.data || {});
+    if (!cs.length) return;
+    if (!cs.includes(country)) setCountry(cs.includes('全球') ? '全球' : cs[0]);
+  }, [tradeJson]);
 
   React.useEffect(() => {
     if (!data || !chartReady || !window.Chart || !canvasRef.current) return;
@@ -1845,7 +2059,21 @@ const ExportTrendChart = () => {
     if (period === 'yearly') entries = entries.slice(-11);
     if (period === 'monthly') entries = entries.slice(-60);
 
-    const labels = entries.map(([k]) => k);
+    // MOA TradeCoa JSON keys are民國 ("105" / "105-04"). Convert ROC → 西元 for
+    // display only — JSON data stays native MOA format. Legacy tomato_export
+    // keys are already 西元 so leave them alone (digit-length heuristic).
+    const rocToWestern = (k) => {
+      const m = String(k).match(/^(\d{2,3})(?:-(\d{2}))?$/);
+      if (!m) return k;
+      const y = parseInt(m[1], 10);
+      // ROC years are typically 50-130 (1961-2041). Real Western years are 4-digit.
+      if (y < 200) {
+        const western = y + 1911;
+        return m[2] ? `${western}-${m[2]}` : String(western);
+      }
+      return k;
+    };
+    const labels = entries.map(([k]) => rocToWestern(k));
     const weights = entries.map(([,v]) => v?.w ?? null);
     const avgPrices = entries.map(([,v]) =>
       (v?.w && v?.v) ? Math.round(v.v * 1000 / v.w) : null);
@@ -1925,7 +2153,37 @@ const ExportTrendChart = () => {
   }, [country, period, data, chartReady]);
 
   if (!data) {
-    return <div style={{padding:20,color:'#888',fontSize:12}}>外銷資料載入中…</div>;
+    // Distinguish "still loading" vs "no data exists for this crop":
+    //   - tradeJson is undefined while the fetch is inflight; null/undefined after
+    //   - if cropName is in TRADE_COA_MAP we're still waiting → loading
+    //   - otherwise this crop has no trade backfill yet → show clear placeholder
+    //     instead of misleading the user with 番茄's numbers.
+    const slug = cropName ? TRADE_COA_MAP[cropName] : null;
+    const loading = !!slug;  // there IS a file, we're just waiting
+    return (
+      <div style={{
+        position:'absolute',
+        left:`${34/1440*100}%`, top:`${842/1468*100}%`,
+        width:`${(713-34)/1440*100}%`, height:`${(1287-842)/1468*100}%`,
+        background:'#ece8f8', border:'1.5px solid #d4cfe8',
+        borderRadius:14, padding:'14px 18px', boxSizing:'border-box',
+        display:'flex', flexDirection:'column', gap:10,
+        fontFamily:"'Noto Sans TC',sans-serif",
+      }}>
+        <div style={{fontSize:18, fontWeight:900, color:'#5d3fb8', letterSpacing:1.5}}>
+          外銷趨勢圖{cropName ? ` · ${cropName}` : ''}
+        </div>
+        <div style={{
+          flex:1, background:'#fff', border:'1px solid #e4dff0', borderRadius:10,
+          display:'flex', alignItems:'center', justifyContent:'center',
+          color:'#888', fontSize:13, textAlign:'center', padding:'20px',
+        }}>
+          {loading
+            ? '外銷資料載入中…'
+            : <>本作物之外銷貿易資料尚未建檔<br/><span style={{fontSize:11,color:'#aaa'}}>(MOA 海關 COA 碼資料源待人工核對作物對應 + 跑 backfill)</span></>}
+        </div>
+      </div>
+    );
   }
 
   // Two-layer nested layout matching the design:
@@ -1952,7 +2210,7 @@ const ExportTrendChart = () => {
     }}>
       {/* Outer header: title + 每月/每年 toggle (and country picker for interactivity) */}
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-        <div style={{fontSize:18, fontWeight:900, color:'#5d3fb8', letterSpacing:1.5}}>外銷趨勢圖</div>
+        <div style={{fontSize:18, fontWeight:900, color:'#5d3fb8', letterSpacing:1.5}}>外銷趨勢圖{headlineCrop ? ` · ${headlineCrop}` : ''}</div>
         <div style={{display:'flex', gap:6, alignItems:'center'}}>
           <select
             value={country}
@@ -1963,7 +2221,9 @@ const ExportTrendChart = () => {
               background:'#fff', color:'#5d3fb8',
               fontFamily:'inherit', cursor:'pointer',
             }}>
-            {COUNTRY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+            {/* Dynamic option list when trade JSON loaded; legacy fallback otherwise. */}
+            {(tradeJson ? Object.keys(tradeJson.data || {}).sort() : COUNTRY_OPTIONS)
+              .map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           {[['monthly','每月'], ['yearly','每年']].map(([k, label]) => (
             <button key={k} onClick={()=>setPeriod(k)} style={{
@@ -2203,7 +2463,7 @@ const Dashboard = ({onBack, selected, cropOverride}) => {
       <TrendChartCard cropName={cropName}/>
       <VolumeBarsCard cropName={cropName}/>
       <PriceBarsCard cropName={cropName}/>
-      <ExportTrendChart/>
+      <ExportTrendChart cropName={cropName}/>
       <DisasterChartCard/>
     </div>
   </div>
