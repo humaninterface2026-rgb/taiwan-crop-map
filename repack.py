@@ -88,12 +88,11 @@ _BTN_PAINT_RECTS = {
     # 2026-05-22: unpacked/full_page.jpg replaced with Figma 51-4788 export
     # (no tomato character) but text + badge + speech bubble are still baked.
     # Paint over those so the React overlay can render dynamic per-county text.
-    "full_page":      [
-        (48, 605, 158, 882), (640, 808, 680, 884),                # baked pill + +/- buttons
-        (1015, 100, 1320, 140, (253, 247, 233)),                  # 桃園市 badge (cream panel)
-        (1015, 138, 1200, 178, (253, 247, 233)),                  # 番茄 large text (cream panel)
-        (1030, 210, 1320, 322, (254, 250, 241)),                  # paint INSIDE the bubble only (interior color); keeps the Figma-baked bubble outline + tail intact
-    ],
+    # full_page.jpg replaced 2026-05-22 with Figma 51-4788 text-free + character-
+    # free + bubble-only-outline export. We now only paint over the baked +/-
+    # buttons; the right panel hero content (county/crop name, hello text inside
+    # bubble, character standing on grass) is rendered entirely via React overlay.
+    "full_page":      [(48, 605, 158, 882), (640, 808, 680, 884)],
     "taoyuan_detail": [(35, 1255, 285, 1905), (1465, 1735, 1545, 1905)],
 }
 
