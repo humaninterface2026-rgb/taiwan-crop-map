@@ -1202,42 +1202,17 @@ const Page = ({selected, onSelect, onCropSelect}) => {
         const svgStr    = selected === 'taoyuan'
           ? (tyCrops['牛蕃茄'] || (charKey ? charsLib[charKey] : null))
           : (charKey ? charsLib[charKey] : null);
-        // Box centered on the grass shadow at design (855, 339) so the feet
-        // land on the shadow oval. The SVG often has empty trailing whitespace
-        // inside its viewBox (e.g. 牛蕃茄 has 22% bottom padding), so we trim
-        // the viewBox to the visible content extent before rendering, which
-        // makes objectFit:contain + objectPosition:bottom hit the actual feet.
-        const trimSvgBottom = (s) => {
-          if (!s) return s;
-          try {
-            const m = s.match(/^data:image\/svg\+xml;base64,(.+)$/);
-            if (!m) return s;
-            const xml = atob(m[1]);
-            const vm = xml.match(/viewBox="([^"]+)"/);
-            if (!vm) return s;
-            const [vx, vy, vw, vh] = vm[1].trim().split(/\s+/).map(Number);
-            // Find max Y from path "d" attributes — odd-indexed numbers
-            const dAttrs = (xml.match(/\sd="[^"]*"/g) || []).join(' ');
-            const nums = (dAttrs.match(/-?\d+\.?\d*/g) || []).map(Number);
-            const ys = nums.filter((_, i) => i % 2 === 1).filter(y => y >= 0 && y <= vh);
-            if (ys.length === 0) return s;
-            const maxY = Math.max(...ys);
-            const pad = vh * 0.015;  // tiny visual breathing room
-            const newH = Math.min(vh, maxY + pad);
-            const newXml = xml.replace(/viewBox="[^"]+"/, `viewBox="${vx} ${vy} ${vw} ${newH}"`);
-            return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(newXml)))}`;
-          } catch (e) { return s; }
-        };
-        const trimmedSvg = trimSvgBottom(svgStr);
-        // Box anchored so feet land on the shadow's TOP edge (not its center),
-        // matching the original baked 番茄 — character standing on the shadow
-        // oval, not sinking into it. Shadow top measured at design y=320.
+        // Box matches ORIGINAL ori.png positioning: 番茄 visible bbox is
+        // design (756..937, 140..340) = 181 × 200, centered at x=846, feet at
+        // y=340. SVG is rendered NATIVELY (no viewBox trim) — its internal
+        // ~12% bottom padding sits in empty box space below the visible feet,
+        // so the box bottom lands at design ~366 with feet at y=340.
         const w = 200, h = 220;
-        const cx = 855, footY = 322;
+        const cx = 846, footY = 366;
         return (
           <ScaledOverlay x={cx - w/2} y={footY - h} w={w} h={h}>
-            {trimmedSvg ? (
-              <img src={trimmedSvg} alt={region.cropApi}
+            {svgStr ? (
+              <img src={svgStr} alt={region.cropApi}
                 style={{display:'block', width:'100%', height:'100%', objectFit:'contain', objectPosition:'center bottom', userSelect:'none', pointerEvents:'none'}}/>
             ) : null}
           </ScaledOverlay>

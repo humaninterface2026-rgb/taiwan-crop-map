@@ -4503,35 +4503,12 @@ const Page = ({ selected, onSelect, onCropSelect }) => {
     const tyCrops = typeof window !== "undefined" && window.TAOYUAN_CROPS || {};
     const charKey = REGION_TO_CHAR_KEY[selected];
     const svgStr = selected === "taoyuan" ? tyCrops["\u725B\u8543\u8304"] || (charKey ? charsLib[charKey] : null) : charKey ? charsLib[charKey] : null;
-    const trimSvgBottom = (s) => {
-      if (!s) return s;
-      try {
-        const m = s.match(/^data:image\/svg\+xml;base64,(.+)$/);
-        if (!m) return s;
-        const xml = atob(m[1]);
-        const vm = xml.match(/viewBox="([^"]+)"/);
-        if (!vm) return s;
-        const [vx, vy, vw, vh] = vm[1].trim().split(/\s+/).map(Number);
-        const dAttrs = (xml.match(/\sd="[^"]*"/g) || []).join(" ");
-        const nums = (dAttrs.match(/-?\d+\.?\d*/g) || []).map(Number);
-        const ys = nums.filter((_, i) => i % 2 === 1).filter((y) => y >= 0 && y <= vh);
-        if (ys.length === 0) return s;
-        const maxY = Math.max(...ys);
-        const pad = vh * 0.015;
-        const newH = Math.min(vh, maxY + pad);
-        const newXml = xml.replace(/viewBox="[^"]+"/, `viewBox="${vx} ${vy} ${vw} ${newH}"`);
-        return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(newXml)))}`;
-      } catch (e) {
-        return s;
-      }
-    };
-    const trimmedSvg = trimSvgBottom(svgStr);
     const w = 200, h = 220;
-    const cx = 855, footY = 322;
-    return /* @__PURE__ */ React.createElement(ScaledOverlay, { x: cx - w / 2, y: footY - h, w, h }, trimmedSvg ? /* @__PURE__ */ React.createElement(
+    const cx = 846, footY = 366;
+    return /* @__PURE__ */ React.createElement(ScaledOverlay, { x: cx - w / 2, y: footY - h, w, h }, svgStr ? /* @__PURE__ */ React.createElement(
       "img",
       {
-        src: trimmedSvg,
+        src: svgStr,
         alt: region.cropApi,
         style: { display: "block", width: "100%", height: "100%", objectFit: "contain", objectPosition: "center bottom", userSelect: "none", pointerEvents: "none" }
       }
