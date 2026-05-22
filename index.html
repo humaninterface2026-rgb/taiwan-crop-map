@@ -4642,6 +4642,7 @@ const _cropMarketCache = /* @__PURE__ */ new Map();
 const _cropMarketListeners = /* @__PURE__ */ new Map();
 const _cropMarketInflight = /* @__PURE__ */ new Map();
 async function _fetchCropMarket(cropName) {
+  if (cropName === "__nodata__") return null;
   const code = NONGZHIDAO_MAP[cropName];
   if (code) {
     try {
@@ -4849,7 +4850,9 @@ const useDisasterYearly = () => {
   return data;
 };
 const PricePanelCard = ({ cropName }) => {
-  if (cropName && WHOLESALE_NO_DATA.has(cropName)) {
+  const noData = !!(cropName && WHOLESALE_NO_DATA.has(cropName));
+  const m = useCropMarket(noData ? "__nodata__" : cropName || "\u756A\u8304");
+  if (noData) {
     return /* @__PURE__ */ React.createElement("div", { style: {
       position: "absolute",
       left: `${337 / 1440 * 100}%`,
@@ -4867,7 +4870,6 @@ const PricePanelCard = ({ cropName }) => {
       fontFamily: "'Noto Sans TC',sans-serif"
     } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#7a5418", letterSpacing: 1.5 } }, "\u50F9\u683C\u9762\u677F \xB7 ", cropName), /* @__PURE__ */ React.createElement(_WholesaleNoDataMsg, null));
   }
-  const m = useCropMarket(cropName || "\u756A\u8304");
   const latest = m?.latest_price?.price ?? null;
   const latestDate = m?.latest_price?.date ?? null;
   const daily = m?.daily || [];
@@ -4897,25 +4899,8 @@ const PricePanelCard = ({ cropName }) => {
   } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff5e8", borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 0 #f0e0c8", display: "flex", flexDirection: "column", justifyContent: "space-evenly" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 900, color: "#a85a16", letterSpacing: 1 } }, "\u50F9\u683C\u9762\u677F (AMIS)"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#a89070" } }, latestDate ? latestDate.replace(/-/g, "/") : "")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, display: "flex", alignItems: "baseline", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#7a5418", fontWeight: 700 } }, "\u6700\u65B0\u5747\u50F9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#5a3a18" } }, "$", fmt(latest), " / \u516C\u65A4"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#a89070" } }, "($", fmt(taikinPrice), " / \u53F0\u65A4)"))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff5e8", borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 0 #f0e0c8", display: "flex", flexDirection: "column", justifyContent: "space-evenly" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 900, color: "#a85a16", letterSpacing: 1 } }, "\u8A66\u7B97\u9810\u4F30\u96F6\u552E\u50F9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#a89070" } }, "(\u53E3\u5F91A: \u6279\u767C \xD7 2)")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, display: "flex", alignItems: "baseline", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#5a3a18" } }, "$", retailKg ?? "\u2014", " / \u516C\u65A4"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#c8a070" } }, "|"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#5a3a18" } }, "$", retailTaikin ?? "\u2014", " / \u53F0\u65A4"))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff5e8", borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 0 #f0e0c8", display: "flex", flexDirection: "column", justifyContent: "space-evenly" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 900, color: "#a85a16", letterSpacing: 1, marginBottom: 6 } }, "\u8FD1\u671F\u4EA4\u6613\u6307\u6A19"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 14, fontSize: 12, color: "#7a5418", alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", null, "\u8CFC\u8CB7\u5EFA\u8B70"), /* @__PURE__ */ React.createElement("span", { style: { padding: "3px 10px", borderRadius: 10, background: buyTag.bg, color: buyTag.fg, fontWeight: 700 } }, buyTag.label), /* @__PURE__ */ React.createElement("div", null, "\u8CE3\u51FA\u5EFA\u8B70"), /* @__PURE__ */ React.createElement("span", { style: { padding: "3px 10px", borderRadius: 10, background: sellTag.bg, color: sellTag.fg, fontWeight: 700 } }, sellTag.label))));
 };
 const TrendChartCard = ({ cropName }) => {
-  if (cropName && WHOLESALE_NO_DATA.has(cropName)) {
-    return /* @__PURE__ */ React.createElement("div", { style: {
-      position: "absolute",
-      left: `${726 / 1440 * 100}%`,
-      top: `${87 / 1468 * 100}%`,
-      width: `${(1407 - 726) / 1440 * 100}%`,
-      height: `${(374 - 87) / 1468 * 100}%`,
-      background: "#f4f6e8",
-      border: "1.5px solid #d8dcc0",
-      borderRadius: 14,
-      padding: "10px 14px",
-      boxSizing: "border-box",
-      display: "flex",
-      flexDirection: "column",
-      gap: 6,
-      fontFamily: "'Noto Sans TC',sans-serif"
-    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 17, fontWeight: 900, color: "#5a7028", letterSpacing: 1.5 } }, "\u6279\u767C\u5E02\u5834\u884C\u60C5\u8DA8\u52E2\u5716 \xB7 ", cropName), /* @__PURE__ */ React.createElement(_WholesaleNoDataMsg, null));
-  }
-  const m = useCropMarket(cropName || "\u756A\u8304");
+  const noData = !!(cropName && WHOLESALE_NO_DATA.has(cropName));
+  const m = useCropMarket(noData ? "__nodata__" : cropName || "\u756A\u8304");
   const chartReady = useChart();
   const [period, setPeriod] = useState("weekly");
   const canvasRef = React.useRef(null);
@@ -4980,6 +4965,24 @@ const TrendChartCard = ({ cropName }) => {
       }
     };
   }, [m, period, chartReady]);
+  if (noData) {
+    return /* @__PURE__ */ React.createElement("div", { style: {
+      position: "absolute",
+      left: `${726 / 1440 * 100}%`,
+      top: `${87 / 1468 * 100}%`,
+      width: `${(1407 - 726) / 1440 * 100}%`,
+      height: `${(374 - 87) / 1468 * 100}%`,
+      background: "#f4f6e8",
+      border: "1.5px solid #d8dcc0",
+      borderRadius: 14,
+      padding: "10px 14px",
+      boxSizing: "border-box",
+      display: "flex",
+      flexDirection: "column",
+      gap: 6,
+      fontFamily: "'Noto Sans TC',sans-serif"
+    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 17, fontWeight: 900, color: "#5a7028", letterSpacing: 1.5 } }, "\u6279\u767C\u5E02\u5834\u884C\u60C5\u8DA8\u52E2\u5716 \xB7 ", cropName), /* @__PURE__ */ React.createElement(_WholesaleNoDataMsg, null));
+  }
   return /* @__PURE__ */ React.createElement("div", { style: {
     position: "absolute",
     left: `${726 / 1440 * 100}%`,
@@ -5008,25 +5011,8 @@ const TrendChartCard = ({ cropName }) => {
   } }, label)))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff", border: "1px solid #e3e6cd", borderRadius: 10, padding: "8px 10px", position: "relative", minHeight: 0 } }, /* @__PURE__ */ React.createElement("canvas", { ref: canvasRef })));
 };
 const VolumeBarsCard = ({ cropName }) => {
-  if (cropName && WHOLESALE_NO_DATA.has(cropName)) {
-    return /* @__PURE__ */ React.createElement("div", { style: {
-      position: "absolute",
-      left: `${34 / 1440 * 100}%`,
-      top: `${385 / 1468 * 100}%`,
-      width: `${(713 - 34) / 1440 * 100}%`,
-      height: `${(829 - 385) / 1468 * 100}%`,
-      background: "#dceef0",
-      border: "1.5px solid #b6d7da",
-      borderRadius: 14,
-      padding: "10px 14px",
-      boxSizing: "border-box",
-      display: "flex",
-      flexDirection: "column",
-      gap: 6,
-      fontFamily: "'Noto Sans TC',sans-serif"
-    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 17, fontWeight: 900, color: "#256b78", letterSpacing: 1.5 } }, "\u6279\u767C\u5E02\u5834\u6210\u4EA4\u91CF\u6BD4\u8F03 \xB7 ", cropName), /* @__PURE__ */ React.createElement(_WholesaleNoDataMsg, null));
-  }
-  const m = useCropMarket(cropName || "\u756A\u8304");
+  const noData = !!(cropName && WHOLESALE_NO_DATA.has(cropName));
+  const m = useCropMarket(noData ? "__nodata__" : cropName || "\u756A\u8304");
   const chartReady = useChart();
   const canvasRef = React.useRef(null);
   const chartRef = React.useRef(null);
@@ -5059,6 +5045,24 @@ const VolumeBarsCard = ({ cropName }) => {
       }
     };
   }, [m, chartReady]);
+  if (noData) {
+    return /* @__PURE__ */ React.createElement("div", { style: {
+      position: "absolute",
+      left: `${34 / 1440 * 100}%`,
+      top: `${385 / 1468 * 100}%`,
+      width: `${(713 - 34) / 1440 * 100}%`,
+      height: `${(829 - 385) / 1468 * 100}%`,
+      background: "#dceef0",
+      border: "1.5px solid #b6d7da",
+      borderRadius: 14,
+      padding: "10px 14px",
+      boxSizing: "border-box",
+      display: "flex",
+      flexDirection: "column",
+      gap: 6,
+      fontFamily: "'Noto Sans TC',sans-serif"
+    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 17, fontWeight: 900, color: "#256b78", letterSpacing: 1.5 } }, "\u6279\u767C\u5E02\u5834\u6210\u4EA4\u91CF\u6BD4\u8F03 \xB7 ", cropName), /* @__PURE__ */ React.createElement(_WholesaleNoDataMsg, null));
+  }
   return /* @__PURE__ */ React.createElement("div", { style: {
     position: "absolute",
     left: `${34 / 1440 * 100}%`,
@@ -5077,25 +5081,8 @@ const VolumeBarsCard = ({ cropName }) => {
   } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 17, fontWeight: 900, color: "#256b78", letterSpacing: 1.5 } }, "\u6279\u767C\u5E02\u5834\u6210\u4EA4\u91CF\u6BD4\u8F03"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#7a9a9e" } }, "(\u7576\u6708\u4EA4\u6613\u65E5\u7D2F\u7A4D", m?.market_compare?.month ? "\u30FB" + m.market_compare.month : "", ")")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff", border: "1px solid #cfe3e7", borderRadius: 10, padding: "8px 10px", position: "relative", minHeight: 0 } }, /* @__PURE__ */ React.createElement("canvas", { ref: canvasRef })));
 };
 const PriceBarsCard = ({ cropName }) => {
-  if (cropName && WHOLESALE_NO_DATA.has(cropName)) {
-    return /* @__PURE__ */ React.createElement("div", { style: {
-      position: "absolute",
-      left: `${726 / 1440 * 100}%`,
-      top: `${385 / 1468 * 100}%`,
-      width: `${(1407 - 726) / 1440 * 100}%`,
-      height: `${(829 - 385) / 1468 * 100}%`,
-      background: "#fde9d4",
-      border: "1.5px solid #ebcfa9",
-      borderRadius: 14,
-      padding: "10px 14px",
-      boxSizing: "border-box",
-      display: "flex",
-      flexDirection: "column",
-      gap: 6,
-      fontFamily: "'Noto Sans TC',sans-serif"
-    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 17, fontWeight: 900, color: "#a8581a", letterSpacing: 1.5 } }, "\u6279\u767C\u5E02\u5834\u50F9\u683C\u6BD4\u8F03 \xB7 ", cropName), /* @__PURE__ */ React.createElement(_WholesaleNoDataMsg, null));
-  }
-  const m = useCropMarket(cropName || "\u756A\u8304");
+  const noData = !!(cropName && WHOLESALE_NO_DATA.has(cropName));
+  const m = useCropMarket(noData ? "__nodata__" : cropName || "\u756A\u8304");
   const chartReady = useChart();
   const canvasRef = React.useRef(null);
   const chartRef = React.useRef(null);
@@ -5128,6 +5115,24 @@ const PriceBarsCard = ({ cropName }) => {
       }
     };
   }, [m, chartReady]);
+  if (noData) {
+    return /* @__PURE__ */ React.createElement("div", { style: {
+      position: "absolute",
+      left: `${727 / 1440 * 100}%`,
+      top: `${385 / 1468 * 100}%`,
+      width: `${(1407 - 727) / 1440 * 100}%`,
+      height: `${(829 - 385) / 1468 * 100}%`,
+      background: "#fcedd6",
+      border: "1.5px solid #eed8b4",
+      borderRadius: 14,
+      padding: "10px 14px",
+      boxSizing: "border-box",
+      display: "flex",
+      flexDirection: "column",
+      gap: 6,
+      fontFamily: "'Noto Sans TC',sans-serif"
+    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 17, fontWeight: 900, color: "#a8581a", letterSpacing: 1.5 } }, "\u6279\u767C\u5E02\u5834\u50F9\u683C\u6BD4\u8F03 \xB7 ", cropName), /* @__PURE__ */ React.createElement(_WholesaleNoDataMsg, null));
+  }
   return /* @__PURE__ */ React.createElement("div", { style: {
     position: "absolute",
     left: `${727 / 1440 * 100}%`,

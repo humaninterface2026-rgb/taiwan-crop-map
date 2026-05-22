@@ -1371,6 +1371,9 @@ const _cropMarketListeners = new Map();   // cropName → Set<setter>
 const _cropMarketInflight  = new Map();   // cropName → Promise (in-flight fetch)
 
 async function _fetchCropMarket(cropName) {
+  // Sentinel used by wholesale cards when WHOLESALE_NO_DATA.has(cropName).
+  // The hook still runs (Rules of Hooks) but we skip both fetches.
+  if (cropName === '__nodata__') return null;
   const code = NONGZHIDAO_MAP[cropName];
   if (code) {
     try {
@@ -1587,9 +1590,12 @@ const useDisasterYearly = () => {
 
 /* ── CARD 1: 價格面板 (AMIS) ────────────────────────────────────────────── */
 const PricePanelCard = ({cropName}) => {
-  // Crops with no AMIS wholesale data (e.g. 茶, 稻穀): show a clear placeholder
-  // covering all 3 mini-cards so users don't see broken MOA-fallback numbers.
-  if (cropName && WHOLESALE_NO_DATA.has(cropName)) {
+  const noData = !!(cropName && WHOLESALE_NO_DATA.has(cropName));
+  // Always call the hook (Rules of Hooks): pass a stable sentinel name when
+  // we know there's no data so we don't waste a fetch, but the hook still
+  // runs every render to keep the hook order stable.
+  const m = useCropMarket(noData ? '__nodata__' : (cropName || '番茄'));
+  if (noData) {
     return (
       <div style={{
         position:'absolute',
@@ -1605,7 +1611,6 @@ const PricePanelCard = ({cropName}) => {
       </div>
     );
   }
-  const m = useCropMarket(cropName || '番茄');
   const latest = m?.latest_price?.price ?? null;
   const latestDate = m?.latest_price?.date ?? null;
 
@@ -1692,23 +1697,8 @@ const PricePanelCard = ({cropName}) => {
 
 /* ── CARD 2: 批發市場行情趨勢圖 (toggle 每週/每月/一年/每年) ──────────── */
 const TrendChartCard = ({cropName}) => {
-  if (cropName && WHOLESALE_NO_DATA.has(cropName)) {
-    return (
-      <div style={{
-        position:'absolute',
-        left:`${726/1440*100}%`, top:`${87/1468*100}%`,
-        width:`${(1407-726)/1440*100}%`, height:`${(374-87)/1468*100}%`,
-        background:'#f4f6e8', border:'1.5px solid #d8dcc0', borderRadius:14,
-        padding:'10px 14px', boxSizing:'border-box',
-        display:'flex', flexDirection:'column', gap:6,
-        fontFamily:"'Noto Sans TC',sans-serif",
-      }}>
-        <div style={{fontSize:17, fontWeight:900, color:'#5a7028', letterSpacing:1.5}}>批發市場行情趨勢圖 · {cropName}</div>
-        <_WholesaleNoDataMsg/>
-      </div>
-    );
-  }
-  const m = useCropMarket(cropName || '番茄');
+  const noData = !!(cropName && WHOLESALE_NO_DATA.has(cropName));
+  const m = useCropMarket(noData ? '__nodata__' : (cropName || '番茄'));
   const chartReady = useChart();
   const [period, setPeriod] = useState('weekly');
   const canvasRef = React.useRef(null);
@@ -1755,6 +1745,23 @@ const TrendChartCard = ({cropName}) => {
     return () => { if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; } };
   }, [m, period, chartReady]);
 
+  if (noData) {
+    return (
+      <div style={{
+        position:'absolute',
+        left:`${726/1440*100}%`, top:`${87/1468*100}%`,
+        width:`${(1407-726)/1440*100}%`, height:`${(374-87)/1468*100}%`,
+        background:'#f4f6e8', border:'1.5px solid #d8dcc0', borderRadius:14,
+        padding:'10px 14px', boxSizing:'border-box',
+        display:'flex', flexDirection:'column', gap:6,
+        fontFamily:"'Noto Sans TC',sans-serif",
+      }}>
+        <div style={{fontSize:17, fontWeight:900, color:'#5a7028', letterSpacing:1.5}}>批發市場行情趨勢圖 · {cropName}</div>
+        <_WholesaleNoDataMsg/>
+      </div>
+    );
+  }
+
   return (
     <div style={{
       position:'absolute',
@@ -1794,23 +1801,8 @@ const TrendChartCard = ({cropName}) => {
 
 /* ── CARD 3: 批發市場成交量比較 ─────────────────────────────────────────── */
 const VolumeBarsCard = ({cropName}) => {
-  if (cropName && WHOLESALE_NO_DATA.has(cropName)) {
-    return (
-      <div style={{
-        position:'absolute',
-        left:`${34/1440*100}%`, top:`${385/1468*100}%`,
-        width:`${(713-34)/1440*100}%`, height:`${(829-385)/1468*100}%`,
-        background:'#dceef0', border:'1.5px solid #b6d7da', borderRadius:14,
-        padding:'10px 14px', boxSizing:'border-box',
-        display:'flex', flexDirection:'column', gap:6,
-        fontFamily:"'Noto Sans TC',sans-serif",
-      }}>
-        <div style={{fontSize:17, fontWeight:900, color:'#256b78', letterSpacing:1.5}}>批發市場成交量比較 · {cropName}</div>
-        <_WholesaleNoDataMsg/>
-      </div>
-    );
-  }
-  const m = useCropMarket(cropName || '番茄');
+  const noData = !!(cropName && WHOLESALE_NO_DATA.has(cropName));
+  const m = useCropMarket(noData ? '__nodata__' : (cropName || '番茄'));
   const chartReady = useChart();
   const canvasRef = React.useRef(null);
   const chartRef  = React.useRef(null);
@@ -1840,6 +1832,23 @@ const VolumeBarsCard = ({cropName}) => {
     return () => { if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; } };
   }, [m, chartReady]);
 
+  if (noData) {
+    return (
+      <div style={{
+        position:'absolute',
+        left:`${34/1440*100}%`, top:`${385/1468*100}%`,
+        width:`${(713-34)/1440*100}%`, height:`${(829-385)/1468*100}%`,
+        background:'#dceef0', border:'1.5px solid #b6d7da', borderRadius:14,
+        padding:'10px 14px', boxSizing:'border-box',
+        display:'flex', flexDirection:'column', gap:6,
+        fontFamily:"'Noto Sans TC',sans-serif",
+      }}>
+        <div style={{fontSize:17, fontWeight:900, color:'#256b78', letterSpacing:1.5}}>批發市場成交量比較 · {cropName}</div>
+        <_WholesaleNoDataMsg/>
+      </div>
+    );
+  }
+
   return (
     <div style={{
       position:'absolute',
@@ -1868,23 +1877,8 @@ const VolumeBarsCard = ({cropName}) => {
 
 /* ── CARD 4: 批發市場價格比較 ───────────────────────────────────────────── */
 const PriceBarsCard = ({cropName}) => {
-  if (cropName && WHOLESALE_NO_DATA.has(cropName)) {
-    return (
-      <div style={{
-        position:'absolute',
-        left:`${726/1440*100}%`, top:`${385/1468*100}%`,
-        width:`${(1407-726)/1440*100}%`, height:`${(829-385)/1468*100}%`,
-        background:'#fde9d4', border:'1.5px solid #ebcfa9', borderRadius:14,
-        padding:'10px 14px', boxSizing:'border-box',
-        display:'flex', flexDirection:'column', gap:6,
-        fontFamily:"'Noto Sans TC',sans-serif",
-      }}>
-        <div style={{fontSize:17, fontWeight:900, color:'#a8581a', letterSpacing:1.5}}>批發市場價格比較 · {cropName}</div>
-        <_WholesaleNoDataMsg/>
-      </div>
-    );
-  }
-  const m = useCropMarket(cropName || '番茄');
+  const noData = !!(cropName && WHOLESALE_NO_DATA.has(cropName));
+  const m = useCropMarket(noData ? '__nodata__' : (cropName || '番茄'));
   const chartReady = useChart();
   const canvasRef = React.useRef(null);
   const chartRef  = React.useRef(null);
@@ -1913,6 +1907,23 @@ const PriceBarsCard = ({cropName}) => {
     });
     return () => { if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; } };
   }, [m, chartReady]);
+
+  if (noData) {
+    return (
+      <div style={{
+        position:'absolute',
+        left:`${727/1440*100}%`, top:`${385/1468*100}%`,
+        width:`${(1407-727)/1440*100}%`, height:`${(829-385)/1468*100}%`,
+        background:'#fcedd6', border:'1.5px solid #eed8b4', borderRadius:14,
+        padding:'10px 14px', boxSizing:'border-box',
+        display:'flex', flexDirection:'column', gap:6,
+        fontFamily:"'Noto Sans TC',sans-serif",
+      }}>
+        <div style={{fontSize:17, fontWeight:900, color:'#a8581a', letterSpacing:1.5}}>批發市場價格比較 · {cropName}</div>
+        <_WholesaleNoDataMsg/>
+      </div>
+    );
+  }
 
   return (
     <div style={{
