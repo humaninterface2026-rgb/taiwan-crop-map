@@ -1239,9 +1239,12 @@ const Page = ({selected, onSelect, onCropSelect}) => {
       </ScaledOverlay>
 
       {/* (4) 3-line hello text inside the Figma-baked speech bubble.
+          Bubble interior (measured): design y=190..295 (height 105px). Text
+          block = 3 × 26px = 78px → padding-top = padding-bottom = ~13px to
+          centre vertically inside the bubble.
           Spec from Figma 51-4788: Noto Sans CJK TC Bold, 15px, tracking 1.5,
           leading 26, color #4e3628. */}
-      <ScaledOverlay x={1042} y={218} w={310} h={90}>
+      <ScaledOverlay x={1042} y={203} w={310} h={90}>
         <div style={{
           fontSize:15, fontWeight:700, color:'#4e3628',
           letterSpacing:1.5, lineHeight:'26px', fontFamily:"'Noto Sans TC',sans-serif",
