@@ -1229,8 +1229,11 @@ const Page = ({selected, onSelect, onCropSelect}) => {
           } catch (e) { return s; }
         };
         const trimmedSvg = trimSvgBottom(svgStr);
+        // Box anchored so feet land on the shadow's TOP edge (not its center),
+        // matching the original baked 番茄 — character standing on the shadow
+        // oval, not sinking into it. Shadow top measured at design y=320.
         const w = 200, h = 220;
-        const cx = 855, footY = 339;
+        const cx = 855, footY = 322;
         return (
           <ScaledOverlay x={cx - w/2} y={footY - h} w={w} h={h}>
             {trimmedSvg ? (
