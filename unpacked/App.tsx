@@ -1283,6 +1283,17 @@ const NONGZHIDAO_MAP = {
   '青蔥':         'code_SE6',  // 宜蘭 broad fallback
   '青蔥-粉蔥':    'code_SE6',  // 宜蘭 priceVariety
   '釋迦':         'fruit_31',  // 台東
+  // 4 taoyuan township crops backfilled 2026-05-22
+  '甘藍':         'code_LA1',  // 桃園 township (初秋 cultivar)
+  '甘藍-初秋':    'code_LA1',
+  '包心白':       'code_LC1',  // 桃園楊梅 (包白 cultivar)
+  '包心白菜':     'code_LC1',
+  '水蜜桃':       'fruit_Y1',  // 桃園復興拉拉山
+  '桃子':         'fruit_Y1',
+  '柚子':         'fruit_H1',  // 桃園大溪文旦
+  '文旦':         'fruit_H1',
+  // 哈密瓜 (alternate writing of 哈蜜瓜): same fruit, same data
+  '哈密瓜':       'fruit_W1',
 };
 
 // Crops with no AMIS wholesale market data (sold via different channels —
@@ -1293,6 +1304,9 @@ const NONGZHIDAO_MAP = {
 const WHOLESALE_NO_DATA = new Set([
   '包種茶',
   '水稻',
+  // taoyuan township slots — same reason as 新北包種茶 / 新竹市水稻
+  '茶葉',
+  '稻米',
 ]);
 
 // MOA returns dates as either "115/05/21" or "115.05.21" — accept both separators.
@@ -1487,6 +1501,20 @@ const TRADE_COA_MAP = {
   '芭樂':         '104xx46',     // 高雄 (番石榴)
   '洋蔥':         '103xx03',     // 屏東
   '釋迦':         '104xx38',     // 台東
+  // 4 taoyuan township crops added 2026-05-22
+  '甘藍':         '103xx05',
+  '甘藍-初秋':    '103xx05',
+  '包心白':       '103xx06',     // 白菜 aggregate
+  '包心白菜':     '103xx06',
+  '水蜜桃':       '104xx12',     // 桃 aggregate
+  '桃子':         '104xx12',
+  '柚子':         '104xx24',
+  '文旦':         '104xx24',
+  // 哈密瓜 (alternate writing): same CCC as 哈蜜瓜
+  '哈密瓜':       '0807191000',
+  // taoyuan township 稻米/茶葉 reuse existing files for 水稻/包種茶
+  '稻米':         '101xx01',
+  '茶葉':         '109xxxx',
   // 宜蘭 青蔥-粉蔥 intentionally omitted — MOA's 103##03 conflates 洋蔥+蔥;
   // showing 洋蔥 numbers under a 青蔥 label would be misleading, so the trade
   // card renders a placeholder for 宜蘭 instead.

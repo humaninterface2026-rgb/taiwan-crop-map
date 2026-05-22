@@ -4578,12 +4578,30 @@ const NONGZHIDAO_MAP = {
   // 宜蘭 broad fallback
   "\u9752\u8525-\u7C89\u8525": "code_SE6",
   // 宜蘭 priceVariety
-  "\u91CB\u8FE6": "fruit_31"
+  "\u91CB\u8FE6": "fruit_31",
   // 台東
+  // 4 taoyuan township crops backfilled 2026-05-22
+  "\u7518\u85CD": "code_LA1",
+  // 桃園 township (初秋 cultivar)
+  "\u7518\u85CD-\u521D\u79CB": "code_LA1",
+  "\u5305\u5FC3\u767D": "code_LC1",
+  // 桃園楊梅 (包白 cultivar)
+  "\u5305\u5FC3\u767D\u83DC": "code_LC1",
+  "\u6C34\u871C\u6843": "fruit_Y1",
+  // 桃園復興拉拉山
+  "\u6843\u5B50": "fruit_Y1",
+  "\u67DA\u5B50": "fruit_H1",
+  // 桃園大溪文旦
+  "\u6587\u65E6": "fruit_H1",
+  // 哈密瓜 (alternate writing of 哈蜜瓜): same fruit, same data
+  "\u54C8\u5BC6\u74DC": "fruit_W1"
 };
 const WHOLESALE_NO_DATA = /* @__PURE__ */ new Set([
   "\u5305\u7A2E\u8336",
-  "\u6C34\u7A3B"
+  "\u6C34\u7A3B",
+  // taoyuan township slots — same reason as 新北包種茶 / 新竹市水稻
+  "\u8336\u8449",
+  "\u7A3B\u7C73"
 ]);
 const _rocToISO = (roc) => {
   const m = String(roc || "").match(/^(\d+)[\/.](\d+)[\/.](\d+)$/);
@@ -4754,8 +4772,24 @@ const TRADE_COA_MAP = {
   // 高雄 (番石榴)
   "\u6D0B\u8525": "103xx03",
   // 屏東
-  "\u91CB\u8FE6": "104xx38"
+  "\u91CB\u8FE6": "104xx38",
   // 台東
+  // 4 taoyuan township crops added 2026-05-22
+  "\u7518\u85CD": "103xx05",
+  "\u7518\u85CD-\u521D\u79CB": "103xx05",
+  "\u5305\u5FC3\u767D": "103xx06",
+  // 白菜 aggregate
+  "\u5305\u5FC3\u767D\u83DC": "103xx06",
+  "\u6C34\u871C\u6843": "104xx12",
+  // 桃 aggregate
+  "\u6843\u5B50": "104xx12",
+  "\u67DA\u5B50": "104xx24",
+  "\u6587\u65E6": "104xx24",
+  // 哈密瓜 (alternate writing): same CCC as 哈蜜瓜
+  "\u54C8\u5BC6\u74DC": "0807191000",
+  // taoyuan township 稻米/茶葉 reuse existing files for 水稻/包種茶
+  "\u7A3B\u7C73": "101xx01",
+  "\u8336\u8449": "109xxxx"
   // 宜蘭 青蔥-粉蔥 intentionally omitted — MOA's 103##03 conflates 洋蔥+蔥;
   // showing 洋蔥 numbers under a 青蔥 label would be misleading, so the trade
   // card renders a placeholder for 宜蘭 instead.
