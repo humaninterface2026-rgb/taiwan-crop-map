@@ -1239,16 +1239,41 @@ const Page = ({selected, onSelect, onCropSelect}) => {
         </div>
       </ScaledOverlay>
 
-      {/* (4) 3-line hello text inside speech bubble */}
-      <ScaledOverlay x={1040} y={222} w={290} h={90}>
+      {/* (4) CSS speech bubble (replaces baked bubble we paint over) — rounded
+          rect + tail pointing left at the character. */}
+      <ScaledOverlay x={1000} y={200} w={340} h={140}>
         <div style={{
-          fontSize:13, fontWeight:700, color:'#4e3628',
-          letterSpacing:1.2, lineHeight:'24px', fontFamily:"'Noto Sans TC',sans-serif",
-          whiteSpace:'nowrap',
+          position:'relative',
+          width:'100%', height:'100%',
+          background:'#fefaf1', border:'1.5px solid #f0d9bd', borderRadius:24,
+          boxSizing:'border-box',
+          padding:'14px 18px',
+          fontFamily:"'Noto Sans TC',sans-serif",
         }}>
-          <div>哈囉！我是來自{region.name.replace(/[市縣]$/, '')}的{region.cropApi}！</div>
-          <div>這裡陽光充足，很適合我生長，</div>
-          <div>快來看看今天的天氣和市場資訊吧！</div>
+          {/* Tail border (slightly larger triangle for the outline) */}
+          <div style={{
+            position:'absolute', left:-11, top:40,
+            width:0, height:0,
+            borderTop:'9px solid transparent',
+            borderBottom:'9px solid transparent',
+            borderRight:'11px solid #f0d9bd',
+          }}/>
+          {/* Tail fill (inner triangle, 1.5px inset from border) */}
+          <div style={{
+            position:'absolute', left:-9, top:42,
+            width:0, height:0,
+            borderTop:'7px solid transparent',
+            borderBottom:'7px solid transparent',
+            borderRight:'9px solid #fefaf1',
+          }}/>
+          <div style={{
+            fontSize:13, fontWeight:700, color:'#4e3628',
+            letterSpacing:1.2, lineHeight:'24px', whiteSpace:'nowrap',
+          }}>
+            <div>哈囉！我是來自{region.name.replace(/[市縣]$/, '')}的{region.cropApi}！</div>
+            <div>這裡陽光充足，很適合我生長，</div>
+            <div>快來看看今天的天氣和市場資訊吧！</div>
+          </div>
         </div>
       </ScaledOverlay>
 
