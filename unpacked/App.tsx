@@ -1202,15 +1202,39 @@ const Page = ({selected, onSelect, onCropSelect}) => {
         const svgStr    = selected === 'taoyuan'
           ? (tyCrops['牛蕃茄'] || (charKey ? charsLib[charKey] : null))
           : (charKey ? charsLib[charKey] : null);
-        // Sized to match the original baked 番茄 proportions (~180×160 design);
-        // box centered on the grass shadow at design (855, 333) so the feet of
-        // objectFit:contain + objectPosition:bottom land in the shadow oval.
-        const w = 200, h = 200;
-        const cx = 855, footY = 333;
+        // Box centered on the grass shadow at design (855, 339) so the feet
+        // land on the shadow oval. The SVG often has empty trailing whitespace
+        // inside its viewBox (e.g. 牛蕃茄 has 22% bottom padding), so we trim
+        // the viewBox to the visible content extent before rendering, which
+        // makes objectFit:contain + objectPosition:bottom hit the actual feet.
+        const trimSvgBottom = (s) => {
+          if (!s) return s;
+          try {
+            const m = s.match(/^data:image\/svg\+xml;base64,(.+)$/);
+            if (!m) return s;
+            const xml = atob(m[1]);
+            const vm = xml.match(/viewBox="([^"]+)"/);
+            if (!vm) return s;
+            const [vx, vy, vw, vh] = vm[1].trim().split(/\s+/).map(Number);
+            // Find max Y from path "d" attributes — odd-indexed numbers
+            const dAttrs = (xml.match(/\sd="[^"]*"/g) || []).join(' ');
+            const nums = (dAttrs.match(/-?\d+\.?\d*/g) || []).map(Number);
+            const ys = nums.filter((_, i) => i % 2 === 1).filter(y => y >= 0 && y <= vh);
+            if (ys.length === 0) return s;
+            const maxY = Math.max(...ys);
+            const pad = vh * 0.015;  // tiny visual breathing room
+            const newH = Math.min(vh, maxY + pad);
+            const newXml = xml.replace(/viewBox="[^"]+"/, `viewBox="${vx} ${vy} ${vw} ${newH}"`);
+            return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(newXml)))}`;
+          } catch (e) { return s; }
+        };
+        const trimmedSvg = trimSvgBottom(svgStr);
+        const w = 200, h = 220;
+        const cx = 855, footY = 339;
         return (
           <ScaledOverlay x={cx - w/2} y={footY - h} w={w} h={h}>
-            {svgStr ? (
-              <img src={svgStr} alt={region.cropApi}
+            {trimmedSvg ? (
+              <img src={trimmedSvg} alt={region.cropApi}
                 style={{display:'block', width:'100%', height:'100%', objectFit:'contain', objectPosition:'center bottom', userSelect:'none', pointerEvents:'none'}}/>
             ) : null}
           </ScaledOverlay>
