@@ -1202,13 +1202,13 @@ const Page = ({selected, onSelect, onCropSelect}) => {
         const svgStr    = selected === 'taoyuan'
           ? (tyCrops['牛蕃茄'] || (charKey ? charsLib[charKey] : null))
           : (charKey ? charsLib[charKey] : null);
-        // Box matches ORIGINAL ori.png positioning: 番茄 visible bbox is
-        // design (756..937, 140..340) = 181 × 200, centered at x=846, feet at
-        // y=340. SVG is rendered NATIVELY (no viewBox trim) — its internal
-        // ~12% bottom padding sits in empty box space below the visible feet,
-        // so the box bottom lands at design ~366 with feet at y=340.
-        const w = 200, h = 220;
-        const cx = 846, footY = 366;
+        // Box matches ORIGINAL ori.png positioning, measured pixel-precise:
+        // 番茄 visible bbox: x=756..937 (181), y=140..304 (visible feet at 304).
+        // SVG viewBox 232.89×256.95 with ~12% bottom whitespace (content ends
+        // at viewBox y=226). Box w=181, h=200 with the box top at design y=128
+        // puts visible feet at 128 + 226*(200/256.95) = 128 + 175.9 ≈ 304.
+        const w = 181, h = 200;
+        const cx = 846, footY = 128 + h;
         return (
           <ScaledOverlay x={cx - w/2} y={footY - h} w={w} h={h}>
             {svgStr ? (
