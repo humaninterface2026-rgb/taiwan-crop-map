@@ -1202,11 +1202,13 @@ const Page = ({selected, onSelect, onCropSelect}) => {
         const svgStr    = selected === 'taoyuan'
           ? (tyCrops['牛蕃茄'] || (charKey ? charsLib[charKey] : null))
           : (charKey ? charsLib[charKey] : null);
-        // Character stands on the green grass hill at the bottom-left of the
-        // panel. Hill-top ~design y=310; objectPosition:bottom anchors the feet
-        // there. Box height=255 → top at y=95.
+        // Sized to match the original baked 番茄 proportions (~180×160 design);
+        // box centered on the grass shadow at design (855, 333) so the feet of
+        // objectFit:contain + objectPosition:bottom land in the shadow oval.
+        const w = 200, h = 200;
+        const cx = 855, footY = 333;
         return (
-          <ScaledOverlay x={760} y={90} w={200} h={255}>
+          <ScaledOverlay x={cx - w/2} y={footY - h} w={w} h={h}>
             {svgStr ? (
               <img src={svgStr} alt={region.cropApi}
                 style={{display:'block', width:'100%', height:'100%', objectFit:'contain', objectPosition:'center bottom', userSelect:'none', pointerEvents:'none'}}/>
