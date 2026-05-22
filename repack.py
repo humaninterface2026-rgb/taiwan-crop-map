@@ -83,22 +83,22 @@ design_imgs = {}
 # encoding. The React overlay then becomes the sole visual.
 # Rects are in DESIGN units (source PNG is 2× this).
 _BTN_PAINT_RECTS = {
-    # (left, top, right, bottom) — pill column + arrows on the left, +/- on the right.
+    # Rect tuple is either (left, top, right, bottom) — sample bg from outside
+    # left-4 — or (left, top, right, bottom, (R,G,B)) — explicit fill colour.
+    # 2026-05-22: unpacked/full_page.jpg replaced with Figma 51-4788 export
+    # (no tomato character) but text + badge + speech bubble are still baked.
+    # Paint over those so the React overlay can render dynamic per-county text.
     "full_page":      [
-        (48, 605, 158, 882),  (640, 808, 680, 884),
-        # NEW (2026-05-22): paint baked 番茄 character + 桃園市/番茄 text + hello
-        # bubble so React overlay can render dynamic per-county content. Panel
-        # bg is uniform cream (#fdf7e9), so sampled paint matches cleanly.
-        (758,  80,  990, 385),   # 番茄 character (extend down to cover legs + hill)
-        (1010, 75,  1320, 115),  # 縣市名 + pin row (heart icon at >1370 stays)
-        (1010, 113, 1200, 170),  # 作物名 large text
-        (1000, 145, 1360, 305),  # 3-line hello speech bubble (wider + taller)
+        (48, 605, 158, 882), (640, 808, 680, 884),                # baked pill + +/- buttons
+        (1015, 100, 1320, 145, (253, 247, 233)),                  # 桃園市 badge (cream panel)
+        (1015, 140, 1200, 200, (253, 247, 233)),                  # 番茄 large text (cream panel)
+        (1010, 200, 1340, 320, (254, 250, 241)),                  # 3-line hello text inside speech bubble (avoid 查看更多 button)
     ],
     "taoyuan_detail": [(35, 1255, 285, 1905), (1465, 1735, 1545, 1905)],
 }
 
 def _paint_buttons(im, name, design_w):
-    """Paint over the baked button regions with the surrounding bg colour."""
+    """Paint over baked regions: rect = (l,t,r,b) samples bg, (l,t,r,b,(R,G,B)) uses explicit colour."""
     if name not in _BTN_PAINT_RECTS:
         return im
     rects = _BTN_PAINT_RECTS[name]
@@ -108,16 +108,18 @@ def _paint_buttons(im, name, design_w):
     px_per_design = im.size[0] / design_w
     from PIL import ImageDraw as _ImageDraw
     draw = _ImageDraw.Draw(im)
-    for left, top, right, bottom in rects:
-        # Sample bg colour just outside the rect (left edge − 4 design units).
-        sx = max(0, int((left - 4) * px_per_design))
-        sy = int(((top + bottom) / 2) * px_per_design)
-        bg = im.getpixel((sx, sy))
-        # Paint the rect with the sampled colour. Coordinates in pixels.
+    for rect in rects:
+        if len(rect) == 5:
+            left, top, right, bottom, fill = rect
+        else:
+            left, top, right, bottom = rect
+            sx = max(0, int((left - 4) * px_per_design))
+            sy = int(((top + bottom) / 2) * px_per_design)
+            fill = im.getpixel((sx, sy))
         draw.rectangle(
             (int(left * px_per_design), int(top * px_per_design),
              int(right * px_per_design), int(bottom * px_per_design)),
-            fill=bg,
+            fill=fill,
         )
     return im
 
