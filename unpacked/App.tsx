@@ -1188,6 +1188,62 @@ const Page = ({selected, onSelect, onCropSelect}) => {
         />
       </div>
 
+      {/* === DYNAMIC HERO PANEL (county-specific character + name + greeting) ===
+          Replaces the baked-in 桃園/番茄 content; repack.py paints over those
+          regions with cream so this overlay is the sole visual. */}
+      {/* (1) 角色 SVG from COUNTY_CHARS */}
+      {(() => {
+        const charsLib = (typeof window !== 'undefined' && window.COUNTY_CHARS) || {};
+        const charKey  = REGION_TO_CHAR_KEY[selected];
+        const svgStr   = charKey ? charsLib[charKey] : null;
+        return (
+          <ScaledOverlay x={770} y={85} w={200} h={210}>
+            {svgStr ? (
+              <img src={svgStr} alt={region.cropApi}
+                style={{display:'block', width:'100%', height:'100%', objectFit:'contain', userSelect:'none', pointerEvents:'none'}}/>
+            ) : null}
+          </ScaledOverlay>
+        );
+      })()}
+
+      {/* (2) 縣市名 + location pin */}
+      <ScaledOverlay x={1015} y={78} w={300} h={40}>
+        <div style={{
+          display:'flex', alignItems:'center', gap:6,
+          fontSize:24, fontWeight:900, color:'#3b6826',
+          letterSpacing:1.5, lineHeight:'40px', fontFamily:"'Noto Sans TC',sans-serif",
+        }}>
+          {/* pin icon */}
+          <svg width="22" height="22" viewBox="0 0 22 22" style={{flexShrink:0}}>
+            <path d="M11 1c-3.87 0-7 3.13-7 7 0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z" fill="#5a8c2c"/>
+          </svg>
+          {region.name}
+        </div>
+      </ScaledOverlay>
+
+      {/* (3) 作物名 large */}
+      <ScaledOverlay x={1015} y={113} w={300} h={56}>
+        <div style={{
+          fontSize:40, fontWeight:900, color:'#3b6826',
+          letterSpacing:2, lineHeight:'56px', fontFamily:"'Noto Sans TC',sans-serif",
+        }}>
+          {region.cropApi}
+        </div>
+      </ScaledOverlay>
+
+      {/* (4) 3-line hello text — strips 市/縣 from county name for natural speech */}
+      <ScaledOverlay x={1015} y={170} w={330} h={120}>
+        <div style={{
+          fontSize:15, fontWeight:700, color:'#4e3628',
+          letterSpacing:1.5, lineHeight:'26px', fontFamily:"'Noto Sans TC',sans-serif",
+          whiteSpace:'nowrap',
+        }}>
+          <div>哈囉！我是來自{region.name.replace(/[市縣]$/, '')}的{region.cropApi}！</div>
+          <div>這裡陽光充足，很適合我生長，</div>
+          <div>快來看看今天的天氣和市場資訊吧！</div>
+        </div>
+      </ScaledOverlay>
+
       {/* LIVE Weather card — covers static "天氣預報" card.
           Card edges in design coords: x=712-920, y=381-696. */}
       <ScaledOverlay x={712} y={381} w={920-712} h={696-381}>

@@ -84,7 +84,16 @@ design_imgs = {}
 # Rects are in DESIGN units (source PNG is 2× this).
 _BTN_PAINT_RECTS = {
     # (left, top, right, bottom) — pill column + arrows on the left, +/- on the right.
-    "full_page":      [(48, 605, 158, 882),  (640, 808, 680, 884)],
+    "full_page":      [
+        (48, 605, 158, 882),  (640, 808, 680, 884),
+        # NEW (2026-05-22): paint baked 番茄 character + 桃園市/番茄 text + hello
+        # bubble so React overlay can render dynamic per-county content. Panel
+        # bg is uniform cream (#fdf7e9), so sampled paint matches cleanly.
+        (770,  85,  970, 295),   # 番茄 character (left half of right panel)
+        (1015, 78,  1300, 115),  # 縣市名 + pin row (heart icon at >1370 stays)
+        (1015, 113, 1180, 168),  # 作物名 large text
+        (1010, 165, 1340, 290),  # 3-line hello speech bubble
+    ],
     "taoyuan_detail": [(35, 1255, 285, 1905), (1465, 1735, 1545, 1905)],
 }
 
