@@ -4405,6 +4405,9 @@ const Page = ({ selected, onSelect, onCropSelect }) => {
         )
       );
     };
+    const nameToKey = Object.fromEntries(
+      Object.entries(REGIONS_DATA).map(([k, v]) => [v.name, k])
+    );
     const renderPill = (name, slot) => {
       const key = `main_pill_${slot}`;
       const alwaysActive = name === "\u6843\u5712\u5E02";
@@ -4417,6 +4420,11 @@ const Page = ({ selected, onSelect, onCropSelect }) => {
           key,
           onMouseEnter: () => !alwaysActive && setHoveredBtn(key),
           onMouseLeave: () => !alwaysActive && setHoveredBtn(null),
+          onClick: alwaysActive ? void 0 : () => {
+            const regionKey = nameToKey[name];
+            if (regionKey) onSelect(regionKey);
+          },
+          title: alwaysActive ? "\u6843\u5712\u5E02 (\u76EE\u524D\u9078\u53D6)" : `\u5207\u5230 ${name}`,
           style: {
             position: "absolute",
             left: `${PILL_X / W * 100}%`,

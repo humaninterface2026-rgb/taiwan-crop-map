@@ -1104,6 +1104,10 @@ const Page = ({selected, onSelect, onCropSelect}) => {
             </div>
           );
         };
+        // Chinese county name → REGIONS_DATA key, for pill click → onSelect.
+        const nameToKey = Object.fromEntries(
+          Object.entries(REGIONS_DATA).map(([k, v]) => [v.name, k])
+        );
         const renderPill = (name, slot) => {
           const key = `main_pill_${slot}`;
           const alwaysActive = name === '桃園市';
@@ -1115,6 +1119,15 @@ const Page = ({selected, onSelect, onCropSelect}) => {
               key={key}
               onMouseEnter={() => !alwaysActive && setHoveredBtn(key)}
               onMouseLeave={() => !alwaysActive && setHoveredBtn(null)}
+              onClick={alwaysActive ? undefined : () => {
+                // Pills route to the same handler as polygon clicks: update
+                // selected so the whole hero panel (character/name/weather/
+                // price) refreshes for that county. No hash change — stay on
+                // landing. 查看更多 button still routes to dashboard.
+                const regionKey = nameToKey[name];
+                if (regionKey) onSelect(regionKey);
+              }}
+              title={alwaysActive ? '桃園市 (目前選取)' : `切到 ${name}`}
               style={{
                 position:'absolute',
                 left:  `${PILL_X / W * 100}%`,
