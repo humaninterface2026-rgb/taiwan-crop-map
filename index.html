@@ -3784,6 +3784,26 @@ const ScaledOverlay = ({ x, y, w, h, children }) => /* @__PURE__ */ React.create
   transformOrigin: "top left",
   transform: "scale(calc(100cqw / 1440px))"
 } }, children));
+const TAOYUAN_CROP_LIST = [
+  { label: "\u6C34\u871C\u6843", crop: "\u6C34\u871C\u6843" },
+  { label: "\u6C34\u7A3B", crop: "\u7A3B\u7C73" },
+  { label: "\u751C\u67FF", crop: "\u751C\u67FF" },
+  { label: "\u7DA0\u7AF9\u7B4D", crop: "\u7DA0\u7AF9\u7B4D" },
+  { label: "\u54C8\u5BC6\u74DC", crop: "\u54C8\u5BC6\u74DC" },
+  { label: "\u725B\u8543\u8304", crop: "\u725B\u8543\u8304" },
+  { label: "\u67DA\u5B50", crop: "\u67DA\u5B50" },
+  { label: "\u7518\u85CD", crop: "\u7518\u85CD-\u521D\u79CB" },
+  { label: "\u5305\u5FC3\u767D", crop: "\u5305\u5FC3\u767D" },
+  { label: "\u8336\u8449", crop: "\u8336\u8449" },
+  { label: "\u7C89\u8525", crop: "\u9752\u8525-\u7C89\u8525" }
+];
+const STRIP_SLOTS = [
+  { x: 768 },
+  { x: 885 },
+  { x: 1002 },
+  { x: 1119 },
+  { x: 1236 }
+];
 const TAOYUAN_POLYGON_ID = "51_5084";
 const TW_COUNTIES = [
   { id: "51_5082", isBase: true, cx: 224.001, cy: 163, cw: 446.999, ch: 712.593, viewBox: "0 0 466.822 732.466", d: "M456.856 74.8654C456.316 63.1225 448.205 56.222 438.986 50.737C433.128 47.2449 426.973 44.684 420.883 42.1044C413.163 38.8358 405.545 35.5485 398.719 30.3615C397.211 29.2068 395.73 27.9682 394.305 26.6086C388.867 21.4216 384.257 12.2769 376.528 10.2002C368.221 7.97457 340.507 19.4195 332.676 24.1874C326.958 27.6702 323.317 32.6244 316.994 35.3157C309.59 38.4633 299.58 40.1023 291.534 42.7004C276.746 47.4684 266.167 53.2141 253.111 61.0179C245.884 65.3295 241.601 66.6798 235.24 73.0867C221.132 87.2881 216.131 109.005 204.407 124.919C195.504 137.007 182.467 144.485 171.553 154.402C161.794 163.268 151.671 174.536 142.741 184.351C129.75 198.636 117.262 213.219 106.553 229.041C96.4953 243.894 88.7939 261.271 76.632 274.858C70.9328 281.218 64.7773 286.918 59.1992 293.39C41.2822 314.175 38.1905 332.204 30.1539 357.738C24.3523 376.167 16.2691 398.172 12.2834 416.723C4.96391 450.787 15.7104 467.969 28.3659 497.61C46.0129 538.91 54.8131 558.951 85.5625 592.345C101.571 609.731 143.784 648.387 147.993 669.554C150.684 683.131 145.693 704.354 153.934 715.455C159.466 722.904 170.436 725.27 177.578 718.546C183.901 712.596 195.346 667.607 199.062 656.246C205.916 635.275 212.984 610.895 221.393 590.771C224.54 583.247 227.204 579.764 232.558 573.785C253.455 550.43 278.049 529.002 298.928 505.656C326.455 474.879 331.605 431.678 342.044 392.594C355.156 343.5 366.554 293.399 382.795 245.44C393.849 233.232 403.478 229.833 412.194 214.737C416.217 207.772 430.828 178.996 431.815 172.468C434.814 152.475 417.754 129.669 427.606 112.404C435.745 98.1277 457.769 94.1792 456.875 74.8747L456.856 74.8654Z" },
@@ -3897,6 +3917,7 @@ const Page = ({ selected, cropOverride, onSelect, onCropSelect }) => {
   const [leftMapView, setLeftMapView] = React.useState("main");
   const [hoveredBtn, setHoveredBtn] = React.useState(null);
   const [cityScrollIdx, setCityScrollIdx] = React.useState(0);
+  const [stripIdx, setStripIdx] = React.useState(0);
   const W = 1440, H = 2996;
   const MAP_X = 34, MAP_Y = 87, MAP_W = 665, MAP_H = 830;
   return /* @__PURE__ */ React.createElement("div", { style: {
@@ -4544,31 +4565,89 @@ const Page = ({ selected, cropOverride, onSelect, onCropSelect }) => {
         transition: "background 150ms ease, box-shadow 150ms ease"
       }
     }
-  ), [
-    { label: "\u6C34\u871C\u6843", crop: "\u6C34\u871C\u6843", x: 768, w: 108 },
-    { label: "\u6C34\u7A3B", crop: "\u7A3B\u7C73", x: 886, w: 106 },
-    { label: "\u751C\u67FF", crop: "\u751C\u67FF", x: 1002, w: 108 },
-    { label: "\u7DA0\u7AF9\u7B4D", crop: "\u7DA0\u7AF9\u7B4D", x: 1120, w: 106 },
-    { label: "\u54C8\u5BC6\u74DC", crop: "\u54C8\u5BC6\u74DC", x: 1236, w: 108 }
-  ].map((c) => {
-    const key = `strip_${c.crop}`;
+  ), (() => {
+    const tyCrops = typeof window !== "undefined" && window.TAOYUAN_CROPS || {};
+    const cntyCh = typeof window !== "undefined" && window.COUNTY_CHARS || {};
+    const N = TAOYUAN_CROP_LIST.length;
+    const STRIP_CHAR_FALLBACK = { "\u751C\u67FF": cntyCh["n_hsinchu_county"] };
+    return STRIP_SLOTS.map((slot, i) => {
+      const item = TAOYUAN_CROP_LIST[(stripIdx + i) % N];
+      const key = `strip_${i}`;
+      const svg = tyCrops[item.crop] || STRIP_CHAR_FALLBACK[item.crop] || null;
+      const showOverlay = stripIdx !== 0;
+      return /* @__PURE__ */ React.createElement(React.Fragment, { key: i }, showOverlay && /* @__PURE__ */ React.createElement(ScaledOverlay, { x: slot.x, y: 757, w: 109, h: 135 }, /* @__PURE__ */ React.createElement("div", { style: {
+        width: "100%",
+        height: "100%",
+        background: "#fffcf5",
+        borderRadius: 15,
+        boxShadow: "2px 3px 0px 0px rgba(209,196,175,0.55)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "flex-end",
+        padding: "6px 6px 10px",
+        boxSizing: "border-box",
+        pointerEvents: "none"
+      } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, width: "100%", display: "flex", alignItems: "flex-end", justifyContent: "center", minHeight: 0 } }, svg ? /* @__PURE__ */ React.createElement(
+        "img",
+        {
+          src: svg,
+          alt: item.label,
+          style: { maxWidth: "82%", maxHeight: "100%", objectFit: "contain", display: "block" }
+        }
+      ) : null), /* @__PURE__ */ React.createElement("div", { style: {
+        marginTop: 4,
+        fontSize: 16,
+        fontWeight: 700,
+        color: "#523728",
+        letterSpacing: 0.5,
+        lineHeight: 1.2,
+        fontFamily: "'Noto Sans TC',sans-serif"
+      } }, item.label))), /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          onClick: () => onCropSelect && onCropSelect(item.crop),
+          onMouseEnter: () => setHovered(key),
+          onMouseLeave: () => setHovered(null),
+          title: `\u67E5\u770B\u6843\u5712\u5E02${item.label}`,
+          style: {
+            position: "absolute",
+            left: `${slot.x / 1440 * 100}%`,
+            top: `${757 / 2996 * 100}%`,
+            width: `${109 / 1440 * 100}%`,
+            height: `${135 / 2996 * 100}%`,
+            cursor: "pointer",
+            zIndex: 6,
+            borderRadius: 15,
+            background: hovered === key ? "rgba(255,255,255,0.30)" : "transparent",
+            boxShadow: hovered === key ? "0 0 0 4px rgba(255,255,255,0.45)" : "none",
+            transition: "background 150ms ease, box-shadow 150ms ease"
+          }
+        }
+      ));
+    });
+  })(), [
+    { side: "left", x: 728, delta: -1 },
+    { side: "right", x: 1353, delta: 1 }
+  ].map((a) => {
+    const key = `strip_arrow_${a.side}`;
     return /* @__PURE__ */ React.createElement(
       "div",
       {
-        key: c.crop,
-        onClick: () => onCropSelect && onCropSelect(c.crop),
+        key: a.side,
+        onClick: () => setStripIdx((prev) => (prev + a.delta + TAOYUAN_CROP_LIST.length) % TAOYUAN_CROP_LIST.length),
         onMouseEnter: () => setHovered(key),
         onMouseLeave: () => setHovered(null),
-        title: `\u67E5\u770B\u6843\u5712\u5E02${c.label}`,
+        title: a.side === "left" ? "\u4E0A\u4E00\u500B\u4F5C\u7269" : "\u4E0B\u4E00\u500B\u4F5C\u7269",
         style: {
           position: "absolute",
-          left: `${c.x / 1440 * 100}%`,
-          top: `${757 / 2996 * 100}%`,
-          width: `${c.w / 1440 * 100}%`,
-          height: `${(892 - 757) / 2996 * 100}%`,
+          left: `${a.x / 1440 * 100}%`,
+          top: `${808 / 2996 * 100}%`,
+          width: `${32 / 1440 * 100}%`,
+          height: `${32 / 2996 * 100}%`,
           cursor: "pointer",
-          zIndex: 5,
-          borderRadius: 18,
+          zIndex: 6,
+          borderRadius: "50%",
           background: hovered === key ? "rgba(255,255,255,0.30)" : "transparent",
           boxShadow: hovered === key ? "0 0 0 4px rgba(255,255,255,0.45)" : "none",
           transition: "background 150ms ease, box-shadow 150ms ease"

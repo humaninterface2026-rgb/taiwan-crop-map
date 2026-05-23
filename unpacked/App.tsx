@@ -501,6 +501,37 @@ const ScaledOverlay = ({x, y, w, h, children}) => (
   </div>
 );
 
+/* ── 桃園市其他主要作物 strip carousel ──────────────────────────────────
+ * 5-slot strip on the landing right-panel. Order [0..4] matches the baked
+ * full_page image (水蜜桃 / 水稻=稻米 / 甜柿 / 綠竹筍 / 哈密瓜), so when
+ * stripIdx === 0 we don't need to render virtual overlay cards. Indices 5+
+ * are alternate Taoyuan-area crops with TAOYUAN_CROPS SVGs available.
+ *   crop = key into TAOYUAN_CROPS / NONGZHIDAO_MAP (price data)
+ *   label = short display name shown under the character on the card
+ * 甜柿 has no TAOYUAN_CROPS SVG; virtual overlay falls back to 牛蕃茄 SVG. */
+const TAOYUAN_CROP_LIST = [
+  { label:'水蜜桃', crop:'水蜜桃'    },
+  { label:'水稻',   crop:'稻米'      },
+  { label:'甜柿',   crop:'甜柿'      },
+  { label:'綠竹筍', crop:'綠竹筍'    },
+  { label:'哈密瓜', crop:'哈密瓜'    },
+  { label:'牛蕃茄', crop:'牛蕃茄'    },
+  { label:'柚子',   crop:'柚子'      },
+  { label:'甘藍',   crop:'甘藍-初秋' },
+  { label:'包心白', crop:'包心白'    },
+  { label:'茶葉',   crop:'茶葉'      },
+  { label:'粉蔥',   crop:'青蔥-粉蔥' },
+];
+// 5 slot positions on the baked strip (design coords). Cards are 109×135
+// at y=757; left edges 768, 885, 1002, 1119, 1236 (gap=8 from Figma 51:4980).
+const STRIP_SLOTS = [
+  { x: 768  },
+  { x: 885  },
+  { x: 1002 },
+  { x: 1119 },
+  { x: 1236 },
+];
+
 /* ── MAP CLICK NAVIGATION ──────────────────────────────────────────────────
  * 點擊桃園市 polygon (51:5084) → 切到桃園 detail / 蕃茄 dashboard view。
  * 舊的 TOMATO_HOTSPOT 透明 click 圓圈已移除（用 polygon-shaped click 取代）。
@@ -647,6 +678,9 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect}) => {
   const [hoveredBtn, setHoveredBtn] = React.useState(null);
   // 城市 pill 滾動位置 — 預設 0 讓可見 5 顆對齊 PNG 底圖 (新北/基隆/桃園/新竹市/新竹縣)
   const [cityScrollIdx, setCityScrollIdx] = React.useState(0);
+  // 桃園市其他主要作物 strip — stripIdx=0 對齊烤在底圖上的 5 張卡片 (水蜜桃/水稻/甜柿/綠竹筍/哈密瓜)。
+  // 點左右箭頭 ±1，slot i 顯示 list[(stripIdx+i) % N]。stripIdx !== 0 時 5 個 slot 都需要 overlay 蓋掉烤底。
+  const [stripIdx, setStripIdx] = React.useState(0);
 
   const W = 1440, H = 2996;
   // 左側 map area 在 design canvas 上的位置（Rectangle 4 from Figma）
@@ -1285,40 +1319,105 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect}) => {
         }}
       />
 
-      {/* 桃園市其他主要作物 — 5 baked cards in the right panel are clickable.
-          Card bounds measured from ori.png (design coords):
-            水蜜桃   x=768-876  (w=108)
-            水稻     x=886-992  (w=106)  → maps to crop '稻米' (SVG name)
-            甜柿     x=1002-1110 (w=108) → no TAOYUAN_CROPS SVG, char falls back to 牛蕃茄
-            綠竹筍   x=1120-1226 (w=106)
-            哈密瓜   x=1236-1344 (w=108)
-          All cards span y=757..892 (h=135). Clicking a card calls onCropSelect,
-          which routes to taoyuan + sets the crop, so both character (TAOYUAN_CROPS)
-          and price (NONGZHIDAO_MAP) swap. */}
+      {/* 桃園市其他主要作物 strip — 5 visible slot carousel.
+          Layout from Figma 51-4980 (Frame 2): card w=109, h=135, gap=8, y=757.
+          Slot i shows TAOYUAN_CROP_LIST[(stripIdx + i) % N]. Left/right arrows
+          shift stripIdx by ±1 (wraps). When stripIdx === 0 the baked image
+          already shows the right 5 cards so we only render click hotspots; for
+          any non-zero stripIdx we overlay 5 virtual cards on top to match.
+          Card visual matches Figma node 51:4983: bg #fffcf5, radius 15,
+          shadow 2px 3px 0 0 rgba(209,196,175,0.55). */}
+      {(() => {
+        const tyCrops = (typeof window !== 'undefined' && window.TAOYUAN_CROPS) || {};
+        const cntyCh  = (typeof window !== 'undefined' && window.COUNTY_CHARS) || {};
+        const N = TAOYUAN_CROP_LIST.length;
+        // 甜柿 has no TAOYUAN_CROPS entry; fall back to 新竹縣 (n_hsinchu_county)
+        // which IS a 甜柿 mascot. For any other missing key, leave the card
+        // character-less rather than show a misleading tomato.
+        const STRIP_CHAR_FALLBACK = { '甜柿': cntyCh['n_hsinchu_county'] };
+        return STRIP_SLOTS.map((slot, i) => {
+          const item = TAOYUAN_CROP_LIST[(stripIdx + i) % N];
+          const key  = `strip_${i}`;
+          const svg  = tyCrops[item.crop] || STRIP_CHAR_FALLBACK[item.crop] || null;
+          const showOverlay = stripIdx !== 0;
+          return (
+            <React.Fragment key={i}>
+              {showOverlay && (
+                <ScaledOverlay x={slot.x} y={757} w={109} h={135}>
+                  <div style={{
+                    width:'100%', height:'100%',
+                    background:'#fffcf5',
+                    borderRadius:15,
+                    boxShadow:'2px 3px 0px 0px rgba(209,196,175,0.55)',
+                    display:'flex', flexDirection:'column',
+                    alignItems:'center', justifyContent:'flex-end',
+                    padding:'6px 6px 10px',
+                    boxSizing:'border-box',
+                    pointerEvents:'none',
+                  }}>
+                    <div style={{ flex:1, width:'100%', display:'flex', alignItems:'flex-end', justifyContent:'center', minHeight:0 }}>
+                      {svg ? <img src={svg} alt={item.label}
+                        style={{ maxWidth:'82%', maxHeight:'100%', objectFit:'contain', display:'block' }}/> : null}
+                    </div>
+                    <div style={{
+                      marginTop:4,
+                      fontSize:16, fontWeight:700, color:'#523728',
+                      letterSpacing:0.5, lineHeight:1.2,
+                      fontFamily:"'Noto Sans TC',sans-serif",
+                    }}>
+                      {item.label}
+                    </div>
+                  </div>
+                </ScaledOverlay>
+              )}
+              <div
+                onClick={() => onCropSelect && onCropSelect(item.crop)}
+                onMouseEnter={() => setHovered(key)}
+                onMouseLeave={() => setHovered(null)}
+                title={`查看桃園市${item.label}`}
+                style={{
+                  position:'absolute',
+                  left:   `${slot.x/1440*100}%`,
+                  top:    `${757/2996*100}%`,
+                  width:  `${109/1440*100}%`,
+                  height: `${135/2996*100}%`,
+                  cursor:'pointer',
+                  zIndex: 6,
+                  borderRadius: 15,
+                  background:  hovered === key ? 'rgba(255,255,255,0.30)' : 'transparent',
+                  boxShadow:   hovered === key ? '0 0 0 4px rgba(255,255,255,0.45)' : 'none',
+                  transition:  'background 150ms ease, box-shadow 150ms ease',
+                }}
+              />
+            </React.Fragment>
+          );
+        });
+      })()}
+
+      {/* Left / right carousel arrow click hotspots — overlay the baked
+          chevron-in-circle icons (32×32 design px each, from Figma 51:4981 /
+          51:5074). ±1 shift with wrap. */}
       {[
-        { label:'水蜜桃', crop:'水蜜桃', x:768, w:108 },
-        { label:'水稻',   crop:'稻米',   x:886, w:106 },
-        { label:'甜柿',   crop:'甜柿',   x:1002, w:108 },
-        { label:'綠竹筍', crop:'綠竹筍', x:1120, w:106 },
-        { label:'哈密瓜', crop:'哈密瓜', x:1236, w:108 },
-      ].map(c => {
-        const key = `strip_${c.crop}`;
+        { side:'left',  x:728,  delta:-1 },
+        { side:'right', x:1353, delta:+1 },
+      ].map(a => {
+        const key = `strip_arrow_${a.side}`;
         return (
           <div
-            key={c.crop}
-            onClick={() => onCropSelect && onCropSelect(c.crop)}
+            key={a.side}
+            onClick={() => setStripIdx(prev => (prev + a.delta + TAOYUAN_CROP_LIST.length) % TAOYUAN_CROP_LIST.length)}
             onMouseEnter={() => setHovered(key)}
             onMouseLeave={() => setHovered(null)}
-            title={`查看桃園市${c.label}`}
+            title={a.side === 'left' ? '上一個作物' : '下一個作物'}
             style={{
               position:'absolute',
-              left:   `${c.x/1440*100}%`,
-              top:    `${757/2996*100}%`,
-              width:  `${c.w/1440*100}%`,
-              height: `${(892-757)/2996*100}%`,
+              left:   `${a.x/1440*100}%`,
+              top:    `${808/2996*100}%`,
+              width:  `${32/1440*100}%`,
+              height: `${32/2996*100}%`,
               cursor:'pointer',
-              zIndex: 5,
-              borderRadius: 18,
+              zIndex: 6,
+              borderRadius: '50%',
               background:  hovered === key ? 'rgba(255,255,255,0.30)' : 'transparent',
               boxShadow:   hovered === key ? '0 0 0 4px rgba(255,255,255,0.45)' : 'none',
               transition:  'background 150ms ease, box-shadow 150ms ease',
