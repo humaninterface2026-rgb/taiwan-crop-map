@@ -1221,7 +1221,7 @@ const Page = ({selected, onSelect, onCropSelect}) => {
           Spec from Figma 51-4788: Noto Sans CJK TC Medium, 15px. Visually it
           reads larger at design canvas because the SVG is masked at 1× from
           a 2× source; we render at fontSize 17 to match the apparent size. */}
-      <ScaledOverlay x={1055} y={107} w={280} h={32}>
+      <ScaledOverlay x={1045} y={107} w={280} h={32}>
         <div style={{
           fontSize:17, fontWeight:700, color:'#3b6826',
           letterSpacing:1.2, lineHeight:'32px', fontFamily:"'Noto Sans TC',sans-serif",
