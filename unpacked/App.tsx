@@ -1230,8 +1230,10 @@ const Page = ({selected, onSelect, onCropSelect}) => {
         </div>
       </ScaledOverlay>
 
-      {/* (3) 作物名 large — Figma layout shows it visually ~2× the county name. */}
-      <ScaledOverlay x={1015} y={140} w={300} h={42}>
+      {/* (3) 作物名 large — Figma layout shows it visually ~2× the county name.
+          Measured from ori.png: 番茄 glyph spans design y=141..167; centred
+          between 桃園市 (ends y=126) and bubble top (y=186). */}
+      <ScaledOverlay x={1015} y={135} w={300} h={42}>
         <div style={{
           fontSize:30, fontWeight:900, color:'#3b6826',
           letterSpacing:1.5, lineHeight:'42px', fontFamily:"'Noto Sans TC',sans-serif",
