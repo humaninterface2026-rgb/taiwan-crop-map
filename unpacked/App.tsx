@@ -532,6 +532,53 @@ const STRIP_SLOTS = [
   { x: 1236 },
 ];
 
+/* ── 種植注意事項 per-crop content ──────────────────────────────────────
+ * 4 short cultivation notes per crop. Rendered into the right-side notes
+ * panel (Figma 51:4951) which has 4 baked rects (each 193×40) at panel y
+ * offsets 57.57, 106.57, 155.57, 204.57. The full_page image bakes the
+ * 番茄 notes; our overlays cover the rects with crop-specific text using
+ * the same Figma style (bg #fef9f0, border #d1c4af, radius 11, font
+ * #9e694c 14px). Falls back to 番茄 notes when no crop-specific entry. */
+const CROP_NOTES = {
+  '番茄':       ['喜歡溫暖乾燥的環境', '選擇排水良好的砂質壤土', '耐旱性強，澆水不宜過多', '注意心腐病，避免葉心積水'],
+  '牛蕃茄':     ['喜歡溫暖乾燥的環境', '選擇排水良好的砂質壤土', '耐旱性強，澆水不宜過多', '注意心腐病，避免葉心積水'],
+  '水蜜桃':     ['喜歡冷涼濕潤的高山氣候', '排水良好的酸性壤土', '冬季需充足低溫休眠', '防治果實蠅與穿孔病'],
+  '稻米':       ['需要充足陽光與灌溉', '黏質壤土水稻田最適合', '插秧後保持淺水層', '注意稻熱病與褐飛蝨'],
+  '水稻':       ['需要充足陽光與灌溉', '黏質壤土水稻田最適合', '插秧後保持淺水層', '注意稻熱病與褐飛蝨'],
+  '綠竹筍':     ['喜歡半遮蔭的濕潤環境', '深層肥沃砂質壤土最佳', '春雨後筍冒出最旺盛', '注意竹螟與筍夜蛾'],
+  '哈密瓜':     ['溫暖乾燥日照充足', '排水良好的砂質壤土', '結果期適度控水增甜', '防治蔓枯病與粉蝨'],
+  '哈蜜瓜':     ['溫暖乾燥日照充足', '排水良好的砂質壤土', '結果期適度控水增甜', '防治蔓枯病與粉蝨'],
+  '茶葉':       ['偏好潮濕涼爽的山坡地', '排水良好的微酸性壤土', '春茶採收期早晚日照', '防治茶餅病與小綠葉蟬'],
+  '包種茶':     ['偏好潮濕涼爽的山坡地', '排水良好的微酸性壤土', '春茶採收期早晚日照', '防治茶餅病與小綠葉蟬'],
+  '柚子':       ['溫暖濕潤亞熱帶氣候', '排水良好的酸性壤土', '開花前需充足水分', '防治潛葉蛾與紅蜘蛛'],
+  '甘藍-初秋':  ['涼爽氣候 18-22℃ 為佳', '富含氮肥的肥沃壤土', '結球期注意均勻供水', '防治菜青蟲與小菜蛾'],
+  '甘藍':       ['涼爽氣候 18-22℃ 為佳', '富含氮肥的肥沃壤土', '結球期注意均勻供水', '防治菜青蟲與小菜蛾'],
+  '包心白':     ['喜歡涼爽 15-20℃ 環境', '富含有機質的壤土', '結球期需穩定水分', '防治根瘤病與小菜蛾'],
+  '青蔥-粉蔥':  ['喜冷涼氣候不耐高溫', '排水良好的砂質壤土', '蔥白期需充分覆土', '注意潛蠅與灰黴病'],
+  '青蔥':       ['喜冷涼氣候不耐高溫', '排水良好的砂質壤土', '蔥白期需充分覆土', '注意潛蠅與灰黴病'],
+  '山藥':       ['喜溫暖濕潤但忌積水', '深厚疏鬆砂質壤土', '塊根需充足支架攀附', '防治炭疽病與根結線蟲'],
+  '甜柿':       ['溫帶氣候日夜溫差大', '排水良好的肥沃壤土', '開花結果需穩定水分', '注意介殼蟲與果實蠅'],
+  '草莓':       ['冷涼氣候 15-20℃ 為佳', '排水良好的高畦栽培', '結果期保持土壤濕潤', '防治灰黴病與蜘蛛'],
+  '梨':         ['冬季低溫休眠夏季溫暖', '排水良好的深層壤土', '結果期需充足水分', '防治赤星病與梨木蝨'],
+  '葡萄':       ['溫暖乾燥日照充足', '排水良好的砂質壤土', '成熟期控水增糖度', '防治露菌病與葡萄銹蜡蟬'],
+  '香蕉':       ['熱帶高溫多濕氣候', '深厚疏鬆肥沃壤土', '常年需充足水分', '防治黃葉病與象鼻蟲'],
+  '大蒜':       ['冷涼氣候 13-20℃ 為佳', '富含有機質砂質壤土', '抽苔前控水促鱗莖', '注意萎縮病與蔥薊馬'],
+  '鳳梨':       ['熱帶氣候耐旱怕積水', '排水良好的微酸性壤土', '生育期需充足陽光', '防治根腐病與粉蝨'],
+  '芒果':       ['熱帶亞熱帶高溫氣候', '排水良好的砂質壤土', '花期需乾燥不下雨', '防治炭疽病與東方果實蠅'],
+  '芭樂':       ['溫暖氣候日照充足', '排水良好的砂質壤土', '結果期需穩定供水', '防治果實蠅與粉介殼蟲'],
+  '洋蔥':       ['冷涼氣候 15-20℃ 為佳', '排水良好的砂質壤土', '鱗莖膨大期控水', '防治薊馬與軟腐病'],
+  '西瓜':       ['溫暖乾燥日照充足', '排水良好的砂質壤土', '結果期適度控水增甜', '防治蔓枯病與粉蝨'],
+  '大西瓜':     ['溫暖乾燥日照充足', '排水良好的砂質壤土', '結果期適度控水增甜', '防治蔓枯病與粉蝨'],
+  '釋迦':       ['熱帶亞熱帶氣候', '排水良好的微酸性壤土', '結果期需充足水分', '防治粉介殼蟲與果實蠅'],
+};
+// 4 baked note-rect positions in design coords (Figma 51:4955/4957/4959/4960
+// inside notes panel at absolute x=1179 y=381). Rect size 193×40 each,
+// gap=9 between stacked rects.
+const NOTE_RECT_X = 1196;       // 1179 + 17 (panel-left + panel-local x)
+const NOTE_RECT_W = 193;
+const NOTE_RECT_H = 40;
+const NOTE_RECT_YS = [438, 487, 536, 585];  // 381 + (57.57, 106.57, 155.57, 204.57), rounded to int
+
 /* ── MAP CLICK NAVIGATION ──────────────────────────────────────────────────
  * 點擊桃園市 polygon (51:5084) → 切到桃園 detail / 蕃茄 dashboard view。
  * 舊的 TOMATO_HOTSPOT 透明 click 圓圈已移除（用 polygon-shaped click 取代）。
@@ -1442,6 +1489,39 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect}) => {
           market={region.priceMarket}
         />
       </ScaledOverlay>
+
+      {/* 種植注意事項 — 4 baked rects in the right column are overlaid with
+          crop-specific text. Falls back to 番茄 notes when no entry exists.
+          Style from Figma 51:4955/4956: bg #fef9f0, border #d1c4af 1px,
+          radius 11, font Noto Sans TC Medium 14, color #9e694c. */}
+      {(() => {
+        const cropKey = effectiveCrop || region.cropApi;
+        const notes = CROP_NOTES[cropKey] || CROP_NOTES['番茄'];
+        return NOTE_RECT_YS.map((y, i) => (
+          <ScaledOverlay key={i} x={NOTE_RECT_X} y={y} w={NOTE_RECT_W} h={NOTE_RECT_H}>
+            <div style={{
+              width:'100%', height:'100%',
+              background:'#fef9f0',
+              border:'1px solid #d1c4af',
+              borderRadius:11,
+              display:'flex', alignItems:'center',
+              paddingLeft:9, paddingRight:9,
+              boxSizing:'border-box',
+              pointerEvents:'none',
+            }}>
+              <span style={{
+                fontSize:14, fontWeight:500,
+                color:'#9e694c',
+                letterSpacing:0.7, lineHeight:1,
+                fontFamily:"'Noto Sans TC',sans-serif",
+                whiteSpace:'nowrap',
+              }}>
+                {notes[i]}
+              </span>
+            </div>
+          </ScaledOverlay>
+        ));
+      })()}
     </div>
   );
 };
