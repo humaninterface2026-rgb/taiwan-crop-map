@@ -1263,9 +1263,9 @@ const Page = ({selected, onSelect, onCropSelect}) => {
       </ScaledOverlay>
 
       {/* 「查看更多」 button click hotspot — overlays the baked button at the
-          bottom-right of the hero panel. Polygon clicks no longer jump to the
-          dashboard (so users can browse counties on the landing page), so this
-          is the explicit entry to the per-county dashboard. */}
+          bottom-right of the hero panel. Baked button measured at design
+          (1194..1381, 319..350) = 187×31. We add a 4px padding around so the
+          hover halo extends visually just beyond the button edges. */}
       <div
         onClick={() => { window.location.hash = 'dashboard'; }}
         onMouseEnter={() => setHovered('view-more')}
@@ -1273,14 +1273,13 @@ const Page = ({selected, onSelect, onCropSelect}) => {
         title={`查看 ${region.name} ${region.cropApi} 詳細市場資訊`}
         style={{
           position:'absolute',
-          left:   `${1180/1440*100}%`,
-          top:    `${280/2996*100}%`,
-          width:  `${(1340-1180)/1440*100}%`,
-          height: `${(330-280)/2996*100}%`,
+          left:   `${1190/1440*100}%`,
+          top:    `${315/2996*100}%`,
+          width:  `${(1385-1190)/1440*100}%`,
+          height: `${(354-315)/2996*100}%`,
           cursor:'pointer',
           zIndex: 5,
           borderRadius: 999,
-          // Translucent white halo on hover so users know it's clickable.
           background:  hovered === 'view-more' ? 'rgba(255,255,255,0.30)' : 'transparent',
           boxShadow:   hovered === 'view-more' ? '0 0 0 4px rgba(255,255,255,0.45)' : 'none',
           transition:  'background 150ms ease, box-shadow 150ms ease',

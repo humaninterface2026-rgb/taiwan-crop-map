@@ -4544,14 +4544,13 @@ const Page = ({ selected, onSelect, onCropSelect }) => {
       title: `\u67E5\u770B ${region.name} ${region.cropApi} \u8A73\u7D30\u5E02\u5834\u8CC7\u8A0A`,
       style: {
         position: "absolute",
-        left: `${1180 / 1440 * 100}%`,
-        top: `${280 / 2996 * 100}%`,
-        width: `${(1340 - 1180) / 1440 * 100}%`,
-        height: `${(330 - 280) / 2996 * 100}%`,
+        left: `${1190 / 1440 * 100}%`,
+        top: `${315 / 2996 * 100}%`,
+        width: `${(1385 - 1190) / 1440 * 100}%`,
+        height: `${(354 - 315) / 2996 * 100}%`,
         cursor: "pointer",
         zIndex: 5,
         borderRadius: 999,
-        // Translucent white halo on hover so users know it's clickable.
         background: hovered === "view-more" ? "rgba(255,255,255,0.30)" : "transparent",
         boxShadow: hovered === "view-more" ? "0 0 0 4px rgba(255,255,255,0.45)" : "none",
         transition: "background 150ms ease, box-shadow 150ms ease"
