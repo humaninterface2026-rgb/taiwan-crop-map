@@ -502,25 +502,25 @@ const ScaledOverlay = ({x, y, w, h, children}) => (
 );
 
 /* ── 桃園市其他主要作物 strip carousel ──────────────────────────────────
- * 5-slot strip on the landing right-panel. Order [0..4] matches the baked
- * full_page image (水蜜桃 / 水稻=稻米 / 甜柿 / 綠竹筍 / 哈密瓜), so when
- * stripIdx === 0 we don't need to render virtual overlay cards. Indices 5+
- * are alternate Taoyuan-area crops with TAOYUAN_CROPS SVGs available.
+ * 5-slot strip on the landing right-panel. The baked full_page image
+ * shows 水蜜桃 / 水稻 / 甜柿 / 綠竹筍 / 哈密瓜 in slots 0..4, but 水稻 and
+ * 甜柿 don't actually exist as Taoyuan crops in our data — the Figma
+ * original included them but the implementation list is 10 real crops
+ * (per user). Because of this we ALWAYS render virtual overlay cards
+ * (hiding the baked image), so the visible content matches the data.
  *   crop = key into TAOYUAN_CROPS / NONGZHIDAO_MAP (price data)
- *   label = short display name shown under the character on the card
- * 甜柿 has no TAOYUAN_CROPS SVG; virtual overlay falls back to 牛蕃茄 SVG. */
+ *   label = short display name shown under the character on the card */
 const TAOYUAN_CROP_LIST = [
+  { label:'茶葉',   crop:'茶葉'      },
   { label:'水蜜桃', crop:'水蜜桃'    },
-  { label:'水稻',   crop:'稻米'      },
-  { label:'甜柿',   crop:'甜柿'      },
   { label:'綠竹筍', crop:'綠竹筍'    },
-  { label:'哈密瓜', crop:'哈密瓜'    },
-  { label:'牛蕃茄', crop:'牛蕃茄'    },
+  { label:'包心白', crop:'包心白'    },
+  { label:'稻米',   crop:'稻米'      },
   { label:'柚子',   crop:'柚子'      },
   { label:'甘藍',   crop:'甘藍-初秋' },
-  { label:'包心白', crop:'包心白'    },
-  { label:'茶葉',   crop:'茶葉'      },
+  { label:'牛蕃茄', crop:'牛蕃茄'    },
   { label:'粉蔥',   crop:'青蔥-粉蔥' },
+  { label:'哈密瓜', crop:'哈密瓜'    },
 ];
 // 5 slot positions on the baked strip (design coords). Cards are 109×135
 // at y=757; left edges 768, 885, 1002, 1119, 1236 (gap=8 from Figma 51:4980).
@@ -1322,28 +1322,20 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect}) => {
       {/* 桃園市其他主要作物 strip — 5 visible slot carousel.
           Layout from Figma 51-4980 (Frame 2): card w=109, h=135, gap=8, y=757.
           Slot i shows TAOYUAN_CROP_LIST[(stripIdx + i) % N]. Left/right arrows
-          shift stripIdx by ±1 (wraps). When stripIdx === 0 the baked image
-          already shows the right 5 cards so we only render click hotspots; for
-          any non-zero stripIdx we overlay 5 virtual cards on top to match.
-          Card visual matches Figma node 51:4983: bg #fffcf5, radius 15,
-          shadow 2px 3px 0 0 rgba(209,196,175,0.55). */}
+          shift stripIdx by ±1 (wraps). Virtual overlay cards are rendered for
+          all 5 slots regardless of stripIdx so the baked image's stale crops
+          (水稻, 甜柿) never leak through. Card visual matches Figma node
+          51:4983: bg #fffcf5, radius 15, shadow 2px 3px 0 0 rgba(209,196,175,0.55). */}
       {(() => {
         const tyCrops = (typeof window !== 'undefined' && window.TAOYUAN_CROPS) || {};
-        const cntyCh  = (typeof window !== 'undefined' && window.COUNTY_CHARS) || {};
         const N = TAOYUAN_CROP_LIST.length;
-        // 甜柿 has no TAOYUAN_CROPS entry; fall back to 新竹縣 (n_hsinchu_county)
-        // which IS a 甜柿 mascot. For any other missing key, leave the card
-        // character-less rather than show a misleading tomato.
-        const STRIP_CHAR_FALLBACK = { '甜柿': cntyCh['n_hsinchu_county'] };
         return STRIP_SLOTS.map((slot, i) => {
           const item = TAOYUAN_CROP_LIST[(stripIdx + i) % N];
           const key  = `strip_${i}`;
-          const svg  = tyCrops[item.crop] || STRIP_CHAR_FALLBACK[item.crop] || null;
-          const showOverlay = stripIdx !== 0;
+          const svg  = tyCrops[item.crop] || null;
           return (
             <React.Fragment key={i}>
-              {showOverlay && (
-                <ScaledOverlay x={slot.x} y={757} w={109} h={135}>
+              <ScaledOverlay x={slot.x} y={757} w={109} h={135}>
                   {/* Card visual matches Figma 51:4983 + ori.png measurements:
                       - 109×135, bg #fffcf5, radius 15, shadow 2px 3px 0 0 rgba(209,196,175,0.55)
                       - Character occupies card y=10..107 (height 97 design, ~72% of card)
@@ -1379,7 +1371,6 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect}) => {
                     </div>
                   </div>
                 </ScaledOverlay>
-              )}
               <div
                 onClick={() => onCropSelect && onCropSelect(item.crop)}
                 onMouseEnter={() => setHovered(key)}

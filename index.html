@@ -3785,17 +3785,16 @@ const ScaledOverlay = ({ x, y, w, h, children }) => /* @__PURE__ */ React.create
   transform: "scale(calc(100cqw / 1440px))"
 } }, children));
 const TAOYUAN_CROP_LIST = [
+  { label: "\u8336\u8449", crop: "\u8336\u8449" },
   { label: "\u6C34\u871C\u6843", crop: "\u6C34\u871C\u6843" },
-  { label: "\u6C34\u7A3B", crop: "\u7A3B\u7C73" },
-  { label: "\u751C\u67FF", crop: "\u751C\u67FF" },
   { label: "\u7DA0\u7AF9\u7B4D", crop: "\u7DA0\u7AF9\u7B4D" },
-  { label: "\u54C8\u5BC6\u74DC", crop: "\u54C8\u5BC6\u74DC" },
-  { label: "\u725B\u8543\u8304", crop: "\u725B\u8543\u8304" },
+  { label: "\u5305\u5FC3\u767D", crop: "\u5305\u5FC3\u767D" },
+  { label: "\u7A3B\u7C73", crop: "\u7A3B\u7C73" },
   { label: "\u67DA\u5B50", crop: "\u67DA\u5B50" },
   { label: "\u7518\u85CD", crop: "\u7518\u85CD-\u521D\u79CB" },
-  { label: "\u5305\u5FC3\u767D", crop: "\u5305\u5FC3\u767D" },
-  { label: "\u8336\u8449", crop: "\u8336\u8449" },
-  { label: "\u7C89\u8525", crop: "\u9752\u8525-\u7C89\u8525" }
+  { label: "\u725B\u8543\u8304", crop: "\u725B\u8543\u8304" },
+  { label: "\u7C89\u8525", crop: "\u9752\u8525-\u7C89\u8525" },
+  { label: "\u54C8\u5BC6\u74DC", crop: "\u54C8\u5BC6\u74DC" }
 ];
 const STRIP_SLOTS = [
   { x: 768 },
@@ -4567,15 +4566,12 @@ const Page = ({ selected, cropOverride, onSelect, onCropSelect }) => {
     }
   ), (() => {
     const tyCrops = typeof window !== "undefined" && window.TAOYUAN_CROPS || {};
-    const cntyCh = typeof window !== "undefined" && window.COUNTY_CHARS || {};
     const N = TAOYUAN_CROP_LIST.length;
-    const STRIP_CHAR_FALLBACK = { "\u751C\u67FF": cntyCh["n_hsinchu_county"] };
     return STRIP_SLOTS.map((slot, i) => {
       const item = TAOYUAN_CROP_LIST[(stripIdx + i) % N];
       const key = `strip_${i}`;
-      const svg = tyCrops[item.crop] || STRIP_CHAR_FALLBACK[item.crop] || null;
-      const showOverlay = stripIdx !== 0;
-      return /* @__PURE__ */ React.createElement(React.Fragment, { key: i }, showOverlay && /* @__PURE__ */ React.createElement(ScaledOverlay, { x: slot.x, y: 757, w: 109, h: 135 }, /* @__PURE__ */ React.createElement("div", { style: {
+      const svg = tyCrops[item.crop] || null;
+      return /* @__PURE__ */ React.createElement(React.Fragment, { key: i }, /* @__PURE__ */ React.createElement(ScaledOverlay, { x: slot.x, y: 757, w: 109, h: 135 }, /* @__PURE__ */ React.createElement("div", { style: {
         position: "relative",
         width: "100%",
         height: "100%",
