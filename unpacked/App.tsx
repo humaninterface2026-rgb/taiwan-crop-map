@@ -1268,6 +1268,8 @@ const Page = ({selected, onSelect, onCropSelect}) => {
           is the explicit entry to the per-county dashboard. */}
       <div
         onClick={() => { window.location.hash = 'dashboard'; }}
+        onMouseEnter={() => setHovered('view-more')}
+        onMouseLeave={() => setHovered(null)}
         title={`查看 ${region.name} ${region.cropApi} 詳細市場資訊`}
         style={{
           position:'absolute',
@@ -1277,6 +1279,11 @@ const Page = ({selected, onSelect, onCropSelect}) => {
           height: `${(330-280)/2996*100}%`,
           cursor:'pointer',
           zIndex: 5,
+          borderRadius: 999,
+          // Translucent white halo on hover so users know it's clickable.
+          background:  hovered === 'view-more' ? 'rgba(255,255,255,0.30)' : 'transparent',
+          boxShadow:   hovered === 'view-more' ? '0 0 0 4px rgba(255,255,255,0.45)' : 'none',
+          transition:  'background 150ms ease, box-shadow 150ms ease',
         }}
       />
 
