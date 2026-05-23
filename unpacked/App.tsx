@@ -360,87 +360,54 @@ const PRICE_FALLBACK = {
 };
 
 const PriceOverlay = ({cropName, variety, market}) => {
-  const initial = PRICE_FALLBACK[cropName] || PRICE_FALLBACK['彩椒'];
-  const [data, setData] = React.useState(initial);
-  const tm = useTomatoMarket();
+  // Pull the cached nongzhidao snapshot via the same hook the dashboard uses.
+  // Prefer the variety key (e.g. '番茄-牛番茄') when REGIONS_DATA defines one,
+  // falling back to the broad crop name. NONGZHIDAO_MAP / WHOLESALE_NO_DATA
+  // already cover every county we've backfilled.
+  const noData = !!(cropName && WHOLESALE_NO_DATA.has(cropName));
+  const m = useCropMarket(noData ? '__nodata__' : (variety || cropName || '番茄'));
 
-  React.useEffect(() => {
-    const fallback = PRICE_FALLBACK[cropName] || PRICE_FALLBACK['彩椒'];
-    setData(fallback);
-    let cancelled = false;
+  // Derive the displayed values from m.daily directly so price flips when
+  // selected → new region → new cropName triggers a re-fetch.
+  const data = React.useMemo(() => {
+    const fallback = PRICE_FALLBACK[cropName] || null;
+    if (!m || !Array.isArray(m.daily) || m.daily.length === 0) return fallback;
+    const recent = m.daily.slice(-7);
+    const sparkVals = recent.map(d => Math.round(d.price));
+    const sparkDates = recent.map(d => {
+      const parts = String(d.date || '').split(/[./-]/).map(n => parseInt(n, 10));
+      return parts.length >= 3 ? `${parts[1]}/${parts[2]}` : '';
+    });
+    const price = sparkVals[sparkVals.length - 1];
+    const prevPrice = sparkVals[sparkVals.length - 2] || price;
+    const chgPct = prevPrice ? Math.round((price - prevPrice) / prevPrice * 100) : 0;
+    return { price, chgPct, sparkVals, sparkDates };
+  }, [m, cropName]);
 
-    // 番茄 uses the daily-updated nongzhidao snapshot (useTomatoMarket fetches
-    // it at runtime, falling back to the bundled copy). Other crops still hit
-    // the live AMIS endpoint, which is unreliable but the only data we have.
-    if (cropName === '番茄' && tm && Array.isArray(tm.daily) && tm.daily.length >= 5) {
-      const recent = tm.daily.slice(-7);
-      const sparkVals = recent.map(d => Math.round(d.price));
-      const sparkDates = recent.map(d => {
-        const parts = String(d.date || '').split(/[./-]/).map(n => parseInt(n, 10));
-        return parts.length >= 3 ? `${parts[1]}/${parts[2]}` : '';
-      });
-      const price = sparkVals[sparkVals.length - 1];
-      const prevPrice = sparkVals[sparkVals.length - 2] || price;
-      const chgPct = prevPrice ? Math.round((price - prevPrice) / prevPrice * 100) : 0;
-      setData({ price, chgPct, sparkVals, sparkDates });
-      return () => { cancelled = true; };
-    }
-
-    const fmt = d => d.toISOString().slice(0,10);
-    const today = new Date();
-    const fromDate = new Date(today - 14*86400000);
-    fetch(`https://data.moa.gov.tw/api/v1/AgriProductsTransType/?Start-Date=${fmt(fromDate)}&End-Date=${fmt(today)}&CropName=${encodeURIComponent(cropName)}`)
-      .then(r => r.json())
-      .then(json => {
-        if (cancelled) return;
-        const records = Array.isArray(json?.Data) ? json.Data
-                      : Array.isArray(json) ? json : [];
-        if (records.length === 0) throw new Error('no data');
-
-        let filtered = records;
-        if (variety) filtered = filtered.filter(r => r.CropName === variety);
-        if (market)  filtered = filtered.filter(r => r.MarketName === market);
-        if (filtered.length === 0) filtered = records;
-
-        const byDate = {};
-        for (const r of filtered) {
-          const d = String(r.TransDate || r.Trans_Date || r.date || '').trim();
-          if (!d) continue;
-          const p = parseFloat(r.Avg_Price || r.AvgPrice || r.avg_price);
-          const q = parseFloat(r.Trans_Quantity || 0);
-          if (!isFinite(p) || p <= 0) continue;
-          if (!byDate[d]) byDate[d] = { sumPQ: 0, sumQ: 0, prices: [] };
-          byDate[d].prices.push(p);
-          byDate[d].sumPQ += p * (q || 1);
-          byDate[d].sumQ  += (q || 1);
-        }
-        const days = Object.keys(byDate).sort();
-        if (days.length === 0) throw new Error('no usable data');
-
-        const dailyAvg = days.map(d => {
-          const v = byDate[d];
-          const avg = v.sumQ > 0 ? v.sumPQ / v.sumQ
-                                 : v.prices.reduce((a,b)=>a+b, 0) / v.prices.length;
-          return { date: d, price: Math.round(avg) };
-        });
-
-        const recent = dailyAvg.slice(-5);
-        const sparkVals = recent.map(x => x.price);
-        const sparkDates = recent.map(x => {
-          const parts = x.date.split(/[./-]/).map(n => parseInt(n, 10));
-          return parts.length >= 3 ? `${parts[1]}/${parts[2]}` : '';
-        });
-        const price = sparkVals[sparkVals.length - 1];
-        const prevPrice = sparkVals.length >= 2 ? sparkVals[sparkVals.length - 2] : price;
-        const chgPct = prevPrice ? Math.round((price - prevPrice) / prevPrice * 100) : 0;
-
-        setData({ price, chgPct, sparkVals, sparkDates });
-      })
-      .catch(err => {
-        console.warn('[price] fetch failed, keeping static fallback:', err && err.message);
-      });
-    return () => { cancelled = true; };
-  }, [cropName, variety, market, tm]);
+  // Crops without any AMIS wholesale data (tea, rice) get an explicit placeholder.
+  if (noData) {
+    return (
+      <div style={{
+        width:'100%', height:'100%',
+        background:'#f5f4e1', border:'1.5px solid #e3e1bd', borderRadius:15,
+        padding:'12px 14px', boxSizing:'border-box',
+        display:'flex', flexDirection:'column',
+        fontFamily:"'Noto Sans TC',sans-serif",
+      }}>
+        <div style={{fontSize:14,fontWeight:900,color:'#3b6826',marginBottom:4,letterSpacing:1}}>
+          今日價格 · {cropName}
+        </div>
+        <div style={{
+          flex:1, display:'flex', flexDirection:'column',
+          alignItems:'center', justifyContent:'center',
+          color:'#888', fontSize:12, textAlign:'center',
+        }}>
+          <div>無批發市場交易資料</div>
+          <div style={{fontSize:10, color:'#aaa', marginTop:4}}>(不在 AMIS 蔬果拍賣系統)</div>
+        </div>
+      </div>
+    );
+  }
 
   if (!data) return null;
   const { price, chgPct, sparkVals } = data;

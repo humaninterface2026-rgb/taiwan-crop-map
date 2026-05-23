@@ -3662,75 +3662,45 @@ const PRICE_FALLBACK = {
   "\u9CF3\u68A8": { price: 75, chgPct: 6, sparkVals: [66, 68, 71, 73, 75] }
 };
 const PriceOverlay = ({ cropName, variety, market }) => {
-  const initial = PRICE_FALLBACK[cropName] || PRICE_FALLBACK["\u5F69\u6912"];
-  const [data, setData] = React.useState(initial);
-  const tm = useTomatoMarket();
-  React.useEffect(() => {
-    const fallback = PRICE_FALLBACK[cropName] || PRICE_FALLBACK["\u5F69\u6912"];
-    setData(fallback);
-    let cancelled = false;
-    if (cropName === "\u756A\u8304" && tm && Array.isArray(tm.daily) && tm.daily.length >= 5) {
-      const recent = tm.daily.slice(-7);
-      const sparkVals2 = recent.map((d) => Math.round(d.price));
-      const sparkDates2 = recent.map((d) => {
-        const parts = String(d.date || "").split(/[./-]/).map((n) => parseInt(n, 10));
-        return parts.length >= 3 ? `${parts[1]}/${parts[2]}` : "";
-      });
-      const price2 = sparkVals2[sparkVals2.length - 1];
-      const prevPrice = sparkVals2[sparkVals2.length - 2] || price2;
-      const chgPct2 = prevPrice ? Math.round((price2 - prevPrice) / prevPrice * 100) : 0;
-      setData({ price: price2, chgPct: chgPct2, sparkVals: sparkVals2, sparkDates: sparkDates2 });
-      return () => {
-        cancelled = true;
-      };
-    }
-    const fmt = (d) => d.toISOString().slice(0, 10);
-    const today = /* @__PURE__ */ new Date();
-    const fromDate = new Date(today - 14 * 864e5);
-    fetch(`https://data.moa.gov.tw/api/v1/AgriProductsTransType/?Start-Date=${fmt(fromDate)}&End-Date=${fmt(today)}&CropName=${encodeURIComponent(cropName)}`).then((r) => r.json()).then((json) => {
-      if (cancelled) return;
-      const records = Array.isArray(json?.Data) ? json.Data : Array.isArray(json) ? json : [];
-      if (records.length === 0) throw new Error("no data");
-      let filtered = records;
-      if (variety) filtered = filtered.filter((r) => r.CropName === variety);
-      if (market) filtered = filtered.filter((r) => r.MarketName === market);
-      if (filtered.length === 0) filtered = records;
-      const byDate = {};
-      for (const r of filtered) {
-        const d = String(r.TransDate || r.Trans_Date || r.date || "").trim();
-        if (!d) continue;
-        const p = parseFloat(r.Avg_Price || r.AvgPrice || r.avg_price);
-        const q = parseFloat(r.Trans_Quantity || 0);
-        if (!isFinite(p) || p <= 0) continue;
-        if (!byDate[d]) byDate[d] = { sumPQ: 0, sumQ: 0, prices: [] };
-        byDate[d].prices.push(p);
-        byDate[d].sumPQ += p * (q || 1);
-        byDate[d].sumQ += q || 1;
-      }
-      const days = Object.keys(byDate).sort();
-      if (days.length === 0) throw new Error("no usable data");
-      const dailyAvg = days.map((d) => {
-        const v = byDate[d];
-        const avg = v.sumQ > 0 ? v.sumPQ / v.sumQ : v.prices.reduce((a, b) => a + b, 0) / v.prices.length;
-        return { date: d, price: Math.round(avg) };
-      });
-      const recent = dailyAvg.slice(-5);
-      const sparkVals2 = recent.map((x) => x.price);
-      const sparkDates2 = recent.map((x) => {
-        const parts = x.date.split(/[./-]/).map((n) => parseInt(n, 10));
-        return parts.length >= 3 ? `${parts[1]}/${parts[2]}` : "";
-      });
-      const price2 = sparkVals2[sparkVals2.length - 1];
-      const prevPrice = sparkVals2.length >= 2 ? sparkVals2[sparkVals2.length - 2] : price2;
-      const chgPct2 = prevPrice ? Math.round((price2 - prevPrice) / prevPrice * 100) : 0;
-      setData({ price: price2, chgPct: chgPct2, sparkVals: sparkVals2, sparkDates: sparkDates2 });
-    }).catch((err) => {
-      console.warn("[price] fetch failed, keeping static fallback:", err && err.message);
+  const noData = !!(cropName && WHOLESALE_NO_DATA.has(cropName));
+  const m = useCropMarket(noData ? "__nodata__" : variety || cropName || "\u756A\u8304");
+  const data = React.useMemo(() => {
+    const fallback = PRICE_FALLBACK[cropName] || null;
+    if (!m || !Array.isArray(m.daily) || m.daily.length === 0) return fallback;
+    const recent = m.daily.slice(-7);
+    const sparkVals2 = recent.map((d) => Math.round(d.price));
+    const sparkDates2 = recent.map((d) => {
+      const parts = String(d.date || "").split(/[./-]/).map((n) => parseInt(n, 10));
+      return parts.length >= 3 ? `${parts[1]}/${parts[2]}` : "";
     });
-    return () => {
-      cancelled = true;
-    };
-  }, [cropName, variety, market, tm]);
+    const price2 = sparkVals2[sparkVals2.length - 1];
+    const prevPrice = sparkVals2[sparkVals2.length - 2] || price2;
+    const chgPct2 = prevPrice ? Math.round((price2 - prevPrice) / prevPrice * 100) : 0;
+    return { price: price2, chgPct: chgPct2, sparkVals: sparkVals2, sparkDates: sparkDates2 };
+  }, [m, cropName]);
+  if (noData) {
+    return /* @__PURE__ */ React.createElement("div", { style: {
+      width: "100%",
+      height: "100%",
+      background: "#f5f4e1",
+      border: "1.5px solid #e3e1bd",
+      borderRadius: 15,
+      padding: "12px 14px",
+      boxSizing: "border-box",
+      display: "flex",
+      flexDirection: "column",
+      fontFamily: "'Noto Sans TC',sans-serif"
+    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#3b6826", marginBottom: 4, letterSpacing: 1 } }, "\u4ECA\u65E5\u50F9\u683C \xB7 ", cropName), /* @__PURE__ */ React.createElement("div", { style: {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "#888",
+      fontSize: 12,
+      textAlign: "center"
+    } }, /* @__PURE__ */ React.createElement("div", null, "\u7121\u6279\u767C\u5E02\u5834\u4EA4\u6613\u8CC7\u6599"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "#aaa", marginTop: 4 } }, "(\u4E0D\u5728 AMIS \u852C\u679C\u62CD\u8CE3\u7CFB\u7D71)")));
+  }
   if (!data) return null;
   const { price, chgPct, sparkVals } = data;
   const sparkDates = data.sparkDates && data.sparkDates.length === sparkVals.length ? data.sparkDates : (() => {
