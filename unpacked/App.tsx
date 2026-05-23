@@ -1039,13 +1039,16 @@ const Page = ({selected, onSelect, onCropSelect}) => {
           箭頭 r=13.8 在 (102.2, 625.8/865.8)、+- 在 (659.8, 825.8/865.8))。
           桃園市永遠在 slot 3 (咖)，其它 18 縣市透過 cityScrollIdx cyclic 環繞。 */}
       {leftMapView === 'main' && (() => {
-        // 主地圖的 baked PNG 預設五顆是 新北/基隆/桃園/新竹縣/苗栗縣（跟桃園 detail 不同！
-        // 那邊是 新竹市/新竹縣）。獨立的 NEIGHBORS list 才能讓 overlay 跟 baked 對齊。
-        const NEIGHBORS = ['新北市','基隆市','新竹縣','苗栗縣','新竹市','台中市','彰化縣',
-                           '南投縣','雲林縣','嘉義市','嘉義縣','台南市','高雄市','屏東縣',
-                           '台東縣','花蓮縣','宜蘭縣','台北市'];
-        const N = NEIGHBORS.length;
+        // 19 縣市 cyclic list — 中央 slot 永遠是當前 selected。點任何 pill →
+        // 切 selected → pill 重排把該縣市移到中央，其它 4 slot 顯示前後 2 個。
+        // 上下箭頭 = selected ±1 在 cycle 裡 step。
+        const COUNTIES = ['新北市','基隆市','桃園市','新竹市','新竹縣','苗栗縣','台中市',
+                          '彰化縣','南投縣','雲林縣','嘉義市','嘉義縣','台南市','高雄市',
+                          '屏東縣','台東縣','花蓮縣','宜蘭縣','台北市'];
+        const N = COUNTIES.length;
         const wrap = (i) => ((i % N) + N) % N;
+        const selectedName = (REGIONS_DATA[selected] || REGIONS_DATA.taoyuan).name;
+        const selIdx = Math.max(0, COUNTIES.indexOf(selectedName));
         // Arrow / +- icon sizes calibrated to match the baked PNG visible-brown
         // diameter (~25 design). Mismatch causes the overlay to extend ~1 px
         // beyond the baked icon on mobile — at 8 px button width that ~12% extra
@@ -1054,11 +1057,20 @@ const Page = ({selected, onSelect, onCropSelect}) => {
         const PM_SIZE    = 27.77;  // viewBox 55.63, visible r=25.04 → 12.5/25.04*55.63 ≈ 27.77
         // 預設咖色，hover 切換到綠色 (baked 已塗掉、overlay 是唯一視覺；invertHover:true
         // 讓 renderIcon 把預設/hover 顏色翻過來)。
+        // 名字 → REGIONS_DATA key (供 pill onClick + 箭頭 step 用)
+        const nameToKey = Object.fromEntries(
+          Object.entries(REGIONS_DATA).map(([k, v]) => [v.name, k])
+        );
+        const stepSelected = (delta) => {
+          const newName = COUNTIES[wrap(selIdx + delta)];
+          const newKey = nameToKey[newName];
+          if (newKey) onSelect(newKey);
+        };
         const buttons = [
           { key:'main_up',    baseKey:'上箭頭', cx:102.2, cy:625.8, size:ARROW_SIZE, invertHover:true,
-            onClick: () => setCityScrollIdx(i => i - 1) },
+            onClick: () => stepSelected(-1) },
           { key:'main_down',  baseKey:'下箭頭', cx:102.2, cy:865.8, size:ARROW_SIZE, invertHover:true,
-            onClick: () => setCityScrollIdx(i => i + 1) },
+            onClick: () => stepSelected(+1) },
           { key:'main_plus',  baseKey:'加號',   cx:659.8, cy:825.8, size:PM_SIZE,   invertHover:true },
           { key:'main_minus', baseKey:'減號',   cx:659.8, cy:865.8, size:PM_SIZE,   invertHover:true },
         ];
@@ -1068,12 +1080,13 @@ const Page = ({selected, onSelect, onCropSelect}) => {
         const PILL_PAD = 1.39 * (81.5 / 156.89);  // 0.722
         const PILL_X = 61.5 - PILL_PAD;            // icon top-left x
         const PILL_TOP_Y = [651.5, 691.5, 731.5, 771.5, 811.5].map(y => y - PILL_PAD);
+        // 中央 slot = selected. 前後 ±2 slot = cycle 中相鄰縣市。
         const pillNames = [
-          NEIGHBORS[wrap(cityScrollIdx)],
-          NEIGHBORS[wrap(cityScrollIdx + 1)],
-          '桃園市',
-          NEIGHBORS[wrap(cityScrollIdx + 2)],
-          NEIGHBORS[wrap(cityScrollIdx + 3)],
+          COUNTIES[wrap(selIdx - 2)],
+          COUNTIES[wrap(selIdx - 1)],
+          selectedName,
+          COUNTIES[wrap(selIdx + 1)],
+          COUNTIES[wrap(selIdx + 2)],
         ];
         const renderIcon = (b) => {
           const hovered = hoveredBtn === b.key;
@@ -1104,13 +1117,9 @@ const Page = ({selected, onSelect, onCropSelect}) => {
             </div>
           );
         };
-        // Chinese county name → REGIONS_DATA key, for pill click → onSelect.
-        const nameToKey = Object.fromEntries(
-          Object.entries(REGIONS_DATA).map(([k, v]) => [v.name, k])
-        );
         const renderPill = (name, slot) => {
           const key = `main_pill_${slot}`;
-          const alwaysActive = name === '桃園市';
+          const alwaysActive = name === selectedName;  // center slot = current selected
           const isActive = alwaysActive || hoveredBtn === key;
           const svg = window.BUTTON_SVGS?.[`${name}${isActive ? '咖' : '綠'}`];
           if (!svg) return null;
@@ -1127,7 +1136,7 @@ const Page = ({selected, onSelect, onCropSelect}) => {
                 const regionKey = nameToKey[name];
                 if (regionKey) onSelect(regionKey);
               }}
-              title={alwaysActive ? '桃園市 (目前選取)' : `切到 ${name}`}
+              title={alwaysActive ? `${name} (目前選取)` : `切到 ${name}`}
               style={{
                 position:'absolute',
                 left:  `${PILL_X / W * 100}%`,

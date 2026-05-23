@@ -4309,12 +4309,13 @@ const Page = ({ selected, onSelect, onCropSelect }) => {
       )));
     })()
   ), leftMapView === "main" && (() => {
-    const NEIGHBORS = [
+    const COUNTIES = [
       "\u65B0\u5317\u5E02",
       "\u57FA\u9686\u5E02",
+      "\u6843\u5712\u5E02",
+      "\u65B0\u7AF9\u5E02",
       "\u65B0\u7AF9\u7E23",
       "\u82D7\u6817\u7E23",
-      "\u65B0\u7AF9\u5E02",
       "\u53F0\u4E2D\u5E02",
       "\u5F70\u5316\u7E23",
       "\u5357\u6295\u7E23",
@@ -4329,10 +4330,20 @@ const Page = ({ selected, onSelect, onCropSelect }) => {
       "\u5B9C\u862D\u7E23",
       "\u53F0\u5317\u5E02"
     ];
-    const N = NEIGHBORS.length;
+    const N = COUNTIES.length;
     const wrap = (i) => (i % N + N) % N;
+    const selectedName = (REGIONS_DATA[selected] || REGIONS_DATA.taoyuan).name;
+    const selIdx = Math.max(0, COUNTIES.indexOf(selectedName));
     const ARROW_SIZE = 28.1;
     const PM_SIZE = 27.77;
+    const nameToKey = Object.fromEntries(
+      Object.entries(REGIONS_DATA).map(([k, v]) => [v.name, k])
+    );
+    const stepSelected = (delta) => {
+      const newName = COUNTIES[wrap(selIdx + delta)];
+      const newKey = nameToKey[newName];
+      if (newKey) onSelect(newKey);
+    };
     const buttons = [
       {
         key: "main_up",
@@ -4341,7 +4352,7 @@ const Page = ({ selected, onSelect, onCropSelect }) => {
         cy: 625.8,
         size: ARROW_SIZE,
         invertHover: true,
-        onClick: () => setCityScrollIdx((i) => i - 1)
+        onClick: () => stepSelected(-1)
       },
       {
         key: "main_down",
@@ -4350,7 +4361,7 @@ const Page = ({ selected, onSelect, onCropSelect }) => {
         cy: 865.8,
         size: ARROW_SIZE,
         invertHover: true,
-        onClick: () => setCityScrollIdx((i) => i + 1)
+        onClick: () => stepSelected(1)
       },
       { key: "main_plus", baseKey: "\u52A0\u865F", cx: 659.8, cy: 825.8, size: PM_SIZE, invertHover: true },
       { key: "main_minus", baseKey: "\u6E1B\u865F", cx: 659.8, cy: 865.8, size: PM_SIZE, invertHover: true }
@@ -4361,11 +4372,11 @@ const Page = ({ selected, onSelect, onCropSelect }) => {
     const PILL_X = 61.5 - PILL_PAD;
     const PILL_TOP_Y = [651.5, 691.5, 731.5, 771.5, 811.5].map((y) => y - PILL_PAD);
     const pillNames = [
-      NEIGHBORS[wrap(cityScrollIdx)],
-      NEIGHBORS[wrap(cityScrollIdx + 1)],
-      "\u6843\u5712\u5E02",
-      NEIGHBORS[wrap(cityScrollIdx + 2)],
-      NEIGHBORS[wrap(cityScrollIdx + 3)]
+      COUNTIES[wrap(selIdx - 2)],
+      COUNTIES[wrap(selIdx - 1)],
+      selectedName,
+      COUNTIES[wrap(selIdx + 1)],
+      COUNTIES[wrap(selIdx + 2)]
     ];
     const renderIcon = (b) => {
       const hovered2 = hoveredBtn === b.key;
@@ -4405,12 +4416,9 @@ const Page = ({ selected, onSelect, onCropSelect }) => {
         )
       );
     };
-    const nameToKey = Object.fromEntries(
-      Object.entries(REGIONS_DATA).map(([k, v]) => [v.name, k])
-    );
     const renderPill = (name, slot) => {
       const key = `main_pill_${slot}`;
-      const alwaysActive = name === "\u6843\u5712\u5E02";
+      const alwaysActive = name === selectedName;
       const isActive = alwaysActive || hoveredBtn === key;
       const svg = window.BUTTON_SVGS?.[`${name}${isActive ? "\u5496" : "\u7DA0"}`];
       if (!svg) return null;
@@ -4424,7 +4432,7 @@ const Page = ({ selected, onSelect, onCropSelect }) => {
             const regionKey = nameToKey[name];
             if (regionKey) onSelect(regionKey);
           },
-          title: alwaysActive ? "\u6843\u5712\u5E02 (\u76EE\u524D\u9078\u53D6)" : `\u5207\u5230 ${name}`,
+          title: alwaysActive ? `${name} (\u76EE\u524D\u9078\u53D6)` : `\u5207\u5230 ${name}`,
           style: {
             position: "absolute",
             left: `${PILL_X / W * 100}%`,
