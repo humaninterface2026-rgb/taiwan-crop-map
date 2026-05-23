@@ -2755,8 +2755,11 @@ const App = () => {
   // When the user clicks a township polygon inside the taoyuan-detail view,
   // this carries the township's crop name through to the dashboard's
   // CharacterCard so it shows e.g. 綠竹筍 + the matching TAOYUAN_CROPS SVG.
-  // null = no override (use county-level cropApi).
-  const [taoyuanCrop, setTaoyuanCrop] = useState(null);
+  // Default 水蜜桃 so the cold-load landing shows the 拉拉山 township slot
+  // (Figma's headline crop) instead of inheriting 番茄 from region.cropApi.
+  const [taoyuanCrop, setTaoyuanCrop] = useState(
+    () => (localStorage.getItem('tw-map-sel') || 'taoyuan') === 'taoyuan' ? '水蜜桃' : null
+  );
   const computeView = () => {
     const h = window.location.hash;
     if (h === '#dashboard') return 'dashboard';

@@ -5771,7 +5771,9 @@ const Dashboard = ({ onBack, selected, cropOverride }) => {
 };
 const App = () => {
   const [selected, setSelected] = useState(() => localStorage.getItem("tw-map-sel") || "taoyuan");
-  const [taoyuanCrop, setTaoyuanCrop] = useState(null);
+  const [taoyuanCrop, setTaoyuanCrop] = useState(
+    () => (localStorage.getItem("tw-map-sel") || "taoyuan") === "taoyuan" ? "\u6C34\u871C\u6843" : null
+  );
   const computeView = () => {
     const h = window.location.hash;
     if (h === "#dashboard") return "dashboard";
