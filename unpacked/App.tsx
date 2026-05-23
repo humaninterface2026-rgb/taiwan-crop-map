@@ -1285,6 +1285,48 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect}) => {
         }}
       />
 
+      {/* 桃園市其他主要作物 — 5 baked cards in the right panel are clickable.
+          Card bounds measured from ori.png (design coords):
+            水蜜桃   x=768-876  (w=108)
+            水稻     x=886-992  (w=106)  → maps to crop '稻米' (SVG name)
+            甜柿     x=1002-1110 (w=108) → no TAOYUAN_CROPS SVG, char falls back to 牛蕃茄
+            綠竹筍   x=1120-1226 (w=106)
+            哈密瓜   x=1236-1344 (w=108)
+          All cards span y=757..892 (h=135). Clicking a card calls onCropSelect,
+          which routes to taoyuan + sets the crop, so both character (TAOYUAN_CROPS)
+          and price (NONGZHIDAO_MAP) swap. */}
+      {[
+        { label:'水蜜桃', crop:'水蜜桃', x:768, w:108 },
+        { label:'水稻',   crop:'稻米',   x:886, w:106 },
+        { label:'甜柿',   crop:'甜柿',   x:1002, w:108 },
+        { label:'綠竹筍', crop:'綠竹筍', x:1120, w:106 },
+        { label:'哈密瓜', crop:'哈密瓜', x:1236, w:108 },
+      ].map(c => {
+        const key = `strip_${c.crop}`;
+        return (
+          <div
+            key={c.crop}
+            onClick={() => onCropSelect && onCropSelect(c.crop)}
+            onMouseEnter={() => setHovered(key)}
+            onMouseLeave={() => setHovered(null)}
+            title={`查看桃園市${c.label}`}
+            style={{
+              position:'absolute',
+              left:   `${c.x/1440*100}%`,
+              top:    `${757/2996*100}%`,
+              width:  `${c.w/1440*100}%`,
+              height: `${(892-757)/2996*100}%`,
+              cursor:'pointer',
+              zIndex: 5,
+              borderRadius: 18,
+              background:  hovered === key ? 'rgba(255,255,255,0.30)' : 'transparent',
+              boxShadow:   hovered === key ? '0 0 0 4px rgba(255,255,255,0.45)' : 'none',
+              transition:  'background 150ms ease, box-shadow 150ms ease',
+            }}
+          />
+        );
+      })}
+
       {/* LIVE Weather card — covers static "天氣預報" card.
           Card edges in design coords: x=712-920, y=381-696. */}
       <ScaledOverlay x={712} y={381} w={920-712} h={696-381}>
