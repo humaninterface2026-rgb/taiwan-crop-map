@@ -1344,25 +1344,35 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect}) => {
             <React.Fragment key={i}>
               {showOverlay && (
                 <ScaledOverlay x={slot.x} y={757} w={109} h={135}>
+                  {/* Card visual matches Figma 51:4983 + ori.png measurements:
+                      - 109×135, bg #fffcf5, radius 15, shadow 2px 3px 0 0 rgba(209,196,175,0.55)
+                      - Character occupies card y=10..107 (height 97 design, ~72% of card)
+                      - Label centred at card y≈122 (12px from bottom), color #a48b78,
+                        fontSize 14, weight 700, family Noto Sans TC */}
                   <div style={{
+                    position:'relative',
                     width:'100%', height:'100%',
                     background:'#fffcf5',
                     borderRadius:15,
                     boxShadow:'2px 3px 0px 0px rgba(209,196,175,0.55)',
-                    display:'flex', flexDirection:'column',
-                    alignItems:'center', justifyContent:'flex-end',
-                    padding:'6px 6px 10px',
-                    boxSizing:'border-box',
                     pointerEvents:'none',
                   }}>
-                    <div style={{ flex:1, width:'100%', display:'flex', alignItems:'flex-end', justifyContent:'center', minHeight:0 }}>
-                      {svg ? <img src={svg} alt={item.label}
-                        style={{ maxWidth:'82%', maxHeight:'100%', objectFit:'contain', display:'block' }}/> : null}
-                    </div>
+                    {svg && (
+                      <img src={svg} alt={item.label} style={{
+                        position:'absolute',
+                        left:'50%', top:22, transform:'translateX(-50%)',
+                        height: 82, maxWidth:'80%',
+                        objectFit:'contain', objectPosition:'center bottom',
+                        display:'block', userSelect:'none',
+                      }}/>
+                    )}
                     <div style={{
-                      marginTop:4,
-                      fontSize:16, fontWeight:700, color:'#523728',
-                      letterSpacing:0.5, lineHeight:1.2,
+                      position:'absolute',
+                      left:0, right:0, bottom:9,
+                      textAlign:'center',
+                      fontSize:14, fontWeight:700,
+                      color:'#a48b78',
+                      letterSpacing:0.5, lineHeight:1,
                       fontFamily:"'Noto Sans TC',sans-serif",
                     }}>
                       {item.label}

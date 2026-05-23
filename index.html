@@ -4576,32 +4576,35 @@ const Page = ({ selected, cropOverride, onSelect, onCropSelect }) => {
       const svg = tyCrops[item.crop] || STRIP_CHAR_FALLBACK[item.crop] || null;
       const showOverlay = stripIdx !== 0;
       return /* @__PURE__ */ React.createElement(React.Fragment, { key: i }, showOverlay && /* @__PURE__ */ React.createElement(ScaledOverlay, { x: slot.x, y: 757, w: 109, h: 135 }, /* @__PURE__ */ React.createElement("div", { style: {
+        position: "relative",
         width: "100%",
         height: "100%",
         background: "#fffcf5",
         borderRadius: 15,
         boxShadow: "2px 3px 0px 0px rgba(209,196,175,0.55)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "flex-end",
-        padding: "6px 6px 10px",
-        boxSizing: "border-box",
         pointerEvents: "none"
-      } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, width: "100%", display: "flex", alignItems: "flex-end", justifyContent: "center", minHeight: 0 } }, svg ? /* @__PURE__ */ React.createElement(
-        "img",
-        {
-          src: svg,
-          alt: item.label,
-          style: { maxWidth: "82%", maxHeight: "100%", objectFit: "contain", display: "block" }
-        }
-      ) : null), /* @__PURE__ */ React.createElement("div", { style: {
-        marginTop: 4,
-        fontSize: 16,
+      } }, svg && /* @__PURE__ */ React.createElement("img", { src: svg, alt: item.label, style: {
+        position: "absolute",
+        left: "50%",
+        top: 22,
+        transform: "translateX(-50%)",
+        height: 82,
+        maxWidth: "80%",
+        objectFit: "contain",
+        objectPosition: "center bottom",
+        display: "block",
+        userSelect: "none"
+      } }), /* @__PURE__ */ React.createElement("div", { style: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 9,
+        textAlign: "center",
+        fontSize: 14,
         fontWeight: 700,
-        color: "#523728",
+        color: "#a48b78",
         letterSpacing: 0.5,
-        lineHeight: 1.2,
+        lineHeight: 1,
         fontFamily: "'Noto Sans TC',sans-serif"
       } }, item.label))), /* @__PURE__ */ React.createElement(
         "div",
