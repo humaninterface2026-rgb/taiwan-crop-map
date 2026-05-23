@@ -970,12 +970,13 @@ const Page = ({selected, onSelect, onCropSelect}) => {
                   setHovered(null);
                   return;
                 }
-                // 其餘 16 個 polygon county → 切 selected + 開 dashboard
+                // 其餘 16 個 polygon county → 只切 selected，留在 landing。
+                // 整個右側 hero panel (角色/縣市名/作物名/對話框/天氣/價格)
+                // 都會自動跟著 selected 重渲染。要進 dashboard 從 「查看更多」 按鈕。
                 const charKey = COUNTY_CHAR_MAP[c.id];
                 if (charKey) {
                   const regionKey = charKey.replace(/^[a-q]_/, '');
                   onSelect(regionKey);
-                  window.location.hash = 'dashboard';
                 }
               }}
             />
@@ -992,9 +993,10 @@ const Page = ({selected, onSelect, onCropSelect}) => {
             onMouseEnter={() => setHovered(h.id)}
             onMouseLeave={() => setHovered(null)}
             onClick={() => {
+              // 新竹市/嘉義市 extra hotspot — 跟其他 polygon 一樣只切 selected，
+              // 不跳 dashboard。要進 dashboard 從 「查看更多」 按鈕。
               const regionKey = h.id.replace(/^extra_/, '');
               onSelect(regionKey);
-              window.location.hash = 'dashboard';
             }}
           />
         ))}
@@ -1259,6 +1261,24 @@ const Page = ({selected, onSelect, onCropSelect}) => {
           <div>快來看看今天的天氣和市場資訊吧！</div>
         </div>
       </ScaledOverlay>
+
+      {/* 「查看更多」 button click hotspot — overlays the baked button at the
+          bottom-right of the hero panel. Polygon clicks no longer jump to the
+          dashboard (so users can browse counties on the landing page), so this
+          is the explicit entry to the per-county dashboard. */}
+      <div
+        onClick={() => { window.location.hash = 'dashboard'; }}
+        title={`查看 ${region.name} ${region.cropApi} 詳細市場資訊`}
+        style={{
+          position:'absolute',
+          left:   `${1180/1440*100}%`,
+          top:    `${280/2996*100}%`,
+          width:  `${(1340-1180)/1440*100}%`,
+          height: `${(330-280)/2996*100}%`,
+          cursor:'pointer',
+          zIndex: 5,
+        }}
+      />
 
       {/* LIVE Weather card — covers static "天氣預報" card.
           Card edges in design coords: x=712-920, y=381-696. */}
