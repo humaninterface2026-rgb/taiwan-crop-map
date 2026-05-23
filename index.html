@@ -4222,6 +4222,7 @@ const Page = ({ selected, cropOverride, onSelect, onCropSelect }) => {
           onMouseLeave: c.isBase ? void 0 : () => setHovered(null),
           onClick: c.isBase ? void 0 : () => {
             if (c.id === TAOYUAN_POLYGON_ID) {
+              onSelect("taoyuan");
               setLeftMapView("taoyuan");
               setHovered(null);
               return;
@@ -5738,7 +5739,8 @@ const App = () => {
       cropOverride: taoyuanCrop,
       onSelect: (id) => {
         handleSelect(id);
-        if (id !== "taoyuan") setTaoyuanCrop(null);
+        if (id === "taoyuan") setTaoyuanCrop("\u6C34\u871C\u6843");
+        else setTaoyuanCrop(null);
       },
       onCropSelect
     }

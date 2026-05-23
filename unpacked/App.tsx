@@ -936,8 +936,11 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect}) => {
               onMouseEnter={c.isBase ? undefined : () => setHovered(c.id)}
               onMouseLeave={c.isBase ? undefined : () => setHovered(null)}
               onClick={c.isBase ? undefined : () => {
-                // 點桃園市 polygon → 左側 map 切到桃園鄉鎮 detail（右側資訊不變）
+                // 點桃園市 polygon → 左側 map 切到桃園鄉鎮 detail + 也把右側
+                // hero 切到 桃園市/水蜜桃 (App-level onSelect 把 taoyuanCrop
+                // 設成 '水蜜桃' 默認)，這樣即使從別縣市切過來右側也對齊。
                 if (c.id === TAOYUAN_POLYGON_ID) {
+                  onSelect('taoyuan');
                   setLeftMapView('taoyuan');
                   setHovered(null);
                   return;
@@ -2704,7 +2707,13 @@ const App = () => {
   return <Page
     selected={selected}
     cropOverride={taoyuanCrop}
-    onSelect={(id) => { handleSelect(id); if (id !== 'taoyuan') setTaoyuanCrop(null); }}
+    onSelect={(id) => {
+      handleSelect(id);
+      // 桃園 default crop = 水蜜桃 (拉拉山, the township slot Figma highlights).
+      // Other counties clear any stale override.
+      if (id === 'taoyuan') setTaoyuanCrop('水蜜桃');
+      else                  setTaoyuanCrop(null);
+    }}
     onCropSelect={onCropSelect}
   />;
 };
