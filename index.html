@@ -3888,7 +3888,8 @@ const COUNTY_NAMES = {
   "extra_hsinchu_city": "\u65B0\u7AF9\u5E02",
   "extra_chiayi_city": "\u5609\u7FA9\u5E02"
 };
-const Page = ({ selected, onSelect, onCropSelect }) => {
+const Page = ({ selected, cropOverride, onSelect, onCropSelect }) => {
+  const effectiveCrop = selected === "taoyuan" && cropOverride ? cropOverride : null;
   usePageDataReady();
   const region = REGIONS_DATA[selected] || REGIONS_DATA.taoyuan;
   const wx = useLiveWeather(selected);
@@ -4486,7 +4487,7 @@ const Page = ({ selected, onSelect, onCropSelect }) => {
     const charsLib = typeof window !== "undefined" && window.COUNTY_CHARS || {};
     const tyCrops = typeof window !== "undefined" && window.TAOYUAN_CROPS || {};
     const charKey = REGION_TO_CHAR_KEY[selected];
-    const svgStr = selected === "taoyuan" ? tyCrops["\u725B\u8543\u8304"] || (charKey ? charsLib[charKey] : null) : charKey ? charsLib[charKey] : null;
+    const svgStr = effectiveCrop && tyCrops[effectiveCrop] ? tyCrops[effectiveCrop] : selected === "taoyuan" ? tyCrops["\u725B\u8543\u8304"] || (charKey ? charsLib[charKey] : null) : charKey ? charsLib[charKey] : null;
     const w = 181, h = 200;
     const cx = 846, footY = 143 + h;
     return /* @__PURE__ */ React.createElement(ScaledOverlay, { x: cx - w / 2, y: footY - h, w, h }, svgStr ? /* @__PURE__ */ React.createElement(
@@ -4511,7 +4512,7 @@ const Page = ({ selected, onSelect, onCropSelect }) => {
     letterSpacing: 1.5,
     lineHeight: "42px",
     fontFamily: "'Noto Sans TC',sans-serif"
-  } }, region.cropApi)), /* @__PURE__ */ React.createElement(ScaledOverlay, { x: 1042, y: 203, w: 310, h: 90 }, /* @__PURE__ */ React.createElement("div", { style: {
+  } }, effectiveCrop || region.cropApi)), /* @__PURE__ */ React.createElement(ScaledOverlay, { x: 1042, y: 203, w: 310, h: 90 }, /* @__PURE__ */ React.createElement("div", { style: {
     fontSize: 15,
     fontWeight: 700,
     color: "#4e3628",
@@ -4519,7 +4520,7 @@ const Page = ({ selected, onSelect, onCropSelect }) => {
     lineHeight: "26px",
     fontFamily: "'Noto Sans TC',sans-serif",
     whiteSpace: "nowrap"
-  } }, /* @__PURE__ */ React.createElement("div", null, "\u54C8\u56C9\uFF01\u6211\u662F\u4F86\u81EA", region.name.replace(/[市縣]$/, ""), "\u7684", region.cropApi, "\uFF01"), /* @__PURE__ */ React.createElement("div", null, "\u9019\u88E1\u967D\u5149\u5145\u8DB3\uFF0C\u5F88\u9069\u5408\u6211\u751F\u9577\uFF0C"), /* @__PURE__ */ React.createElement("div", null, "\u5FEB\u4F86\u770B\u770B\u4ECA\u5929\u7684\u5929\u6C23\u548C\u5E02\u5834\u8CC7\u8A0A\u5427\uFF01"))), /* @__PURE__ */ React.createElement(
+  } }, /* @__PURE__ */ React.createElement("div", null, "\u54C8\u56C9\uFF01\u6211\u662F\u4F86\u81EA", region.name.replace(/[市縣]$/, ""), "\u7684", effectiveCrop || region.cropApi, "\uFF01"), /* @__PURE__ */ React.createElement("div", null, "\u9019\u88E1\u967D\u5149\u5145\u8DB3\uFF0C\u5F88\u9069\u5408\u6211\u751F\u9577\uFF0C"), /* @__PURE__ */ React.createElement("div", null, "\u5FEB\u4F86\u770B\u770B\u4ECA\u5929\u7684\u5929\u6C23\u548C\u5E02\u5834\u8CC7\u8A0A\u5427\uFF01"))), /* @__PURE__ */ React.createElement(
     "div",
     {
       onClick: () => {
@@ -4527,7 +4528,7 @@ const Page = ({ selected, onSelect, onCropSelect }) => {
       },
       onMouseEnter: () => setHovered("view-more"),
       onMouseLeave: () => setHovered(null),
-      title: `\u67E5\u770B ${region.name} ${region.cropApi} \u8A73\u7D30\u5E02\u5834\u8CC7\u8A0A`,
+      title: `\u67E5\u770B ${region.name} ${effectiveCrop || region.cropApi} \u8A73\u7D30\u5E02\u5834\u8CC7\u8A0A`,
       style: {
         position: "absolute",
         left: `${1190 / 1440 * 100}%`,
@@ -4545,8 +4546,8 @@ const Page = ({ selected, onSelect, onCropSelect }) => {
   ), /* @__PURE__ */ React.createElement(ScaledOverlay, { x: 712, y: 381, w: 920 - 712, h: 696 - 381 }, /* @__PURE__ */ React.createElement(WeatherCard, { wx })), /* @__PURE__ */ React.createElement(ScaledOverlay, { x: 934, y: 381, w: 1165 - 934, h: 696 - 381 }, /* @__PURE__ */ React.createElement(
     PriceOverlay,
     {
-      cropName: region.cropApi,
-      variety: region.priceVariety,
+      cropName: effectiveCrop || region.cropApi,
+      variety: effectiveCrop || region.priceVariety,
       market: region.priceMarket
     }
   )));
@@ -5719,7 +5720,6 @@ const App = () => {
   const onCropSelect = (crop) => {
     handleSelect("taoyuan");
     setTaoyuanCrop(crop);
-    window.location.hash = "dashboard";
   };
   if (view === "dashboard") {
     return /* @__PURE__ */ React.createElement(Dashboard, { onBack: () => {
@@ -5735,6 +5735,7 @@ const App = () => {
     Page,
     {
       selected,
+      cropOverride: taoyuanCrop,
       onSelect: (id) => {
         handleSelect(id);
         if (id !== "taoyuan") setTaoyuanCrop(null);

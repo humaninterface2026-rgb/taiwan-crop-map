@@ -628,7 +628,12 @@ const COUNTY_NAMES = {
  * positioned cards (Weather, Price) that overlay the static data figures so
  * they show live values from Open-Meteo + 農業部交易行情 APIs.
  */
-const Page = ({selected, onSelect, onCropSelect}) => {
+const Page = ({selected, cropOverride, onSelect, onCropSelect}) => {
+  // When a taoyuan township polygon is clicked, App sets selected='taoyuan'
+  // AND cropOverride=<that township's crop>. The hero panel then uses this
+  // crop name everywhere instead of the county default (番茄), so character /
+  // 作物名 / hello text / 今日價格 / 查看更多 all flip to the township's crop.
+  const effectiveCrop = (selected === 'taoyuan' && cropOverride) ? cropOverride : null;
   // Subscribe to async page-data load so we re-render once COUNTY_CHARS /
   // BUTTON_SVGS / TAOYUAN_CROPS land. Before that, hover overlays render as
   // empty (existing `?.` chains already handle missing keys gracefully).
@@ -1190,9 +1195,11 @@ const Page = ({selected, onSelect, onCropSelect}) => {
         const charsLib  = (typeof window !== 'undefined' && window.COUNTY_CHARS) || {};
         const tyCrops   = (typeof window !== 'undefined' && window.TAOYUAN_CROPS) || {};
         const charKey   = REGION_TO_CHAR_KEY[selected];
-        const svgStr    = selected === 'taoyuan'
-          ? (tyCrops['牛蕃茄'] || (charKey ? charsLib[charKey] : null))
-          : (charKey ? charsLib[charKey] : null);
+        // Priority: taoyuan-township override → taoyuan default 牛蕃茄 → county SVG
+        const svgStr    = effectiveCrop && tyCrops[effectiveCrop] ? tyCrops[effectiveCrop]
+                       : selected === 'taoyuan'
+                         ? (tyCrops['牛蕃茄'] || (charKey ? charsLib[charKey] : null))
+                         : (charKey ? charsLib[charKey] : null);
         // Box matches ORIGINAL ori.png positioning. Box top at design y=143
         // puts visible feet near design y=319 — feet right at the top of the
         // grass shadow oval (matches ori.png).
@@ -1229,7 +1236,7 @@ const Page = ({selected, onSelect, onCropSelect}) => {
           fontSize:30, fontWeight:900, color:'#3b6826',
           letterSpacing:1.5, lineHeight:'42px', fontFamily:"'Noto Sans TC',sans-serif",
         }}>
-          {region.cropApi}
+          {effectiveCrop || region.cropApi}
         </div>
       </ScaledOverlay>
 
@@ -1245,7 +1252,7 @@ const Page = ({selected, onSelect, onCropSelect}) => {
           letterSpacing:1.5, lineHeight:'26px', fontFamily:"'Noto Sans TC',sans-serif",
           whiteSpace:'nowrap',
         }}>
-          <div>哈囉！我是來自{region.name.replace(/[市縣]$/, '')}的{region.cropApi}！</div>
+          <div>哈囉！我是來自{region.name.replace(/[市縣]$/, '')}的{effectiveCrop || region.cropApi}！</div>
           <div>這裡陽光充足，很適合我生長，</div>
           <div>快來看看今天的天氣和市場資訊吧！</div>
         </div>
@@ -1259,7 +1266,7 @@ const Page = ({selected, onSelect, onCropSelect}) => {
         onClick={() => { window.location.hash = 'dashboard'; }}
         onMouseEnter={() => setHovered('view-more')}
         onMouseLeave={() => setHovered(null)}
-        title={`查看 ${region.name} ${region.cropApi} 詳細市場資訊`}
+        title={`查看 ${region.name} ${effectiveCrop || region.cropApi} 詳細市場資訊`}
         style={{
           position:'absolute',
           left:   `${1190/1440*100}%`,
@@ -1285,8 +1292,8 @@ const Page = ({selected, onSelect, onCropSelect}) => {
           Card edges in design coords: x=934-1165, y=381-696. */}
       <ScaledOverlay x={934} y={381} w={1165-934} h={696-381}>
         <PriceOverlay
-          cropName={region.cropApi}
-          variety={region.priceVariety}
+          cropName={effectiveCrop || region.cropApi}
+          variety={effectiveCrop || region.priceVariety}
           market={region.priceMarket}
         />
       </ScaledOverlay>
@@ -2678,9 +2685,12 @@ const App = () => {
   // (`county === 'taoyuan'`) in CharacterCard would never trip and the panel
   // would show the previous county's defaults instead of the township crop.
   const onCropSelect = (crop) => {
+    // 桃園 township polygon click: set both selected=taoyuan AND override
+    // crop. Stay on landing (no hash change) — the hero panel re-renders for
+    // that township crop; 「查看更多」 button then routes to the per-crop
+    // dashboard.
     handleSelect('taoyuan');
     setTaoyuanCrop(crop);
-    window.location.hash = 'dashboard';
   };
 
   if (view === 'dashboard') {
@@ -2693,6 +2703,7 @@ const App = () => {
   // taoyuan-crop override.
   return <Page
     selected={selected}
+    cropOverride={taoyuanCrop}
     onSelect={(id) => { handleSelect(id); if (id !== 'taoyuan') setTaoyuanCrop(null); }}
     onCropSelect={onCropSelect}
   />;
