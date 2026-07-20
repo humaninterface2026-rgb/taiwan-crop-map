@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="zh-Hant"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>小農工具箱｜農知島</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans TC',sans-serif;background:#faf6ec;color:#5a4a30;min-height:100vh;display:flex;flex-direction:column}
+.wrap{max-width:1200px;margin:0 auto;padding:28px 24px 0;width:100%;flex:1}
+header{display:flex;align-items:center;justify-content:space-between}
+.brand{font-size:24px;font-weight:900;color:#7a5418;letter-spacing:2px}
+.brand small{font-size:11px;font-weight:700;color:#a89070;letter-spacing:0;margin-left:8px}
+.backlink{font-size:14px;font-weight:700;color:#7a5418;text-decoration:none;background:#fff;border:2px solid #d8c9a4;border-radius:99px;padding:7px 18px}
+.backlink:hover{background:#f6efdc}
+
+.mock{background:#fffdf6;border:2px solid #e8dcc0;border-radius:26px;padding:24px 26px;margin-top:22px}
+.mh{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.mh .t{font-size:24px;font-weight:900;color:#7a5418}
+.mh .s{font-size:13.5px;color:#a89070;font-weight:700}
+.banner{display:flex;align-items:flex-end;gap:20px;margin-top:16px;background:linear-gradient(180deg,#fdf9ea 55%,#dfeec2 100%);border:2px solid #ecdfc0;border-radius:20px;padding:18px 24px 0;overflow:hidden}
+.banner img{width:130px;display:block;flex:none;border-radius:16px 16px 0 0;border:3px solid #fff;border-bottom:none;box-shadow:0 2px 10px rgba(122,84,24,.08)}
+.bubble{position:relative;background:#fff;border:2.5px solid #d8c9a4;border-radius:16px;padding:14px 20px;margin-bottom:26px;max-width:660px}
+.bubble:before{content:'';position:absolute;left:-14px;bottom:18px;border:10px solid transparent;border-right-color:#d8c9a4}
+.bubble:after{content:'';position:absolute;left:-10px;bottom:20px;border:8px solid transparent;border-right-color:#fff}
+.bubble .b1{font-size:16.5px;font-weight:900}
+.bubble .b2{font-size:13px;color:#8a7a5c;margin-top:3px}
+
+.tabs{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+.tab{border-radius:99px;padding:9px 18px;font-size:15px;font-weight:900;border:2px solid #d8c9a4;color:#8a7a5c;background:#fff;cursor:pointer;user-select:none}
+.tab .c{font-size:12px;font-weight:700;background:#f1ead8;color:#a89070;border-radius:99px;padding:1px 8px;margin-left:5px}
+.tab.on{background:#7fae4e;border-color:#7fae4e;color:#fff;box-shadow:0 3px 0 #5d8a34}
+.tab.on .c{background:rgba(255,255,255,.28);color:#fff}
+
+.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+@media(max-width:900px){.tools{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:620px){.tools{grid-template-columns:1fr}.banner img{width:100px}}
+.tool{border-radius:18px;padding:16px 18px;border:2px solid;display:flex;flex-direction:column;gap:7px;cursor:pointer;transition:transform .12s}
+.tool:hover{transform:translateY(-3px)}
+.tool .ic{width:46px;height:46px;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;border:2px solid rgba(0,0,0,.05)}
+.tool .nm{font-size:16.5px;font-weight:900}
+.tool .ds{font-size:13px;color:#7a6a4c;line-height:1.5;flex:1}
+.tg{align-self:flex-start;font-size:12px;font-weight:900;border-radius:99px;padding:3px 11px}
+.t-chat{background:#dce8b8;color:#3b6826}
+.t-data{background:#d0e8f8;color:#427ea1}
+.t-auto{background:#FDEBBF;color:#a85a16}
+.t-link{background:#f8d8d0;color:#b05548}
+.s0{background:#f2f7e6;border-color:#cfe0a8}
+.s1{background:#e8f3fb;border-color:#b8d8ee}
+.s2{background:#fdf0e0;border-color:#f0d0a8}
+.s3{background:#eceafa;border-color:#cfc8ee}
+.s4{background:#e4f5ef;border-color:#b0dcc8}
+.footnote{margin-top:14px;font-size:12.5px;color:#a89070}
+.footnote b{color:#3b6826}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(90,74,48,.45);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;z-index:50}
+.overlay.show{display:flex}
+.modal{width:640px;max-width:100%;background:#fffdf6;border:2px solid #e8dcc0;border-radius:24px;padding:24px 26px;box-shadow:0 10px 30px rgba(122,84,24,.18)}
+.modal .mhd{display:flex;align-items:center;justify-content:space-between}
+.modal .mt{font-size:21px;font-weight:900;color:#7a5418}
+.modal .mx{width:34px;height:34px;border-radius:99px;background:#f1ead8;color:#a89070;font-weight:900;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;border:none}
+.modal .msub{font-size:13px;color:#a89070;margin-top:4px}
+.ptitle{font-size:14px;font-weight:900;color:#3b6826;margin-top:16px}
+.plist{margin-top:8px;display:flex;flex-direction:column;gap:7px}
+.pitem{background:#fff;border:2px solid #e8e0c8;border-radius:12px;padding:9px 14px;font-size:13.5px;color:#6a5a3e;line-height:1.55}
+.extra{margin-top:12px;font-size:12.5px;color:#a89070;line-height:1.6}
+.inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+@media(max-width:520px){.inputs{grid-template-columns:1fr}}
+.infield{background:#fff;border:2px solid #e0d4b4;border-radius:13px;padding:9px 13px}
+.infield .l{font-size:11.5px;font-weight:700;color:#a89070}
+.inrow{display:flex;align-items:baseline;gap:5px}
+.infield input,.infield select{border:none;outline:none;font-family:inherit;font-size:17px;font-weight:900;color:#5a4a30;width:100%;background:transparent;margin-top:2px}
+.infield .u{font-size:11.5px;color:#a89070;font-weight:700;white-space:nowrap}
+.gobtn{margin-top:15px;background:#7fae4e;color:#fff;font-size:16px;font-weight:900;border-radius:99px;padding:11px 0;text-align:center;box-shadow:0 3px 0 #5d8a34;cursor:pointer;border:none;width:100%;font-family:inherit}
+.gobtn:active{transform:translateY(2px);box-shadow:0 1px 0 #5d8a34}
+.result{display:none;gap:13px;margin-top:16px;background:#f2f7e6;border:2px solid #cfe0a8;border-radius:16px;padding:14px 16px;align-items:flex-start}
+.result.show{display:flex}
+.result img{width:56px;height:56px;border-radius:99px;border:2.5px solid #fff;flex:none}
+.result .r1{font-size:15.5px;font-weight:900;color:#3b6826;line-height:1.5}
+.result .r2{font-size:13px;color:#7a6a4c;margin-top:5px;line-height:1.65}
+.phase-badge{display:inline-block;margin-top:14px;font-size:12px;font-weight:900;background:#FDEBBF;color:#a85a16;border-radius:99px;padding:4px 13px}
+
+.wave{margin-top:44px;height:86px;background:radial-gradient(120% 70px at 50% 0,#faf6ec 60%,transparent 61%),#a3b86c;position:relative;flex:none}
+.wave .cp{position:absolute;bottom:18px;width:100%;text-align:center;font-size:12px;color:#f4f8e6;font-weight:700}
+</style></head><body>
+<div class="wrap">
+  <header>
+    <div class="brand">農知島 <small>The Island of Harvest</small></div>
+    <a class="backlink" href="./index.html">← 回作物地圖</a>
+  </header>
+
+  <div class="mock">
+    <div class="mh"><div class="t">🧰 小農工具箱</div><div class="s" id="subline">番茄・桃園市｜30 個小幫手（MVP）</div></div>
+    <div class="banner">
+      <img id="mascot" src="toolbox-assets/m_tomato.png" alt="作物吉祥物">
+      <div class="bubble">
+        <div class="b1">從種到賣，都可以問我！</div>
+        <div class="b2">選一個階段，挑個工具開始吧～不知道從哪開始的話，先試試「成本試算」！</div>
+      </div>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="tools" id="tools"></div>
+    <div class="footnote">＊「🛒 銷售市場」的<b>即時行情查詢</b>由儀表板行情圖表取代，故工具數為 30。標籤說明：🗣 用聊的就好｜📡 吃即時資料｜🔔 自動幫你盯｜🤝 幫你牽線</div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal"></div>
+</div>
+
+<div class="wave"><div class="cp">農知島 The Island of Harvest｜小農工具箱 MVP</div></div>
+
+<script>
+const TYPES = {
+  chat: { cls: 't-chat', label: '🗣 用聊的就好' },
+  data: { cls: 't-data', label: '📡 吃即時資料' },
+  auto: { cls: 't-auto', label: '🔔 自動幫你盯' },
+  link: { cls: 't-link', label: '🤝 幫你牽線' },
+};
+
+const STAGES = [
+  { name: '種前規劃', icon: '🌱' },
+  { name: '生長管理', icon: '💧' },
+  { name: '採收保鮮', icon: '🧺' },
+  { name: '銷售市場', icon: '🛒' },
+  { name: '經營管理', icon: '📊' },
+];
+
+const TOOLS = [
+  // ── 種前規劃 ──
+  { stage: 0, icon: '🌱', type: 'chat', name: '作物選種建議', desc: '幫你依地區、氣候、土質挑適合的品種。',
+    principles: ['高溫潮濕：優先耐熱、抗病（青枯/葉斑）型', '日夜溫差大：可選高糖度與果色穩定型', '黏土：建議嫁接苗或強根系砧木，降低積水風險'],
+    extra: '之後可選地區（北/中/南/東）、氣候、土壤後直接產生建議。' },
+  { stage: 0, icon: '🔄', type: 'chat', name: '輪作／間作規劃', desc: '幫你排下幾季種什麼，避免連作生病。',
+    principles: ['避免茄科連作超過 2 季', '至少插入 1 季非茄科（豆科/十字花科/禾本科）', '間作可用短期葉菜或香草作物分散病蟲壓力'],
+    extra: '之後可選規劃季數（2–4 季）與目標（穩定收益/土壤恢復/降病蟲害）。' },
+  { stage: 0, icon: '📅', type: 'data', name: '最佳播種時機', desc: '幫你看未來一週溫度雨量，能不能播種。',
+    principles: ['理想：20~30°C 且雨量 <60mm/7日', '可播但需管理：16~20°C 或 60~120mm/7日', '不建議：<16°C、>32°C 或雨量 >120mm/7日'],
+    calc: 'sow' },
+  { stage: 0, icon: '🧮', type: 'chat', name: '成本試算', desc: '輸入面積和預算，幫你算成本和毛利。',
+    principles: ['常態範例（1 分地）：產量 3,200 kg/分、售價 40~50 元/kg、總成本約 3.8~5.5 萬元', '毛收入約 12.8~16.0 萬元，毛利常見落點約 7.3~12.2 萬元/分地'],
+    calc: 'cost' },
+  { stage: 0, icon: '🪱', type: 'chat', name: '土壤／地力分析', desc: '輸入 pH 和有機質，幫你看地力健不健康。',
+    principles: ['pH 建議：6.0 ~ 6.8', '有機質以「適中」為佳，過低補有機質、過高防氮過剩', '排水、通氣、根系健康比單次施肥更關鍵'] },
+  { stage: 0, icon: '📋', type: 'data', name: '補助申請助理', desc: '幫你找可申請的補助和要準備的文件。',
+    principles: [],
+    extra: '可直接問：「我有 2 分地牛蕃茄，想申請灌溉設備補助，幫我整理可申請方案與所需文件」。' },
+  // ── 生長管理 ──
+  { stage: 1, icon: '💧', type: 'auto', name: '灌溉排程', desc: '幫你算今天要不要澆水、什麼時候澆。',
+    principles: ['土壤濕度目標區間：約 40%~60%', '建議時段：清晨為主，必要時傍晚補水，避免中午高溫灌溉', '豪雨後優先排水，再評估是否補灌'] },
+  { stage: 1, icon: '🧪', type: 'chat', name: '施肥計畫', desc: '照生長階段幫你排肥料怎麼下、下多少。',
+    principles: ['苗期：根系建立優先，氮不宜過高避免徒長', '開花期：提高鉀、鈣、硼，提升開花著果率', '結果期：分次追肥，鉀鈣為主，控制氮避免裂果與軟果'] },
+  { stage: 1, icon: '🐛', type: 'chat', name: '病蟲害辨識', desc: '拍張照就幫你看是什麼病蟲、怎麼處理。',
+    principles: ['拍照：葉片正反面＋莖部＋果實（同地塊至少 3 株）', '葉斑：常見早晚疫病/細菌性斑點', '捲葉：常見病毒病或粉蝨壓力', '黃化：常見根系受損、缺素或病害前期'] },
+  { stage: 1, icon: '⛈️', type: 'auto', name: '氣象預警推播', desc: '壞天氣來之前先警報，提醒你顧好田區。',
+    principles: ['強風：風速 ≥10 級｜倒伏、落果、設施損傷', '高溫：日間 ≥35°C｜日灼、授粉不良', '低溫：最低溫 ≤12°C｜生長停滯、著果率下降', '暴雨：24h ≥80mm｜積水、根腐與青枯病壓力上升'] },
+  { stage: 1, icon: '📝', type: 'auto', name: '作業日誌記錄', desc: '用講的就幫你記下每天田裡做了什麼。',
+    principles: ['建議格式：日期／地塊／作業內容／投入人力／異常狀況（支援語音轉文字）'],
+    extra: '例：「今天 16:30 灌溉 20 分鐘，番茄區 B 有黃葉」。' },
+  { stage: 1, icon: '📶', type: 'data', name: 'IoT 感測器整合', desc: '接上田裡的感測器，數值不對馬上通知你。',
+    principles: ['異常門檻範例：土壤濕度 <30%、棚內 >35°C、濕度 >90% 持續 2 小時即告警'] },
+  { stage: 1, icon: '🚁', type: 'data', name: '無人機影像分析', desc: '用空拍圖幫你找出田裡哪一區有狀況。',
+    principles: ['流程：空拍影像 → 區塊分割 → 異常熱點標記 → 回傳巡田優先順序'] },
+  { stage: 1, icon: '🛡️', type: 'chat', name: '連作障礙預防', desc: '幫你評估連作風險，避免越種越差。',
+    principles: ['低風險：連作 <2 季 且 病害 ≤1 次', '中風險：連作 2 季 或 病害 1~2 次', '高風險：連作 ≥3 季 或 病害 ≥2 次'] },
+  // ── 採收保鮮 ──
+  { stage: 2, icon: '⏰', type: 'data', name: '採收時機預測', desc: '幫你抓最好採收時間，不怕採太早或放過熟。',
+    principles: ['主窗口：約定植後 85~110 天', '高溫（≥27°C）時成熟會提早 5~7 天', '建議分批採收，先採轉色果與成熟度高果'] },
+  { stage: 2, icon: '🏅', type: 'chat', name: '產品分級建議', desc: '幫你把果實分 A、B、C 級，好貨賣好價。',
+    principles: ['A級：果形完整、色澤均勻、無明顯外傷', 'B級：輕微瑕疵，不影響食用品質', 'C級：外觀或硬度不足，建議加工或促銷'] },
+  { stage: 2, icon: '❄️', type: 'chat', name: '保鮮／儲存建議', desc: '教你溫濕度怎麼設，番茄放更久不軟爛。',
+    principles: ['建議 10~13°C、85~90%RH', '避免與高乙烯水果（香蕉、蘋果）同倉', '先分級再入庫，可降低交叉損耗'] },
+  { stage: 2, icon: '📈', type: 'data', name: '產量預估', desc: '輸入面積和季節，幫你抓這季大概收多少。',
+    principles: ['總產量 = 面積 × 基準值 × 季節基準倍率 × 季節係數', '春季常較佳、夏季常偏低（以氣候風險折算）'],
+    calc: 'yield' },
+  { stage: 2, icon: '🏭', type: 'link', name: '加工建議', desc: '看庫存和價格，幫你決定鮮售還是轉加工。',
+    principles: ['庫存門檻：高 >800kg／中 400~800kg／低 <400kg', '價格門檻：低 <40／中 40~50／高 >50 元/kg', '高庫存＋低價優先加工；低庫存＋高價優先鮮售'] },
+  // ── 銷售市場 ──
+  { stage: 3, icon: '🏷️', type: 'chat', name: '定價策略建議', desc: '幫你依品質和通路算出建議售價。',
+    principles: ['品質係數：A 1.15、B 1.00、C 0.85', '通路係數：批發 1.00、直銷 1.10、電商 1.20', '行情判讀：低價 <40、中價 40~55、高價 >55 元/kg'] },
+  { stage: 3, icon: '🔗', type: 'auto', name: '溯源履歷生成', desc: '幫你把產地、採收日、用藥紀錄整理成履歷。',
+    principles: [] },
+  { stage: 3, icon: '🤝', type: 'link', name: '買家媒合', desc: '幫你找適合的買家：餐廳、超市或出口商。',
+    principles: [] },
+  { stage: 3, icon: '📣', type: 'link', name: '行銷文案生成', desc: '幫你寫貼文文案，把今天採收的番茄賣出去。',
+    principles: [],
+    extra: '例：「幫我寫 IG 貼文：今日牛蕃茄採收」。' },
+  { stage: 3, icon: '📦', type: 'auto', name: '出口文件輔助', desc: '幫你列出外銷要準備哪些文件。',
+    principles: [] },
+  // ── 經營管理 ──
+  { stage: 4, icon: '💰', type: 'auto', name: '財務損益分析', desc: '幫你算這一季賺不賺，收入成本毛利一次看。',
+    principles: ['總收入 = 產量 × 售價 × 面積', '總成本沿用成本試算（種苗＋肥料＋人力）', '輸出毛利、毛利率與損平售價，判斷是否值得種'] },
+  { stage: 4, icon: '👥', type: 'auto', name: '人力排班', desc: '幫你排每週人力，採收最忙的時候不缺工。',
+    principles: ['採收日優先配足人力，避免過熟與損耗', '採收高峰期：20~28 人天/週（約每天 4~5 人）', '育苗/定植期：10~14 人天/週；連續高工時需安排輪休'] },
+  { stage: 4, icon: '📊', type: 'data', name: '跨季績效比較', desc: '幫你比這季和上季，看有沒有種得更好。',
+    principles: ['看產量是否提升', '看單位成本是否下降', '看平均售價是否提升'] },
+  { stage: 4, icon: '🌍', type: 'data', name: '碳足跡計算', desc: '幫你估每公斤產品排多少碳，肥料用電都算。',
+    principles: ['計算項目：肥料、用電、用水、運輸里程；輸出每公斤產品碳排估值'] },
+  { stage: 4, icon: '📚', type: 'link', name: '學習資源推薦', desc: '幫你挑值得學的主題和課程，種得更上手。',
+    principles: ['推薦主題：病蟲害整合管理、精準灌溉、採後處理、農產品牌行銷'] },
+  { stage: 4, icon: '☂️', type: 'link', name: '農業保險諮詢', desc: '幫你看該保哪種險，天災來了不怕血本無歸。',
+    principles: ['先評估颱風豪雨與病害風險，再比對天災保險與收入保險方案'] },
+];
+
+// ── 三個可算工具（邏輯移植自 FJ3） ──
+const CALCS = {
+  cost: {
+    inputs: [
+      { key: 'area', label: '種植面積', unit: '分地', def: '1' },
+      { key: 'seedlingPrice', label: '種苗單價', unit: '元/株', def: '8' },
+      { key: 'fertPerFen', label: '肥料成本', unit: '元/分地', def: '6000' },
+      { key: 'laborPerFen', label: '人力預算', unit: '元/分地', def: '18000' },
+      { key: 'yieldKgPerFen', label: '預估產量', unit: 'kg/分', def: '3200' },
+      { key: 'pricePerKg', label: '預估售價', unit: '元/kg', def: '50' },
+    ],
+    run(v) {
+      const area = +v.area || 0, seed = +v.seedlingPrice || 0, fert = +v.fertPerFen || 0, labor = +v.laborPerFen || 0;
+      const y = +v.yieldKgPerFen || 3200, p = +v.pricePerKg || 50;
+      const seedlings = area * 1800 * seed;
+      const total = seedlings + fert * area + labor * area;
+      const totalYield = Math.max(1, area * y);
+      const revenue = totalYield * p, gross = revenue - total;
+      const fmt = n => Math.round(n).toLocaleString();
+      return {
+        headline: '種 ' + area + ' 分地總成本約 ' + fmt(total) + ' 元，照 ' + p + ' 元/kg 賣，毛利大概 ' + fmt(gross) + ' 元喔！',
+        detail: '假設每分地種 1,800 株、產量 ' + y.toLocaleString() + ' kg/分。成本組成：種苗約 ' + fmt(seedlings) + ' 元、肥料約 ' + fmt(fert * area) + ' 元、人力約 ' + fmt(labor * area) + ' 元。每公斤成本（＝損平售價）約 ' + (total / totalYield).toFixed(1) + ' 元/kg。想拉高毛利，可以再看「產品分級建議」和「定價策略建議」！',
+      };
+    },
+  },
+  sow: {
+    inputs: [
+      { key: 'temp', label: '未來7日均溫', unit: '°C', def: '24' },
+      { key: 'rain', label: '未來7日累積雨量', unit: 'mm', def: '18' },
+    ],
+    run(v) {
+      const t = +v.temp, r = +v.rain;
+      let level = '理想播種窗口', impact = '發芽整齊、苗勢穩定。', action = '可以安排播種與育苗！';
+      if (t < 16 || t > 32 || r > 120) {
+        level = '不建議播種'; impact = '低溫/高溫或雨太多，發芽會不整齊、病害風險高。'; action = '建議延後 3–5 天再評估，先處理排水或保溫。';
+      } else if ((t >= 16 && t < 20) || (t > 30 && t <= 32) || r > 60) {
+        level = '可播但要加強管理'; impact = '發芽與苗勢可能不均，管理成本會高一點。'; action = '可以小面積先播，搭配遮陰／保溫與病害預防。';
+      }
+      return {
+        headline: '判斷結果：' + level + '（均溫 ' + t + '°C、雨量 ' + r + 'mm/7日）',
+        detail: impact + ' ' + action + ' 門檻：理想 20~30°C 且 <60mm；16~20°C 或 60~120mm 需管理；<16°C、>32°C 或 >120mm 不建議。',
+      };
+    },
+  },
+  yield: {
+    inputs: [
+      { key: 'area', label: '面積', unit: '分地', def: '1' },
+      { key: 'base', label: '基準值', unit: '噸/分地', def: '3.1' },
+      { key: 'season', label: '季節', unit: '', def: '春季', options: ['春季', '夏季', '秋季', '冬季'] },
+      { key: 'factor', label: '季節係數', unit: '倍率', def: '1' },
+    ],
+    run(v) {
+      const a = +v.area || 1, b = +v.base || 3.1, f = +v.factor || 1;
+      const sb = v.season === '春季' ? 1.05 : v.season === '夏季' ? 0.85 : v.season === '秋季' ? 1.0 : 0.9;
+      const ton = b * a * sb * f;
+      const level = f >= 1.1 ? '偏佳年景' : f <= 0.9 ? '偏差年景' : '一般年景';
+      return {
+        headline: '這一季預估總產量大約 ' + ton.toFixed(2) + ' 噸（' + level + '）！',
+        detail: '公式：面積 × 基準值 × 季節基準倍率 × 季節係數 = ' + a + ' × ' + b + ' × ' + sb + ' × ' + f + '。季節基準倍率：春 1.05、夏 0.85、秋 1.0、冬 0.9。常見區間（±10%）約 ' + (ton * 0.9).toFixed(2) + ' ~ ' + (ton * 1.1).toFixed(2) + ' 噸。',
+      };
+    },
+  },
+};
+
+// ── render ──
+const tabsEl = document.getElementById('tabs');
+const toolsEl = document.getElementById('tools');
+let active = 0;
+
+function renderTabs() {
+  tabsEl.innerHTML = '';
+  STAGES.forEach((s, i) => {
+    const n = TOOLS.filter(t => t.stage === i).length;
+    const el = document.createElement('div');
+    el.className = 'tab' + (i === active ? ' on' : '');
+    el.innerHTML = s.icon + ' ' + s.name + ' <span class="c">' + n + '</span>';
+    el.onclick = () => { active = i; renderTabs(); renderTools(); };
+    tabsEl.appendChild(el);
+  });
+}
+
+function renderTools() {
+  toolsEl.innerHTML = '';
+  TOOLS.forEach((t, idx) => {
+    if (t.stage !== active) return;
+    const el = document.createElement('div');
+    el.className = 'tool s' + t.stage;
+    el.innerHTML = '<div class="ic">' + t.icon + '</div><div class="nm">' + t.name + '</div>'
+      + '<div class="ds">' + t.desc + '</div>'
+      + '<span class="tg ' + TYPES[t.type].cls + '">' + TYPES[t.type].label + '</span>';
+    el.onclick = () => openModal(idx);
+    toolsEl.appendChild(el);
+  });
+}
+
+const overlay = document.getElementById('overlay');
+const modal = document.getElementById('modal');
+overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+function closeModal() { overlay.classList.remove('show'); }
+
+function openModal(idx) {
+  const t = TOOLS[idx];
+  let html = '<div class="mhd"><div class="mt">' + t.icon + ' ' + t.name + '</div>'
+    + '<button class="mx" onclick="closeModal()">✕</button></div>'
+    + '<div class="msub">' + CROP.display + '・' + CROP.county + '｜' + t.desc + '</div>';
+
+  if (t.calc) {
+    const c = CALCS[t.calc];
+    html += '<div class="inputs">' + c.inputs.map(f => {
+      const inner = f.options
+        ? '<select id="f_' + f.key + '">' + f.options.map(o => '<option' + (o === f.def ? ' selected' : '') + '>' + o + '</option>').join('') + '</select>'
+        : '<div class="inrow"><input id="f_' + f.key + '" type="text" inputmode="decimal" value="' + f.def + '"><span class="u">' + f.unit + '</span></div>';
+      return '<div class="infield"><div class="l">' + f.label + (f.unit && f.options ? '（' + f.unit + '）' : '') + '</div>' + inner + '</div>';
+    }).join('') + '</div>'
+      + '<button class="gobtn" onclick="runCalc(\'' + t.calc + '\')">幫我算算看 ›</button>'
+      + '<div class="result" id="calcResult"><img src="toolbox-assets/m_assist_circle.png" alt="農知助理">'
+      + '<div><div class="r1" id="resH"></div><div class="r2" id="resD"></div></div></div>';
+  }
+
+  if (t.principles && t.principles.length) {
+    const ph = CROP.isTomato ? '📌 牛蕃茄小抄（固定原則）'
+      : '📌 小抄（以牛蕃茄示範，「' + CROP.display + '」版準備中）';
+    html += '<div class="ptitle">' + ph + '</div><div class="plist">'
+      + t.principles.map(p => '<div class="pitem">' + p + '</div>').join('') + '</div>';
+  }
+  if (t.extra) html += '<div class="extra">' + t.extra + '</div>';
+  if (t.calc && !CROP.isTomato) html += '<div class="extra">＊試算參數以牛蕃茄常態為預設，「' + CROP.display + '」專屬參數陸續補上。</div>';
+  if (!t.calc) html += '<span class="phase-badge">🔧 完整互動功能規劃中（目前提供原則建議）</span>';
+
+  modal.innerHTML = html;
+  overlay.classList.add('show');
+  overlay.scrollTop = 0;
+}
+
+function runCalc(kind) {
+  const c = CALCS[kind];
+  const v = {};
+  c.inputs.forEach(f => { v[f.key] = document.getElementById('f_' + f.key).value; });
+  const out = c.run(v);
+  document.getElementById('resH').textContent = out.headline;
+  document.getElementById('resD').textContent = out.detail;
+  document.getElementById('calcResult').classList.add('show');
+}
+
+// ── 作物參數化：?county=桃園市&crop=水蜜桃 ──
+const qs = new URLSearchParams(location.search);
+const rawCrop = (qs.get('crop') || '番茄').trim();
+const CROP = {
+  key: rawCrop === '番茄' ? '牛蕃茄' : rawCrop,          // 角色圖檔用的 key
+  display: rawCrop === '牛蕃茄' ? '番茄' : rawCrop,       // 顯示名
+  county: (qs.get('county') || '桃園市').trim(),
+  isTomato: rawCrop === '番茄' || rawCrop === '牛蕃茄',
+};
+
+document.getElementById('subline').textContent =
+  CROP.display + '・' + CROP.county + '｜30 個小幫手（MVP）';
+document.title = '小農工具箱｜' + CROP.display + '・' + CROP.county + '｜農知島';
+
+// 換上該作物的官方角色圖（來源：主頁 page-data.json 抽出的 crop_chars.json）
+if (!CROP.isTomato) {
+  fetch('toolbox-assets/crop_chars.json')
+    .then(r => r.json())
+    .then(chars => {
+      const uri = chars[CROP.key];
+      if (!uri) return; // 沒有角色圖就沿用番茄
+      const img = document.getElementById('mascot');
+      img.src = uri;
+      // 角色 SVG 是透明底，拿掉「相框」樣式、貼齊草地
+      img.style.cssText = 'width:118px;flex:none;display:block;border:none;border-radius:0;box-shadow:none;margin-bottom:10px';
+    })
+    .catch(() => {});
+}
+
+renderTabs();
+renderTools();
+</script>
+</body></html>

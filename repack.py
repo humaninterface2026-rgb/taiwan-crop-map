@@ -561,6 +561,21 @@ if '</body>' in new_inner:
 else:
     new_inner = new_inner + sw_register
 
+# 小農工具箱入口（toolbox-entry.js：右下角浮動鈕 → toolbox.html?county=&crop=）。
+# 同 SW 註冊的做法：先剝掉舊的再注入，重跑 repack 不會弄丟也不會重複。
+toolbox_entry = (
+    '\n<!-- 小農工具箱入口（repack.py 會重新注入此行） -->\n'
+    '<script id="toolbox-entry" src="toolbox-entry.js"></script>'
+)
+new_inner = re.sub(
+    r'\n?<!-- 小農工具箱入口[^>]*-->\n?<script id="toolbox-entry"[^>]*></script>',
+    '', new_inner, flags=re.DOTALL,
+)
+if '</body>' in new_inner:
+    new_inner = new_inner.replace('</body>', toolbox_entry + '</body>', 1)
+else:
+    new_inner = new_inner + toolbox_entry
+
 OUT.write_bytes(new_inner.encode("utf-8"))
 print(f"Wrote {OUT}")
 print(f"Size: {len(new_inner):,} bytes (original outer: {len(html):,} bytes)")
