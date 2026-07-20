@@ -19,11 +19,24 @@ header{display:flex;align-items:center;justify-content:space-between}
 .mh .s{font-size:13.5px;color:#a89070;font-weight:700}
 .banner{display:flex;align-items:flex-end;gap:20px;margin-top:16px;background:linear-gradient(180deg,#fdf9ea 55%,#dfeec2 100%);border:2px solid #ecdfc0;border-radius:20px;padding:18px 24px 0;overflow:hidden}
 .banner img{width:130px;display:block;flex:none;border-radius:16px 16px 0 0;border:3px solid #fff;border-bottom:none;box-shadow:0 2px 10px rgba(122,84,24,.08)}
+#stage{position:relative;width:168px;flex:none;display:flex;justify-content:center;align-items:flex-end}
+#stagegrass{position:absolute;left:50%;transform:translateX(-50%);bottom:-1px;width:168px;height:46px;pointer-events:none;display:none}
+img.charimg{position:relative;width:126px;height:126px;object-fit:contain;flex:none;display:block;border:none;border-radius:0;box-shadow:none;margin-bottom:16px;z-index:1}
 .bubble{position:relative;background:#fff;border:2.5px solid #d8c9a4;border-radius:16px;padding:14px 20px;margin-bottom:26px;max-width:660px}
 .bubble:before{content:'';position:absolute;left:-14px;bottom:18px;border:10px solid transparent;border-right-color:#d8c9a4}
 .bubble:after{content:'';position:absolute;left:-10px;bottom:20px;border:8px solid transparent;border-right-color:#fff}
 .bubble .b1{font-size:16.5px;font-weight:900}
 .bubble .b2{font-size:13px;color:#8a7a5c;margin-top:3px}
+/* 手機：橫幅改直向堆疊（角色在上、對話框全寬在下），避免對話框被擠成直排 */
+@media(max-width:640px){
+  .banner{flex-direction:column;align-items:center;gap:6px;padding:16px 16px 0}
+  #stage{width:140px}
+  #stagegrass{width:140px;height:38px}
+  img.charimg{width:104px;height:104px;margin-bottom:12px}
+  .bubble{max-width:100%;width:100%;margin-bottom:16px}
+  .bubble:before,.bubble:after{display:none}
+  .mh .t{white-space:nowrap}
+}
 
 .tabs{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
 .tab{border-radius:99px;padding:9px 18px;font-size:15px;font-weight:900;border:2px solid #d8c9a4;color:#8a7a5c;background:#fff;cursor:pointer;user-select:none}
@@ -33,7 +46,7 @@ header{display:flex;align-items:center;justify-content:space-between}
 
 .tools{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
 @media(max-width:900px){.tools{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:620px){.tools{grid-template-columns:1fr}.banner img{width:100px}}
+@media(max-width:620px){.tools{grid-template-columns:1fr}}
 .tool{border-radius:18px;padding:16px 18px;border:2px solid;display:flex;flex-direction:column;gap:7px;cursor:pointer;transition:transform .12s}
 .tool:hover{transform:translateY(-3px)}
 .tool .ic{width:46px;height:46px;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;border:2px solid rgba(0,0,0,.05)}
@@ -95,8 +108,8 @@ header{display:flex;align-items:center;justify-content:space-between}
   <div class="mock">
     <div class="mh"><div class="t">🧰 小農工具箱</div><div class="s" id="subline">番茄・桃園市｜30 個小幫手（MVP）</div></div>
     <div class="banner">
-      <div id="stage" style="position:relative;width:168px;flex:none;display:flex;justify-content:center;align-items:flex-end">
-        <div id="stagegrass" style="position:absolute;left:50%;transform:translateX(-50%);bottom:-1px;width:168px;height:46px;pointer-events:none;display:none"></div>
+      <div id="stage">
+        <div id="stagegrass"></div>
         <img id="mascot" src="toolbox-assets/m_tomato.png" alt="作物吉祥物">
       </div>
       <div class="bubble">
@@ -397,7 +410,8 @@ fetch('toolbox-assets/crop_chars.json')
     if (!uri) return; // 沒有角色圖才沿用預設（PNG 自帶草地，不疊草）
     const img = document.getElementById('mascot');
     img.src = uri;
-    img.style.cssText = 'position:relative;width:126px;height:126px;object-fit:contain;flex:none;display:block;border:none;border-radius:0;box-shadow:none;margin-bottom:16px;z-index:1';
+    img.removeAttribute('style');
+    img.className = 'charimg'; // 樣式交給 CSS（含手機版 media query）
     const g = document.getElementById('stagegrass');
     g.innerHTML = STAGE_GRASS_SVG;
     g.style.display = 'block';
