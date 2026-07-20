@@ -6,343 +6,465 @@
 <script src="assets/chart.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Noto Sans TC',sans-serif;background:#faf6ec;color:#5a4a30;min-height:100vh;display:flex;flex-direction:column}
-.wrap{max-width:1280px;margin:0 auto;padding:28px 24px 0;width:100%;flex:1}
-header{display:flex;align-items:center;justify-content:space-between}
-.brand{font-size:24px;font-weight:900;color:#7a5418;letter-spacing:2px}
-.brand small{font-size:11px;font-weight:700;color:#a89070;letter-spacing:0;margin-left:8px}
-.backlink{font-size:14px;font-weight:700;color:#7a5418;text-decoration:none;background:#fff;border:2px solid #d8c9a4;border-radius:99px;padding:7px 18px}
-.backlink:hover{background:#f6efdc}
+body{font-family:'Noto Sans TC',sans-serif;background:#ffffff;min-height:100vh;display:flex;flex-direction:column;color:#5a4a30}
+/* ── 原版 Dashboard 畫布：1440×1468 設計座標、等比縮放（照 App.tsx Dashboard 元件） ── */
+.canvas-wrap{position:relative;width:100%;max-width:1440px;margin:0 auto;aspect-ratio:1440/1300;overflow:hidden;container-type:inline-size}
+.canvas{position:absolute;inset:0;width:1440px;height:1468px;transform-origin:top left;transform:scale(calc(100cqw / 1440px))}
+.canvas img.bg{display:block;width:1440px;height:auto;user-select:none;pointer-events:none}
+.abs{position:absolute}
+.card-shell{position:absolute;border-radius:14px;display:flex;flex-direction:column;font-family:'Noto Sans TC',sans-serif}
+.hrow{display:flex;justify-content:space-between;align-items:center}
+.chartbox{flex:1;background:#fff;border-radius:10px;padding:8px 10px;position:relative;min-height:0}
+.nodata{flex:1;background:#fff;border:1px solid #eee;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#888;font-size:12px;text-align:center;padding:12px}
+.pillbtn{cursor:pointer;font-family:inherit;font-weight:700}
+canvas.cv{width:100%!important;height:100%!important}
 
-.card{border-radius:22px;border:2px solid;padding:18px 20px}
-.ct{font-size:17px;font-weight:900;color:#7a5418;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.ct .sub{font-size:11.5px;font-weight:700;color:#a89070}
-.chartbox{background:#fff;border-radius:14px;padding:10px;margin-top:12px}
-canvas{width:100%!important}
-
-.row1{display:grid;grid-template-columns:300px 340px 1fr;gap:14px;margin-top:20px}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
-@media(max-width:1020px){.row1{grid-template-columns:1fr 1fr}.row{grid-template-columns:1fr}}
-@media(max-width:640px){.row1{grid-template-columns:1fr}}
-
-/* hero */
-.hero{background:#fdf6e8;border-color:#ecdfc0;display:flex;flex-direction:column;position:relative;overflow:hidden}
-.hero .pin{font-size:14px;font-weight:900;color:#3b6826}
-.hero .heart{position:absolute;top:16px;right:18px;font-size:16px}
-.hero .nm{font-size:30px;font-weight:900;color:#3b6826;margin-top:2px}
-.hero .mascot{align-self:center;margin-top:auto;width:170px;display:block}
-.hero .grass{position:absolute;left:0;right:0;bottom:0;height:56px;background:radial-gradient(120% 100px at 50% 100%,#b6d67e 60%,transparent 61%)}
-.hero img.mascot{position:relative;z-index:1}
-
-/* price panel */
-.pricecol{display:flex;flex-direction:column;gap:12px}
-.pc{background:#fdf0e0;border:2px solid #f0d0a8;border-radius:18px;padding:14px 16px}
-.pc .t{font-size:14.5px;font-weight:900;color:#7a5418;display:flex;justify-content:space-between}
-.pc .t small{font-weight:700;color:#c0a880;font-size:11px}
-.pc .big{font-size:24px;font-weight:900;color:#3aaa5e;margin-top:6px}
-.pc .big small{font-size:12.5px;color:#a89070;font-weight:700;margin-left:6px}
-.pc .line{font-size:13px;color:#8a7a5c;margin-top:4px}
-.pillrow{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:13px;font-weight:700;color:#8a7a5c;flex-wrap:wrap}
-.pill{border-radius:99px;padding:3px 13px;font-size:12.5px;font-weight:900}
-.pg{background:#cfe0a8;color:#3b6826}.pr{background:#f8d0c8;color:#b05548}.pn{background:#eee4cc;color:#8a7a5c}
-
-/* range pills */
-.ranges{display:flex;gap:7px}
-.rp{border-radius:99px;padding:4px 13px;font-size:12.5px;font-weight:900;border:2px solid #d8c9a4;color:#8a7a5c;background:#fff;cursor:pointer;user-select:none}
-.rp.on{background:#7fae4e;border-color:#7fae4e;color:#fff}
-
-.c-trend{background:#f2f7e6;border-color:#cfe0a8}
-.c-vol{background:#e4f5ef;border-color:#b0dcc8}
-.c-cmp{background:#fdf6e0;border-color:#ead9a8}
-.c-exp{background:#eceafa;border-color:#cfc8ee}
-.c-dis{background:#e4f8f1;border-color:#a8dcc8}
-
-/* toolbox band */
-.tbband{margin-top:16px;background:linear-gradient(180deg,#fdf9ea 55%,#dfeec2 100%);border:2px solid #ecdfc0;border-radius:22px;padding:18px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-.tbband img{width:74px;border-radius:14px;border:3px solid #fff}
-.tbband .tt{font-size:18px;font-weight:900;color:#7a5418}
-.tbband .td{font-size:13px;color:#8a7a5c;margin-top:3px}
-.tbband .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-.chip{font-size:12.5px;font-weight:900;background:#fff;border:2px solid #d8c9a4;border-radius:99px;padding:4px 13px;color:#8a7a5c;text-decoration:none}
-.gob{margin-left:auto;background:#7fae4e;color:#fff;font-size:15px;font-weight:900;border-radius:99px;padding:12px 22px;text-decoration:none;box-shadow:0 3px 0 #5d8a34;white-space:nowrap}
-
-.note{margin-top:12px;font-size:12px;color:#a89070}
-.wave{margin-top:44px;height:86px;background:radial-gradient(120% 70px at 50% 0,#faf6ec 60%,transparent 61%),#a3b86c;position:relative;flex:none}
+/* ── 下方擴充：小農工具箱（概念稿的延伸區，整體包覆在一張大卡內） ── */
+/* 左右內縮對齊上方圖表卡（設計座標 x=34..1407，於 1440 畫布中的比例）*/
+.extend{max-width:1440px;margin:0 auto;width:100%;padding:14px calc(33/1440*100%) 0 calc(34/1440*100%)}
+.ext-card{background:#ffffff;border:2px solid #e8dcc0;border-radius:26px;padding:22px 26px 18px;box-shadow:0 6px 24px rgba(122,84,24,.05)}
+.ext-head{display:flex;align-items:baseline;gap:12px;margin:0 2px 14px}
+.ext-head .t{font-size:22px;font-weight:900;color:#7a5418}
+.ext-head .s{font-size:13px;color:#a89070;font-weight:700}
+#tbframe{width:100%;border:none;display:block;min-height:760px}
+.wave{margin-top:30px;height:86px;background:radial-gradient(120% 70px at 50% 0,#ffffff 60%,transparent 61%),#a3b86c;position:relative;flex:none}
 .wave .cp{position:absolute;bottom:18px;width:100%;text-align:center;font-size:12px;color:#f4f8e6;font-weight:700}
-.loading{margin-top:40px;text-align:center;color:#a89070;font-weight:700}
 </style></head><body>
-<div class="wrap">
-  <header>
-    <div class="brand">農知島 <small>The Island of Harvest</small></div>
-    <a class="backlink" href="./index.html">← 回作物地圖</a>
-  </header>
 
-  <div id="app" class="loading">資料載入中⋯</div>
+<div class="canvas-wrap"><div class="canvas" id="canvas">
+  <img class="bg" src="assets/tomato_dashboard.avif" alt="作物市場儀表板">
+  <a class="abs" href="./index.html" title="返回首頁" style="left:16px;top:6px;width:200px;height:56px;cursor:pointer;z-index:5"></a>
+  <div id="cards"></div>
+</div></div>
+
+<div class="extend">
+  <div class="ext-card">
+    <div class="ext-head"><div class="t">🧰 小農工具箱</div><div class="s" id="extsub">從種到賣的 30 個小幫手——看完行情接著動手</div></div>
+    <iframe id="tbframe" title="小農工具箱"></iframe>
+  </div>
 </div>
-<div class="wave"><div class="cp">農知島 The Island of Harvest｜作物行情儀表板 MVP</div></div>
+<div class="wave"><div class="cp">農知島 The Island of Harvest｜作物行情儀表板</div></div>
 
 <script>
-// 作物名 → nongzhidao 資料檔（與主頁 bundle 內建的 cropApi 對應表同源）
+/* ════ 對應表（與主頁 bundle 同源） ════ */
 const CODE_MAP = {
-  '番茄': 'code_FJ3', '牛蕃茄': 'code_FJ3', '番茄-牛番茄': 'code_FJ3',
-  '水蜜桃': 'fruit_Y1', '桃子': 'fruit_Y1', '甜柿': 'fruit_Z0',
-  '綠竹筍': 'code_SH2', '哈密瓜': 'fruit_W1', '哈蜜瓜': 'fruit_W1',
-  '包心白': 'code_LC1', '包心白菜': 'code_LC1',
-  '甘藍': 'code_LA1', '甘藍-初秋': 'code_LA1',
-  '青蔥': 'code_SE2', '青蔥-北蔥': 'code_SE2', '青蔥-粉蔥': 'code_SE6',
-  '大蒜': 'code_SG1', '大蒜-硬梗': 'code_SG1', '洋蔥': 'code_SD1', '山藥': 'code_SU2',
-  '文旦': 'fruit_H1', '柚子': 'fruit_H1', '梨': 'fruit_O10', '梨-寶島甘露梨': 'fruit_O10',
-  '西瓜': 'fruit_T1', '大西瓜': 'fruit_T1', '西瓜-大西瓜': 'fruit_T1',
-  '芒果': 'fruit_R1', '芭樂': 'fruit_P1', '草莓': 'fruit_45', '葡萄': 'fruit_S1',
-  '釋迦': 'fruit_31', '香蕉': 'fruit_A1', '鳳梨': 'fruit_B2',
+  '番茄':'code_FJ3','牛蕃茄':'code_FJ3','番茄-牛番茄':'code_FJ3',
+  '水蜜桃':'fruit_Y1','桃子':'fruit_Y1','甜柿':'fruit_Z0',
+  '綠竹筍':'code_SH2','哈密瓜':'fruit_W1','哈蜜瓜':'fruit_W1',
+  '包心白':'code_LC1','包心白菜':'code_LC1','甘藍':'code_LA1','甘藍-初秋':'code_LA1',
+  '青蔥':'code_SE2','青蔥-北蔥':'code_SE2','青蔥-粉蔥':'code_SE6',
+  '大蒜':'code_SG1','大蒜-硬梗':'code_SG1','洋蔥':'code_SD1','山藥':'code_SU2',
+  '文旦':'fruit_H1','柚子':'fruit_H1','梨':'fruit_O10','梨-寶島甘露梨':'fruit_O10',
+  '西瓜':'fruit_T1','大西瓜':'fruit_T1','西瓜-大西瓜':'fruit_T1',
+  '芒果':'fruit_R1','芭樂':'fruit_P1','草莓':'fruit_45','葡萄':'fruit_S1',
+  '釋迦':'fruit_31','香蕉':'fruit_A1','鳳梨':'fruit_B2',
 };
-// AMIS 批發市場沒有的品項（產銷通路不同，非資料缺漏）
-const NO_MARKET = { '稻米': '稻米走公糧與糧商收購，不進 AMIS 蔬果批發市場',
-                    '水稻': '水稻走公糧與糧商收購，不進 AMIS 蔬果批發市場',
-                    '茶葉': '茶葉多為產地直售與比賽茶市場，無 AMIS 批發行情' };
+const WHOLESALE_NO_DATA = new Set(['包種茶', '水稻', '茶葉', '稻米']);
+const TRADE_COA_MAP = {
+  '西瓜':'103xx10','大西瓜':'103xx10','西瓜-大西瓜':'103xx10','水蜜桃':'104xx12','桃子':'104xx12',
+  '草莓':'0810100000','水稻':'101xx01','稻米':'101xx01','包種茶':'109xxxx','茶葉':'109xxxx',
+  '甜柿':'104xx25','梨':'104xx10','梨-寶島甘露梨':'104xx10','葡萄':'104xx08','香蕉':'104xx03',
+  '大蒜':'103xx26','大蒜-硬梗':'103xx26','哈蜜瓜':'0807191000','哈密瓜':'0807191000',
+  '鳳梨':'104xx04','芒果':'104xx05','芭樂':'104xx46','洋蔥':'103xx03','釋迦':'104xx38',
+  '甘藍':'103xx05','甘藍-初秋':'103xx05','包心白':'103xx06','包心白菜':'103xx06',
+  '柚子':'104xx24','文旦':'104xx24','綠竹筍':'103xx15','山藥':'0714302000',
+  '水稻':'101xx01','稻米':'101xx01','包種茶':'109xxxx','茶葉':'109xxxx',
+};
+const NZ = 'https://wyaoguang3-code.github.io/nongzhidao/data/';
 
+/* ════ 參數 ════ */
 const qs = new URLSearchParams(location.search);
 const rawCrop = (qs.get('crop') || '番茄').trim();
 const CROP = {
   display: rawCrop === '牛蕃茄' ? '番茄' : rawCrop,
   charKey: rawCrop === '番茄' ? '牛蕃茄' : rawCrop,
   county: (qs.get('county') || '桃園市').trim(),
-  code: CODE_MAP[rawCrop] || CODE_MAP[rawCrop === '番茄' ? '牛蕃茄' : rawCrop] || null,
-  isTomato: rawCrop === '番茄' || rawCrop === '牛蕃茄',
-  noMarketReason: NO_MARKET[rawCrop] || null,
+  code: CODE_MAP[rawCrop] || null,
+  noMarket: WHOLESALE_NO_DATA.has(rawCrop),
+  isTomato: /(番茄|蕃茄)/.test(rawCrop),
 };
-CROP.hasData = !!CROP.code;
 document.title = '作物儀表板｜' + CROP.display + '・' + CROP.county + '｜農知島';
+document.getElementById('extsub').textContent = CROP.display + '・' + CROP.county + '｜從種到賣的 30 個小幫手';
+const tbURL = 'toolbox.html?embed=1&county=' + encodeURIComponent(CROP.county) + '&crop=' + encodeURIComponent(CROP.display);
+document.getElementById('tbframe').src = tbURL;
+window.addEventListener('message', e => {
+  if (e.data && e.data.tbHeight) document.getElementById('tbframe').style.height = (e.data.tbHeight + 20) + 'px';
+});
 
-const DATA_LIVE = 'https://wyaoguang3-code.github.io/nongzhidao/data/' + CROP.code + '.json';
-const KG2TJ = 0.6; // 1 台斤 = 0.6 kg
-const fmt = n => Math.round(n).toLocaleString();
+/* ════ 原版三枚 inline SVG（App.tsx 逐字照抄） ════ */
+const PIN_SVG = `<svg preserveAspectRatio="none" width="100%" height="100%" viewBox="0 0 18.454 22.5391" fill="none" xmlns="http://www.w3.org/2000/svg"><g><path d="M4.52809 9.49983C4.52809 6.90471 6.63185 4.80095 9.22698 4.80095C11.8221 4.80095 13.9259 6.90471 13.9259 9.49983C13.9259 12.095 11.8221 14.1987 9.22698 14.1987C6.63185 14.1987 4.52809 12.095 4.52809 9.49983Z" fill="#95AB52"/><path fill-rule="evenodd" clip-rule="evenodd" d="M0.0328606 8.24517C0.416921 3.58585 4.3105 0 8.98563 0H9.46838C14.1435 0 18.0371 3.58585 18.4211 8.24517C18.6279 10.7538 17.853 13.2448 16.2597 15.1934L10.9028 21.7447C10.0367 22.8039 8.41732 22.8039 7.55119 21.7447L2.19433 15.1934C0.600977 13.2448 -0.173921 10.7538 0.0328606 8.24517Z" fill="#95AB52"/></g><ellipse cx="8.98424" cy="8.98442" rx="4.49221" ry="4.49221" fill="#FDF8EB"/></svg>`;
+const HEART_SVG = `<svg preserveAspectRatio="none" width="100%" height="100%" viewBox="0 0 22.461 22.461" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11.2305" cy="11.2305" r="11.2305" fill="#FFE2C9"/><path d="M8.82838 7.01908C7.09336 7.01908 5.61521 8.31639 5.61521 10.0013C5.61521 11.1636 6.15948 12.1422 6.88082 12.9528C7.59968 13.7606 8.52712 14.4387 9.36556 15.0062L10.8122 15.9855C10.9706 16.0927 11.1784 16.0927 11.3368 15.9855L12.7834 15.0062C13.6219 14.4387 14.5493 13.7606 15.2682 12.9528C15.9895 12.1422 16.5338 11.1636 16.5338 10.0013C16.5338 8.31639 15.0556 7.01908 13.3206 7.01908C12.4262 7.01908 11.6392 7.43844 11.0745 7.98105C10.5097 7.43844 9.72275 7.01908 8.82838 7.01908Z" fill="#BB561E"/></svg>`;
+const GRASS_SVG = `<svg preserveAspectRatio="none" width="100%" height="100%" viewBox="0 0 320.999 87.7973" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="160.499" cy="45.27" rx="160.499" ry="42.5272" fill="#C4D588"/><ellipse cx="150.453" cy="29.8055" rx="58.547" ry="8.50545" fill="#BBCA7A"/><ellipse cx="60.0611" cy="47.4164" rx="8.58016" ry="3.4795" fill="#FDEBBF"/><ellipse cx="265.985" cy="55.7085" rx="8.58016" ry="3.4795" fill="#FDEBBF"/><ellipse cx="251.854" cy="38.5349" rx="8.58016" ry="3.4795" fill="#FDEBBF"/><ellipse cx="236.353" cy="28.9998" rx="5.07176" ry="2.01853" fill="#FDEBBF"/><path d="M283.493 34.3251C282.196 35.8582 286.838 30.2098 290.346 31.774C291.686 32.3705 293.825 34.5059 292.49 37.1565C288.859 44.3622 279.232 43.5558 270.844 40.3242C262.456 37.0926 260.848 26.5965 268.259 26.5024C272.58 26.4476 273.721 31.6568 273.721 31.6568C273.721 31.6568 273.432 24.6005 278.763 23.958C284.095 23.3155 288.872 27.9682 283.493 34.3251Z" fill="#67B225"/><path d="M45.3124 13.3301C45.7007 15.3412 44.1458 8.02173 48.9352 6.89183C50.7642 6.45905 54.2256 6.48692 55.7217 9.36658C59.7895 17.1944 47.9365 24.7507 37.0039 27.8368C26.0713 30.9229 16.8163 22.4128 23.4593 17.4608C27.3331 14.5733 33.6974 17.7528 33.6974 17.7528C33.6974 17.7528 29.5061 10.8881 33.6974 6.89179C37.8887 2.89551 43.703 4.99076 45.3124 13.3301Z" fill="#67B225"/></svg>`;
 
-const app = document.getElementById('app');
+/* ════ 卡片殼（座標/色碼照 App.tsx 規格） ════ */
+const NODATA_HTML = '<div class="nodata"><div style="font-size:13px;margin-bottom:4px">本作物無批發市場交易資料</div><div style="font-size:10px;color:#aaa">(此作物不在 AMIS 蔬果拍賣系統，請改參考主管機關)</div></div>';
 
-async function boot() {
-  // 角色圖（頁內官方角色包）
-  let charUri = 'toolbox-assets/m_tomato.png';
-  try {
-    const chars = await (await fetch('toolbox-assets/crop_chars.json')).json();
-    if (chars[CROP.charKey]) charUri = chars[CROP.charKey];
-  } catch (e) {}
-
-  if (!CROP.hasData) { renderPlaceholder(charUri); return; }
-
-  // 行情：優先抓 nongzhidao 即時 JSON；番茄另有頁內快照可退
-  let mkt = null, live = true;
-  try {
-    mkt = await (await fetch(DATA_LIVE, { cache: 'no-store' })).json();
-  } catch (e) {
-    live = false;
-    if (CROP.isTomato) {
-      try { mkt = (await (await fetch('assets/page-data.json')).json()).datasets.tomato_market; } catch (e2) {}
-    }
-  }
-  let extra = {};
-  try { extra = (await (await fetch('assets/page-data.json')).json()).datasets; } catch (e) {}
-  if (!mkt) { app.innerHTML = '<div class="loading">行情資料暫時載入不了，稍後再試 🙏</div>'; return; }
-  render(charUri, mkt, extra, live);
-}
-
-function indicator(mkt) {
-  const prices = mkt.daily.slice(-365).map(d => d.price).filter(p => p != null).sort((a, b) => a - b);
-  const q = f => prices[Math.min(prices.length - 1, Math.floor(f * prices.length))];
-  const p30 = q(0.3), p70 = q(0.7), p = mkt.latest_price.price;
-  if (p <= p30) return { buy: ['推薦購買', 'pg'], sell: ['較弱價格', 'pr'], p30, p70 };
-  if (p >= p70) return { buy: ['價格偏高', 'pr'], sell: ['強勢價格', 'pg'], p30, p70 };
-  return { buy: ['普通', 'pn'], sell: ['普通價格', 'pn'], p30, p70 };
-}
-
-function render(charUri, mkt, extra, live) {
-  const lp = mkt.latest_price, ind = indicator(mkt);
-  const retail = lp.price * 2;
-  app.className = '';
-  app.innerHTML = `
-  <div class="row1">
-    <div class="card hero">
-      <div class="pin">📍 ${CROP.county}</div><div class="heart">🧡</div>
-      <div class="nm">${CROP.display}</div>
-      <img class="mascot" src="${charUri}" alt="${CROP.display}">
-      <div class="grass"></div>
-    </div>
-    <div class="pricecol">
-      <div class="pc"><div class="t">價格面板（AMIS）<small>${lp.date}</small></div>
-        <div class="big">$${lp.price} / 公斤 <small>($${(lp.price * KG2TJ).toFixed(2)} / 台斤)</small></div>
-        <div class="line">最新批發均價（全市場加權）</div></div>
-      <div class="pc"><div class="t">試算預估零售價 <small>口徑A：批發×2</small></div>
-        <div class="big">$${fmt(retail)} / 公斤 <small>($${fmt(retail * KG2TJ)} / 台斤)</small></div></div>
-      <div class="pc"><div class="t">近期交易指標</div>
-        <div class="pillrow">購買建議 <span class="pill ${ind.buy[1]}">${ind.buy[0]}</span></div>
-        <div class="pillrow">賣出建議 <span class="pill ${ind.sell[1]}">${ind.sell[0]}</span></div>
-        <div class="line" style="margin-top:8px">參考帶：P30 ${ind.p30.toFixed(1)}／P70 ${ind.p70.toFixed(1)} 元/公斤（近一年）</div></div>
-    </div>
-    <div class="card c-trend">
-      <div class="ct">批發市場行情趨勢圖
-        <span class="ranges" id="ranges">
-          <span class="rp on" data-r="weekly">每週</span><span class="rp" data-r="monthly">每月</span>
-          <span class="rp" data-r="daily">一年</span><span class="rp" data-r="yearly">每年</span>
-        </span></div>
-      <div class="chartbox"><canvas id="c_trend" height="240"></canvas></div>
-    </div>
+function shells() {
+  const nm = CROP.noMarket;
+  const trendPills = ['weekly:每週', 'monthly:每月', 'year52:一年', 'yearly:每年'].map(s => {
+    const [k, l] = s.split(':');
+    return '<button class="pillbtn tp" data-k="' + k + '" style="font-size:11px;padding:3px 12px;border-radius:14px;border:1px solid #d8dcc0;background:#fefef0;color:#7a8c2a">' + l + '</button>';
+  }).join('');
+  const expPills = ['monthly:每月', 'yearly:每年'].map(s => {
+    const [k, l] = s.split(':');
+    return '<button class="pillbtn ep" data-k="' + k + '" style="font-size:12px;padding:4px 14px;border-radius:16px;border:1px solid #e8dfd0;background:#faf2dd;color:#a8956e">' + l + '</button>';
+  }).join('');
+  return `
+  <!-- CharacterCard 34,87 292×287 -->
+  <div class="card-shell" style="left:34px;top:87px;width:292px;height:287px;background:#fdf7ea;border:1.5px solid #efd8c6;border-radius:15px;overflow:hidden;z-index:3;display:block">
+    <div class="abs" style="left:-8.5px;top:229px;width:321px;height:88px;pointer-events:none">${GRASS_SVG}</div>
+    <img id="charimg" class="abs" style="left:57.64px;top:72px;width:172.72px;height:190.57px;object-fit:contain;pointer-events:none;display:none">
+    <div class="abs" style="left:22.27px;top:14px;width:18.454px;height:22.539px">${PIN_SVG}</div>
+    <div class="abs" style="left:49px;top:14px;font-size:16px;font-weight:700;color:#3b6826;letter-spacing:1.6px;line-height:22px">${CROP.county}</div>
+    <div class="abs" style="left:15px;top:48px;font-size:30px;font-weight:900;color:#3b6826;letter-spacing:2px;line-height:40px">${CROP.display}</div>
+    <div class="abs" style="left:253px;top:15px;width:22.461px;height:22.461px">${HEART_SVG}</div>
   </div>
 
-  <div class="row">
-    <div class="card c-vol"><div class="ct">批發市場成交量比較 <span class="sub">當月交易日累積</span></div>
-      <div class="chartbox"><canvas id="c_vol" height="250"></canvas></div></div>
-    <div class="card c-cmp"><div class="ct">批發市場價格比較 <span class="sub">當月加權均價，低到高（可挑較佳市場）</span></div>
-      <div class="chartbox"><canvas id="c_cmp" height="250"></canvas></div></div>
-  </div>
-
-  <div class="row">
-    <div class="card c-exp">${CROP.isTomato ? `<div class="ct">外銷趨勢圖（全球）
-      <span class="ranges" id="expranges"><span class="rp on" data-r="monthly">每月</span><span class="rp" data-r="yearly">每年</span></span></div>
-      <div class="chartbox"><canvas id="c_exp" height="250"></canvas></div>`
-      : `<div class="ct">外銷趨勢圖</div>
-      <div style="min-height:220px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#8a7a5c">
-        <div style="font-size:16px;font-weight:900;color:#7a5418">📦 「${CROP.display}」外銷統計串接準備中</div>
-        <div style="font-size:12.5px;margin-top:6px">目前先開通番茄的外銷趨勢（農業部貿易統計）。</div></div>`}</div>
-    <div class="card c-dis"><div class="ct">每年全台農作物災損金額 <span class="sub">億元／公噸</span></div>
-      <div class="chartbox"><canvas id="c_dis" height="250"></canvas></div></div>
-  </div>
-
-  <div class="tbband">
-    <img src="${charUri}" alt="">
-    <div>
-      <div class="tt">🧰 ${CROP.display}小農工具箱</div>
-      <div class="td">看完行情，接著算成本、挑播種日、抓產量——30 個小幫手在這裡。</div>
-      <div class="chips">
-        <a class="chip" href="${tbUrl()}">🌱 種前規劃</a><a class="chip" href="${tbUrl()}">💧 生長管理</a>
-        <a class="chip" href="${tbUrl()}">🧺 採收保鮮</a><a class="chip" href="${tbUrl()}">🛒 銷售市場</a>
-        <a class="chip" href="${tbUrl()}">📊 經營管理</a>
+  <!-- PricePanelCard 337,87 377×287 -->
+  <div class="card-shell" style="left:337px;top:87px;width:377px;height:287px;background:${nm ? '#fff7ec' : '#fceadb'};border:1.5px solid ${nm ? '#e8d8b8' : '#ead1bb'};padding:${nm ? '14px 18px' : '12px 18px'};gap:${nm ? '8px' : '12px'}">
+    ${nm
+      ? `<div style="font-size:14px;font-weight:900;color:#7a5418;letter-spacing:1.5px">價格面板 · ${CROP.display}</div>${NODATA_HTML}`
+      : `<div style="flex:1;background:#fff5e8;border-radius:10px;padding:10px 12px;box-shadow:0 1px 0 #f0e0c8;display:flex;flex-direction:column;justify-content:space-evenly">
+        <div class="hrow" style="align-items:baseline"><span style="font-size:15px;font-weight:900;color:#a85a16;letter-spacing:1px">價格面板 (AMIS)</span><span id="pp_date" style="font-size:9px;color:#a89070"></span></div>
+        <div style="margin-top:4px;display:flex;align-items:baseline;gap:10px"><span style="font-size:12px;color:#7a5418;font-weight:700">最新均價</span><span id="pp_kg" style="font-size:14px;font-weight:900;color:#5a3a18">—</span><span id="pp_tj" style="font-size:11px;color:#a89070"></span></div>
       </div>
-    </div>
-    <a class="gob" href="${tbUrl()}">打開工具箱 ›</a>
+      <div style="flex:1;background:#fff5e8;border-radius:10px;padding:10px 12px;box-shadow:0 1px 0 #f0e0c8;display:flex;flex-direction:column;justify-content:space-evenly">
+        <div class="hrow" style="align-items:baseline"><span style="font-size:15px;font-weight:900;color:#a85a16;letter-spacing:1px">試算預估零售價</span><span style="font-size:9px;color:#a89070">(口徑A: 批發 × 2)</span></div>
+        <div style="margin-top:4px;display:flex;align-items:baseline;gap:14px"><span id="rt_kg" style="font-size:14px;font-weight:900;color:#5a3a18">—</span><span style="font-size:9px;color:#c8a070">|</span><span id="rt_tj" style="font-size:14px;font-weight:900;color:#5a3a18">—</span></div>
+      </div>
+      <div style="flex:1;background:#fff5e8;border-radius:10px;padding:10px 12px;box-shadow:0 1px 0 #f0e0c8;display:flex;flex-direction:column;justify-content:space-evenly">
+        <div style="font-size:15px;font-weight:900;color:#a85a16;letter-spacing:1px;margin-bottom:6px">近期交易指標</div>
+        <div style="display:flex;gap:14px;font-size:12px;color:#7a5418;align-items:center;flex-wrap:wrap">購買建議 <span id="tag_buy" style="padding:3px 10px;border-radius:10px;background:#f3d27a;color:#7a5418;font-weight:700">—</span> 賣出建議 <span id="tag_sell" style="padding:3px 10px;border-radius:10px;background:#f3d27a;color:#7a5418;font-weight:700">—</span></div>
+      </div>`}
   </div>
-  <div class="note">資料來源：AMIS 批發行情（${live ? '即時，' + (mkt.updated_at || '').slice(0, 16).replace('T', ' ') + ' 更新' : '快照'}）、農業部貿易統計、農業部災損公開資料。${mkt.market_compare ? '' : '＊快照無市場比較資料，該兩圖為空。'}</div>`;
 
-  drawTrend(mkt, 'weekly');
-  document.getElementById('ranges').addEventListener('click', e => {
-    if (!e.target.dataset.r) return;
-    document.querySelectorAll('#ranges .rp').forEach(x => x.classList.toggle('on', x === e.target));
-    drawTrend(mkt, e.target.dataset.r);
-  });
-  drawMarkets(mkt);
-  if (CROP.isTomato) {
-    drawExport(extra.tomato_export, 'monthly');
-    document.getElementById('expranges').addEventListener('click', e => {
-      if (!e.target.dataset.r) return;
-      document.querySelectorAll('#expranges .rp').forEach(x => x.classList.toggle('on', x === e.target));
-      drawExport(extra.tomato_export, e.target.dataset.r);
-    });
-  }
-  drawDisaster(extra.disaster_yearly);
-}
-
-function tbUrl() {
-  return 'toolbox.html?county=' + encodeURIComponent(CROP.county) + '&crop=' + encodeURIComponent(CROP.display);
-}
-
-const CH = {};
-function mk(id, cfg) { if (CH[id]) CH[id].destroy(); CH[id] = new Chart(document.getElementById(id), cfg); }
-const GRID = { color: '#eee6d4' };
-const TICK = { color: '#a89070', font: { family: "'Noto Sans TC'", size: 10.5 } };
-
-function drawTrend(mkt, range) {
-  let rows, labels;
-  if (range === 'daily') { rows = mkt.daily.slice(-365); labels = rows.map(r => r.date.slice(5)); }
-  else if (range === 'weekly') { rows = mkt.weekly.slice(-120); labels = rows.map(r => r.key); }
-  else if (range === 'monthly') { rows = mkt.monthly.slice(-60); labels = rows.map(r => r.key); }
-  else { rows = mkt.yearly; labels = rows.map(r => r.key); }
-  mk('c_trend', { data: {
-      labels,
-      datasets: [
-        { type: 'bar', label: '交易量', data: rows.map(r => r.volume), backgroundColor: 'rgba(61,170,94,.22)', yAxisID: 'v', order: 2 },
-        { type: 'line', label: '均價 (元/公斤)', data: rows.map(r => r.price), borderColor: '#4285e8', backgroundColor: '#4285e8', pointRadius: range === 'yearly' ? 3 : 0, borderWidth: 2, tension: .25, yAxisID: 'p', order: 1 },
-      ] },
-    options: { animation: false, plugins: { legend: { labels: TICK } },
-      scales: { p: { position: 'left', grid: GRID, ticks: TICK }, v: { position: 'right', grid: { display: false }, ticks: TICK },
-        x: { grid: { display: false }, ticks: { ...TICK, maxTicksLimit: 12 } } } } });
-}
-
-function drawMarkets(mkt) {
-  const mc = mkt.market_compare;
-  if (!mc) return;
-  mk('c_vol', { type: 'bar', data: {
-      labels: mc.markets_volume.map(m => m.market),
-      datasets: [{ label: '當月累積成交量 (KG)', data: mc.markets_volume.map(m => m.volume), backgroundColor: '#10b981', borderRadius: 5 }] },
-    options: { animation: false, plugins: { legend: { labels: TICK } },
-      scales: { y: { grid: GRID, ticks: TICK }, x: { grid: { display: false }, ticks: { ...TICK, maxRotation: 60, minRotation: 45 } } } } });
-  mk('c_cmp', { type: 'bar', data: {
-      labels: mc.markets_price.map(m => m.market),
-      datasets: [{ label: '當月加權均價 (元/公斤)', data: mc.markets_price.map(m => m.price), backgroundColor: '#f59e0b', borderRadius: 5 }] },
-    options: { animation: false, plugins: { legend: { labels: TICK } },
-      scales: { y: { grid: GRID, ticks: TICK }, x: { grid: { display: false }, ticks: { ...TICK, maxRotation: 60, minRotation: 45 } } } } });
-}
-
-function drawExport(exp, range) {
-  if (!exp) return;
-  const g = exp.data['全球'] || Object.values(exp.data)[0];
-  const src = range === 'yearly' ? g.yearly : g.monthly;
-  let entries = Object.entries(src);
-  if (range === 'monthly') entries = entries.slice(-60);
-  const labels = entries.map(e => e[0]);
-  const w = entries.map(e => e[1].w || 0);
-  const price = entries.map(e => (e[1].w && e[1].v) ? Math.round(e[1].v * 1000 / e[1].w) : null);
-  mk('c_exp', { data: { labels,
-      datasets: [
-        { type: 'bar', label: '出口量 (公噸)', data: w, backgroundColor: '#bcd7f7', yAxisID: 'w', order: 2 },
-        { type: 'line', label: '均價 (元/公噸)', data: price, borderColor: '#8b5cf6', backgroundColor: '#8b5cf6', spanGaps: true, pointRadius: 2, borderWidth: 2, tension: .25, yAxisID: 'p', order: 1 },
-      ] },
-    options: { animation: false, plugins: { legend: { labels: TICK } },
-      scales: { p: { position: 'left', grid: GRID, ticks: TICK }, w: { position: 'right', grid: { display: false }, ticks: TICK },
-        x: { grid: { display: false }, ticks: { ...TICK, maxTicksLimit: 10 } } } } });
-}
-
-function drawDisaster(dis) {
-  if (!dis) return;
-  mk('c_dis', { data: { labels: dis.yearly.map(y => y.year),
-      datasets: [
-        { type: 'bar', label: '災損金額 (億元)', data: dis.yearly.map(y => y.loss_100m_ntd), backgroundColor: '#f87171', borderRadius: 5, yAxisID: 'm', order: 2 },
-        { type: 'line', label: '災損數量 (公噸)', data: dis.yearly.map(y => y.loss_qty_ton), borderColor: '#22d3ee', backgroundColor: '#22d3ee', pointRadius: 3, borderWidth: 2, tension: .25, yAxisID: 'q', order: 1 },
-      ] },
-    options: { animation: false, plugins: { legend: { labels: TICK } },
-      scales: { m: { position: 'left', grid: GRID, ticks: TICK }, q: { position: 'right', grid: { display: false }, ticks: TICK },
-        x: { grid: { display: false }, ticks: TICK } } } });
-}
-
-function renderPlaceholder(charUri) {
-  app.className = '';
-  app.innerHTML = `
-  <div class="row1" style="grid-template-columns:300px 1fr">
-    <div class="card hero">
-      <div class="pin">📍 ${CROP.county}</div><div class="heart">🧡</div>
-      <div class="nm">${CROP.display}</div>
-      <img class="mascot" src="${charUri}" alt="${CROP.display}">
-      <div class="grass"></div>
+  <!-- TrendChartCard 726,87 681×287 -->
+  <div class="card-shell" style="left:726px;top:87px;width:681px;height:287px;background:#f4f6e8;border:1.5px solid #d8dcc0;padding:10px 14px;gap:6px">
+    <div class="hrow">
+      <span style="font-size:17px;font-weight:900;color:#5a7028;letter-spacing:1.5px">批發市場行情趨勢圖${nm ? ' · ' + CROP.display : ''}</span>
+      ${nm ? '' : '<span style="display:flex;gap:6px">' + trendPills + '</span>'}
     </div>
-    <div class="card c-trend" style="display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:300px">
-      ${CROP.noMarketReason
-        ? `<div style="font-size:20px;font-weight:900;color:#7a5418">🌾 「${CROP.display}」沒有批發市場行情</div>
-      <div style="font-size:14px;color:#8a7a5c;margin-top:8px;text-align:center;line-height:1.7">
-        ${CROP.noMarketReason}，<br>所以這裡沒有可顯示的每日行情——不是資料壞掉喔。</div>`
-        : `<div style="font-size:20px;font-weight:900;color:#7a5418">📡 「${CROP.display}」行情資料串接準備中</div>
-      <div style="font-size:14px;color:#8a7a5c;margin-top:8px;text-align:center;line-height:1.7">
-        想先看看完整儀表板長什麼樣，可以到
-        <a href="crop-dashboard.html?county=桃園市&crop=番茄" style="color:#3b6826;font-weight:900">番茄儀表板</a>。</div>`}
-    </div>
+    ${nm ? NODATA_HTML : '<div class="chartbox" style="border:1px solid #e3e6cd"><canvas class="cv" id="c_trend"></canvas></div>'}
   </div>
-  <div class="tbband">
-    <img src="${charUri}" alt="">
-    <div>
-      <div class="tt">🧰 ${CROP.display}小農工具箱</div>
-      <div class="td">工具箱不用等資料——現在就能用。</div>
+
+  <!-- VolumeBarsCard 34,385 679×444 -->
+  <div class="card-shell" style="left:34px;top:385px;width:679px;height:444px;background:#dceef0;border:1.5px solid #b6d7da;padding:10px 14px;gap:6px">
+    <div class="hrow">
+      <span style="font-size:17px;font-weight:900;color:#256b78;letter-spacing:1.5px">批發市場成交量比較${nm ? ' · ' + CROP.display : ''}</span>
+      ${nm ? '' : '<span id="vol_sub" style="font-size:9px;color:#7a9a9e">(當月交易日累積)</span>'}
     </div>
-    <a class="gob" href="${tbUrl()}">打開工具箱 ›</a>
+    ${nm ? NODATA_HTML : '<div class="chartbox" style="border:1px solid #cfe3e7"><canvas class="cv" id="c_vol"></canvas></div>'}
+  </div>
+
+  <!-- PriceBarsCard 727,385 680×444 -->
+  <div class="card-shell" style="left:727px;top:385px;width:680px;height:444px;background:#fcedd6;border:1.5px solid #eed8b4;padding:10px 14px;gap:6px">
+    <div class="hrow">
+      <span style="font-size:17px;font-weight:900;color:#a8581a;letter-spacing:1.5px">批發市場價格比較${nm ? ' · ' + CROP.display : ''}</span>
+      ${nm ? '' : '<span style="font-size:9px;color:#bb9a72">(當月交易量加權均價；可挑價格較佳市場)</span>'}
+    </div>
+    ${nm ? NODATA_HTML : '<div class="chartbox" style="border:1px solid #f0e0c8"><canvas class="cv" id="c_cmp"></canvas></div>'}
+  </div>
+
+  <!-- ExportTrendChart 34,842 679×445 -->
+  <div class="card-shell" style="left:34px;top:842px;width:679px;height:445px;background:#ece8f8;border:1.5px solid #d4cfe8;padding:14px 18px;gap:10px">
+    <div class="hrow">
+      <span id="exp_title" style="font-size:18px;font-weight:900;color:#5d3fb8;letter-spacing:1.5px">外銷趨勢圖 · ${CROP.display}</span>
+      <span style="display:flex;gap:6px;align-items:center">
+        <select id="exp_cty" style="font-size:12px;padding:3px 8px;border:1px solid #d4cfe8;border-radius:14px;background:#fff;color:#5d3fb8;font-family:inherit;cursor:pointer"><option>全球</option></select>
+        ${expPills}
+      </span>
+    </div>
+    <div class="chartbox" id="exp_box" style="border:1px solid #e4dff0"><canvas class="cv" id="c_exp"></canvas></div>
+  </div>
+
+  <!-- DisasterChartCard 726,842 681×445 -->
+  <div class="card-shell" style="left:726px;top:842px;width:681px;height:445px;background:#ddeee8;border:1.5px solid #b7d3c8;padding:14px 18px;gap:10px">
+    <div class="hrow">
+      <span style="font-size:18px;font-weight:900;color:#2e7c6c;letter-spacing:1.5px">每年農作物災損金額</span>
+      <span style="font-size:10px;color:#7aa090">(億元)</span>
+    </div>
+    <div class="chartbox" style="border:1px solid #cfe3d8"><canvas class="cv" id="c_dis"></canvas></div>
   </div>`;
 }
+document.getElementById('cards').innerHTML = shells();
 
-boot();
+/* ════ 角色圖 ════ */
+fetch('toolbox-assets/crop_chars.json').then(r => r.json()).then(chars => {
+  const uri = chars[CROP.charKey];
+  if (uri) { const im = document.getElementById('charimg'); im.src = uri; im.style.display = 'block'; }
+}).catch(() => {});
+
+/* ════ 資料層（照 App.tsx useCropMarket/_fetchFromMOA/_aggregateDaily） ════ */
+function isoYearWeek(ds) {
+  const d = new Date(ds + 'T00:00:00');
+  const t = new Date(d); t.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7)); // ISO 週四定年
+  const y = t.getFullYear();
+  const jan4 = new Date(y, 0, 4);
+  const w = 1 + Math.round(((t - jan4) / 864e5 - 3 + ((jan4.getDay() + 6) % 7)) / 7);
+  return y + '-W' + String(w).padStart(2, '0');
+}
+function aggregateDaily(rows, keyFn) {
+  const by = new Map();
+  for (const r of rows) {
+    if (r.price == null) continue;
+    const k = keyFn(r);
+    const o = by.get(k) || { pv: 0, v: 0 };
+    o.pv += r.price * (r.volume || 0); o.v += (r.volume || 0);
+    by.set(k, o);
+  }
+  return [...by.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1)
+    .map(([k, o]) => ({ key: k, price: o.v > 0 ? Math.round(o.pv / o.v * 100) / 100 : 0, volume: o.v }));
+}
+function rocToISO(s) {
+  const m = String(s).trim().match(/^(\d{2,3})[./](\d{1,2})[./](\d{1,2})$/);
+  if (!m) return null;
+  return (+m[1] + 1911) + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0');
+}
+async function fetchFromMOA(name) {
+  const today = new Date(), past = new Date(); past.setFullYear(past.getFullYear() - 5);
+  const roc = d => (d.getFullYear() - 1911) + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getDate()).padStart(2, '0');
+  const base = name.split('-')[0];
+  const url = 'https://data.moa.gov.tw/api/v1/AgriProductsTransType/?Start_time=' + roc(past) + '&End_time=' + roc(today) + '&CropName=' + encodeURIComponent(base);
+  const j = await (await fetch(url)).json();
+  let rows = (j.Data || j.data || []).map(r => ({
+    date: rocToISO(r.TransDate || r.tdate), price: +(r.Avg_Price ?? r.avg_price), volume: +(r.Trans_Quantity ?? r.trans_quantity) || 0,
+    market: r.MarketName || r.market_name || '', crop: r.CropName || r.crop_name || '',
+  })).filter(r => r.date && r.price > 0 && r.crop !== '休市');
+  if (name.includes('-')) {
+    const exact = rows.filter(r => r.crop === name);
+    if (exact.length) rows = exact;
+  }
+  if (!rows.length) return null;
+  rows.sort((a, b) => a.date < b.date ? -1 : 1);
+  const daily = aggregateDaily(rows, r => r.date).map(o => ({ date: o.key, price: o.price, volume: o.volume }));
+  const monthly = aggregateDaily(rows, r => r.date.slice(0, 7));
+  const lastMonth = monthly.length ? monthly[monthly.length - 1].key : null;
+  const by = new Map();
+  for (const r of rows) {
+    if (r.date.slice(0, 7) !== lastMonth) continue;
+    const o = by.get(r.market) || { pv: 0, v: 0 };
+    o.pv += r.price * r.volume; o.v += r.volume; by.set(r.market, o);
+  }
+  const mv = [...by.entries()].map(([m, o]) => ({ market: m, volume: Math.round(o.v), price: o.v > 0 ? Math.round(o.pv / o.v * 100) / 100 : 0 }));
+  return {
+    name, latest_price: { date: daily[daily.length - 1].date, price: daily[daily.length - 1].price },
+    daily,
+    weekly: aggregateDaily(rows, r => isoYearWeek(r.date)),
+    monthly,
+    yearly: aggregateDaily(rows, r => r.date.slice(0, 4)),
+    market_compare: {
+      month: lastMonth,
+      markets_volume: mv.filter(x => x.volume > 0).sort((a, b) => b.volume - a.volume),
+      markets_price: mv.filter(x => x.price > 0).sort((a, b) => a.price - b.price),
+    },
+  };
+}
+async function fetchMarket() {
+  if (CROP.noMarket) return null;
+  if (CROP.code) {
+    try {
+      const j = await (await fetch(NZ + CROP.code + '.json', { cache: 'no-store' })).json();
+      // 照原版：weekly/monthly/yearly 一律由 daily 重建
+      j.weekly = aggregateDaily(j.daily, r => isoYearWeek(r.date));
+      j.monthly = aggregateDaily(j.daily, r => r.date.slice(0, 7));
+      j.yearly = aggregateDaily(j.daily, r => r.date.slice(0, 4));
+      if (!j.latest_price || j.latest_price.price == null) {
+        const last = j.daily[j.daily.length - 1];
+        j.latest_price = { date: last.date, price: last.price };
+      }
+      return j;
+    } catch (e) { /* fallthrough → MOA */ }
+  }
+  try { return await fetchFromMOA(rawCrop); } catch (e) { return null; }
+}
+
+/* ════ 圖表（config 逐字照 App.tsx） ════ */
+const CH = {};
+function mk(id, cfg) {
+  const el = document.getElementById(id); if (!el) return;
+  if (CH[id]) CH[id].destroy();
+  CH[id] = new Chart(el, cfg);
+}
+let M = null, trendPeriod = 'weekly';
+
+function drawTrend() {
+  if (!M) return;
+  const period = trendPeriod;
+  const entries = period === 'weekly' ? M.weekly : period === 'monthly' ? M.monthly
+    : period === 'year52' ? M.weekly.slice(-52) : M.yearly;
+  const priceLabel = period === 'monthly' ? '每月均價 (NTD/公斤)' : period === 'yearly' ? '每年均價 (NTD/公斤)' : '每週均價 (NTD/公斤)';
+  mk('c_trend', { type: 'bar',
+    data: { labels: entries.map(e => e.key || e.date),
+      datasets: [
+        { label: '交易量 (KG)', data: entries.map(e => e.volume), backgroundColor: 'rgba(168,213,176,0.55)', borderColor: 'rgba(168,213,176,1)', borderWidth: 0, yAxisID: 'y2', order: 2 },
+        { label: priceLabel, data: entries.map(e => e.price), type: 'line', borderColor: '#3578d4', backgroundColor: '#3578d4', tension: .25, pointRadius: period === 'weekly' ? 1.5 : 3, pointHoverRadius: 6, borderWidth: 2, yAxisID: 'y1', order: 1 },
+      ] },
+    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 14, color: '#3a4a6a' } },
+        tooltip: { callbacks: { label: c => c.dataset.label + ': ' + (c.raw?.toLocaleString('zh-TW') ?? '—') } } },
+      scales: {
+        x: { ticks: { font: { size: 10 }, color: '#666', maxRotation: 60, autoSkip: true, maxTicksLimit: period === 'weekly' ? 14 : period === 'monthly' ? 12 : period === 'yearly' ? 11 : 12 }, grid: { display: false } },
+        y1: { position: 'left', title: { display: true, text: '價格 (NTD/公斤)', font: { size: 10 }, color: '#666' }, ticks: { font: { size: 10 }, color: '#666' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+        y2: { position: 'right', title: { display: true, text: '交易量 (KG)', font: { size: 10 }, color: '#666' }, ticks: { font: { size: 10 }, color: '#666', callback: v => v >= 1e6 ? (v / 1e6).toFixed(0) + 'M' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'K' : v }, grid: { drawOnChartArea: false } },
+      } } });
+}
+document.querySelectorAll('.tp').forEach(b => b.addEventListener('click', () => {
+  trendPeriod = b.dataset.k;
+  document.querySelectorAll('.tp').forEach(x => {
+    const on = x.dataset.k === trendPeriod;
+    x.style.border = '1px solid ' + (on ? '#7a8c2a' : '#d8dcc0');
+    x.style.background = on ? '#bcc865' : '#fefef0';
+    x.style.color = on ? '#3d4a10' : '#7a8c2a';
+  });
+  drawTrend();
+}));
+
+function fillPricePanel() {
+  if (CROP.noMarket || !M) return;
+  const latest = M.latest_price?.price ?? null;
+  const daily = M.daily || [];
+  const prev = daily.length >= 2 ? daily[daily.length - 2].price : null;
+  const chg = (latest != null && prev) ? Math.round((latest - prev) / prev * 100) : null;
+  const fmt = v => v == null ? '—' : v.toLocaleString('zh-TW', { maximumFractionDigits: 2 });
+  const tj = latest != null ? latest / 1.5 : null;
+  document.getElementById('pp_date').textContent = (M.latest_price?.date || '').replace(/-/g, '/');
+  document.getElementById('pp_kg').textContent = fmt(latest) + ' / 公斤';
+  document.getElementById('pp_tj').textContent = '(' + fmt(tj) + ' / 台斤)';
+  document.getElementById('rt_kg').textContent = (latest != null ? Math.round(latest * 2).toLocaleString('zh-TW') : '—') + ' / 公斤';
+  document.getElementById('rt_tj').textContent = (tj != null ? Math.round(tj * 2).toLocaleString('zh-TW') : '—') + ' / 台斤';
+  const G = { bg: '#a5dba6', fg: '#2c5d2e' }, Y = { bg: '#f3d27a', fg: '#7a5418' }, R = { bg: '#f6a99a', fg: '#7a261a' };
+  const buy = chg != null && chg < 0 ? ['推薦購買', G] : chg != null && chg > 10 ? ['高點觀望', Y] : ['價格平穩', Y];
+  const sell = chg != null && chg > 5 ? ['高價時機', G] : chg != null && chg < -5 ? ['較弱價格', R] : ['觀望', Y];
+  const bt = document.getElementById('tag_buy'), st = document.getElementById('tag_sell');
+  bt.textContent = buy[0]; bt.style.background = buy[1].bg; bt.style.color = buy[1].fg;
+  st.textContent = sell[0]; st.style.background = sell[1].bg; st.style.color = sell[1].fg;
+}
+
+function drawMarketBars() {
+  if (CROP.noMarket || !M || !M.market_compare) return;
+  const mc = M.market_compare;
+  if (mc.month) document.getElementById('vol_sub').textContent = '(當月交易日累積・' + mc.month + ')';
+  mk('c_vol', { type: 'bar',
+    data: { labels: mc.markets_volume.map(x => x.market),
+      datasets: [{ label: '當月累積成交量 (KG)', data: mc.markets_volume.map(x => Math.round(x.volume)), backgroundColor: 'rgba(70,184,142,0.85)', borderColor: '#3aa07a', borderWidth: 1 }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { font: { size: 11 }, color: '#256b54' } },
+        tooltip: { callbacks: { label: c => c.dataset.label + ': ' + c.raw?.toLocaleString('zh-TW') + ' KG' } } },
+      scales: { x: { ticks: { font: { size: 10 }, color: '#666', maxRotation: 60, minRotation: 45 }, grid: { display: false } },
+        y: { title: { display: true, text: '交易量 (KG)', font: { size: 10 }, color: '#666' }, ticks: { font: { size: 10 }, color: '#666', callback: v => v.toLocaleString('zh-TW') }, grid: { color: 'rgba(0,0,0,0.05)' } } } } });
+  mk('c_cmp', { type: 'bar',
+    data: { labels: mc.markets_price.map(x => x.market),
+      datasets: [{ label: '當月加權均價 (NTD/公斤, 低到高)', data: mc.markets_price.map(x => Math.round(x.price * 10) / 10), backgroundColor: 'rgba(245,167,40,0.9)', borderColor: '#d88820', borderWidth: 1 }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { font: { size: 11 }, color: '#a8581a' } },
+        tooltip: { callbacks: { label: c => c.dataset.label + ': $' + c.raw + ' / 公斤' } } },
+      scales: { x: { ticks: { font: { size: 10 }, color: '#666', maxRotation: 60, minRotation: 45 }, grid: { display: false } },
+        y: { title: { display: true, text: '價格 (NTD/公斤)', font: { size: 10 }, color: '#666' }, ticks: { font: { size: 10 }, color: '#666' }, grid: { color: 'rgba(0,0,0,0.05)' } } } } });
+}
+
+/* ── 外銷卡（useCropTrade 邏輯） ── */
+let TRADE = null, expPeriod = 'yearly', expCountry = '全球';
+function rocKeyToWestern(k) {
+  const m = String(k).match(/^(\d{2,3})(?:-(\d{2}))?$/);
+  if (!m) return k;
+  const y = +m[1] < 200 ? +m[1] + 1911 : +m[1];
+  return m[2] ? y + '-' + m[2] : String(y);
+}
+async function fetchTrade() {
+  const slug = TRADE_COA_MAP[rawCrop];
+  if (slug) {
+    try { return await (await fetch(NZ + 'trade_' + slug + '.json')).json(); } catch (e) {}
+  }
+  if (CROP.isTomato) {
+    try { return (await (await fetch('assets/page-data.json')).json()).datasets.tomato_export; } catch (e) {}
+  }
+  return null;
+}
+function drawExport() {
+  if (!TRADE) return;
+  const cd = TRADE.data[expCountry] || TRADE.data[Object.keys(TRADE.data)[0]];
+  if (!cd) return;
+  const series = expPeriod === 'yearly' ? cd.yearly : cd.monthly;
+  let entries = Object.entries(series);
+  entries = expPeriod === 'yearly' ? entries.slice(-11) : entries.slice(-60);
+  const labels = entries.map(e => rocKeyToWestern(e[0]));
+  const weights = entries.map(e => e[1]?.w ?? null);
+  const prices = entries.map(e => (e[1]?.w && e[1]?.v) ? Math.round(e[1].v * 1000 / e[1].w) : null);
+  mk('c_exp', { type: 'bar',
+    data: { labels,
+      datasets: [
+        { label: '出口量 (公噸)', data: weights, backgroundColor: 'rgba(189,211,250,0.95)', borderColor: 'rgba(165,193,238,1)', borderWidth: 1, yAxisID: 'y2', order: 2, barPercentage: .75, categoryPercentage: .85 },
+        { label: '均價 (NTD/公噸)', data: prices, type: 'line', borderColor: '#9070d0', backgroundColor: '#9070d0', yAxisID: 'y1', tension: .25, pointRadius: expPeriod === 'yearly' ? 4 : 1.5, pointHoverRadius: 6, borderWidth: 2.5, order: 1, spanGaps: true },
+      ] },
+    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 14, color: '#5d3fb8' } },
+        tooltip: { callbacks: { label: c => c.raw == null ? c.dataset.label + ': —' : c.dataset.label + ': ' + c.raw.toLocaleString('zh-TW') } } },
+      scales: {
+        x: { ticks: { font: { size: 11 }, color: '#666', maxRotation: 0, autoSkip: true, maxTicksLimit: expPeriod === 'yearly' ? 11 : 8 }, grid: { display: false } },
+        y1: { position: 'left', title: { display: true, text: '均價 (NTD/公噸)', font: { size: 10 }, color: '#666' }, ticks: { font: { size: 10 }, color: '#666' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+        y2: { position: 'right', title: { display: true, text: '出口量 (公噸)', font: { size: 10 }, color: '#666' }, ticks: { font: { size: 10 }, color: '#666' }, grid: { drawOnChartArea: false } },
+      } } });
+}
+function setExpPills() {
+  document.querySelectorAll('.ep').forEach(x => {
+    const on = x.dataset.k === expPeriod;
+    x.style.border = '1px solid ' + (on ? '#7560d4' : '#e8dfd0');
+    x.style.background = on ? '#7560d4' : '#faf2dd';
+    x.style.color = on ? '#fff' : '#a8956e';
+  });
+}
+document.querySelectorAll('.ep').forEach(b => b.addEventListener('click', () => { expPeriod = b.dataset.k; setExpPills(); drawExport(); }));
+document.getElementById('exp_cty').addEventListener('change', e => { expCountry = e.target.value; drawExport(); });
+
+async function drawDisaster() {
+  let ds = null;
+  try {
+    const j = await (await fetch(NZ + 'tw_crop_disaster_yearly.json')).json();
+    if (j.yearly && j.yearly.length) ds = j;
+  } catch (e) {}
+  if (!ds) { try { ds = (await (await fetch('assets/page-data.json')).json()).datasets.disaster_yearly; } catch (e) {} }
+  if (!ds) return;
+  mk('c_dis', { type: 'bar',
+    data: { labels: ds.yearly.map(r => r.year),
+      datasets: [
+        { label: '災損金額 (億元)', data: ds.yearly.map(r => r.loss_100m_ntd), backgroundColor: 'rgba(245,150,150,0.85)', borderColor: '#e67878', borderWidth: 1, yAxisID: 'y1', order: 2 },
+        { label: '災損數量 (公噸)', data: ds.yearly.map(r => r.loss_qty_ton), type: 'line', borderColor: '#3fb6c8', backgroundColor: '#3fb6c8', tension: .25, pointRadius: 4, pointHoverRadius: 6, borderWidth: 2.5, yAxisID: 'y2', order: 1 },
+      ] },
+    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'top', labels: { font: { size: 11 }, color: '#3a6a78' } },
+        tooltip: { callbacks: { label: c => c.raw == null ? c.dataset.label + ': —' : c.dataset.label + ': ' + c.raw.toLocaleString('zh-TW') } } },
+      scales: {
+        x: { ticks: { font: { size: 11 }, color: '#666' }, grid: { display: false } },
+        y1: { position: 'left', title: { display: true, text: '金額 (億元)', font: { size: 10 }, color: '#666' }, ticks: { font: { size: 10 }, color: '#666' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+        y2: { position: 'right', title: { display: true, text: '數量 (公噸)', font: { size: 10 }, color: '#666' }, ticks: { font: { size: 10 }, color: '#666', callback: v => v.toLocaleString('zh-TW') }, grid: { drawOnChartArea: false } },
+      } } });
+}
+
+/* ════ boot ════ */
+(async () => {
+  // pill 初始狀態
+  document.querySelector('.tp[data-k="weekly"]')?.click();
+  setExpPills();
+
+  fetchMarket().then(m => { M = m; if (M) { fillPricePanel(); drawTrend(); drawMarketBars(); } });
+
+  fetchTrade().then(t => {
+    TRADE = t;
+    if (!TRADE) {
+      const slug = TRADE_COA_MAP[rawCrop];
+      document.getElementById('exp_box').innerHTML =
+        '<div class="nodata" style="border:1px solid #e4dff0;font-size:13px">' +
+        (slug ? '外銷資料載入中…' : '本作物之外銷貿易資料尚未建檔<br><span style="font-size:11px;color:#aaa">(MOA 海關 COA 碼資料源待人工核對作物對應 + 跑 backfill)</span>') + '</div>';
+      return;
+    }
+    document.getElementById('exp_title').textContent = '外銷趨勢圖 · ' + (TRADE.name || CROP.display);
+    const sel = document.getElementById('exp_cty');
+    sel.innerHTML = Object.keys(TRADE.data).sort().map(k => '<option' + (k === expCountry ? ' selected' : '') + '>' + k + '</option>').join('');
+    if (!TRADE.data[expCountry]) { expCountry = TRADE.data['全球'] ? '全球' : Object.keys(TRADE.data)[0]; sel.value = expCountry; }
+    drawExport();
+  });
+
+  drawDisaster();
+})();
 </script>
 </body></html>

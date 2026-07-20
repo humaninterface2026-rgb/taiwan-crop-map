@@ -95,7 +95,10 @@ header{display:flex;align-items:center;justify-content:space-between}
   <div class="mock">
     <div class="mh"><div class="t">🧰 小農工具箱</div><div class="s" id="subline">番茄・桃園市｜30 個小幫手（MVP）</div></div>
     <div class="banner">
-      <img id="mascot" src="toolbox-assets/m_tomato.png" alt="作物吉祥物">
+      <div id="stage" style="position:relative;width:168px;flex:none;display:flex;justify-content:center;align-items:flex-end">
+        <div id="stagegrass" style="position:absolute;left:50%;transform:translateX(-50%);bottom:-1px;width:168px;height:46px;pointer-events:none;display:none"></div>
+        <img id="mascot" src="toolbox-assets/m_tomato.png" alt="作物吉祥物">
+      </div>
       <div class="bubble">
         <div class="b1">從種到賣，都可以問我！</div>
         <div class="b2">選一個階段，挑個工具開始吧～不知道從哪開始的話，先試試「成本試算」！</div>
@@ -350,8 +353,25 @@ function runCalc(kind) {
   document.getElementById('calcResult').classList.add('show');
 }
 
-// ── 作物參數化：?county=桃園市&crop=水蜜桃 ──
+// ── 作物參數化：?county=桃園市&crop=水蜜桃（embed=1 時做為儀表板下方區塊嵌入） ──
 const qs = new URLSearchParams(location.search);
+const EMBED = qs.get('embed') === '1';
+if (EMBED) {
+  document.querySelector('header').style.display = 'none';
+  document.querySelector('.wave').style.display = 'none';
+  document.querySelector('.mock .mh').style.display = 'none'; // 外頁已有區塊標題，避免重複
+  const mock = document.querySelector('.mock');
+  // 外框由父頁的包覆卡提供——內層去框去底，融為一體（避免框中框）
+  mock.style.border = 'none'; mock.style.background = 'transparent';
+  mock.style.padding = '0'; mock.style.marginTop = '0';
+  document.querySelector('.wrap').style.padding = '0';
+  document.body.style.background = 'transparent';
+  document.body.style.minHeight = '0'; // 不跟 iframe 視窗高連動，高度回報才會收斂
+  // 高度回報給父頁 iframe（載入與每次互動後）
+  const report = () => parent.postMessage({ tbHeight: document.body.scrollHeight }, '*');
+  new ResizeObserver(report).observe(document.body);
+  window.addEventListener('load', report);
+}
 const rawCrop = (qs.get('crop') || '番茄').trim();
 const CROP = {
   key: rawCrop === '番茄' ? '牛蕃茄' : rawCrop,          // 角色圖檔用的 key
@@ -367,19 +387,22 @@ document.getElementById('dashlink').href =
   'crop-dashboard.html?county=' + encodeURIComponent(CROP.county) + '&crop=' + encodeURIComponent(CROP.display);
 
 // 換上該作物的官方角色圖（來源：主頁 page-data.json 抽出的 crop_chars.json）
-if (!CROP.isTomato) {
-  fetch('toolbox-assets/crop_chars.json')
-    .then(r => r.json())
-    .then(chars => {
-      const uri = chars[CROP.key];
-      if (!uri) return; // 沒有角色圖就沿用番茄
-      const img = document.getElementById('mascot');
-      img.src = uri;
-      // 角色 SVG 是透明底，拿掉「相框」樣式、貼齊草地
-      img.style.cssText = 'width:118px;flex:none;display:block;border:none;border-radius:0;box-shadow:none;margin-bottom:10px';
-    })
-    .catch(() => {});
-}
+// 含番茄——一律用透明底 SVG 角色等比縮放（object-fit:contain），不用裁切的 PNG。
+// 腳下的草地墩用原版 Figma 草地 SVG（321×88 原比例縮放），swap 成功才顯示。
+const STAGE_GRASS_SVG = `<svg preserveAspectRatio="none" width="100%" height="100%" viewBox="0 0 320.999 87.7973" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="160.499" cy="45.27" rx="160.499" ry="42.5272" fill="#C4D588"/><ellipse cx="150.453" cy="29.8055" rx="58.547" ry="8.50545" fill="#BBCA7A"/><ellipse cx="60.0611" cy="47.4164" rx="8.58016" ry="3.4795" fill="#FDEBBF"/><ellipse cx="265.985" cy="55.7085" rx="8.58016" ry="3.4795" fill="#FDEBBF"/><ellipse cx="251.854" cy="38.5349" rx="8.58016" ry="3.4795" fill="#FDEBBF"/><ellipse cx="236.353" cy="28.9998" rx="5.07176" ry="2.01853" fill="#FDEBBF"/><path d="M283.493 34.3251C282.196 35.8582 286.838 30.2098 290.346 31.774C291.686 32.3705 293.825 34.5059 292.49 37.1565C288.859 44.3622 279.232 43.5558 270.844 40.3242C262.456 37.0926 260.848 26.5965 268.259 26.5024C272.58 26.4476 273.721 31.6568 273.721 31.6568C273.721 31.6568 273.432 24.6005 278.763 23.958C284.095 23.3155 288.872 27.9682 283.493 34.3251Z" fill="#67B225"/><path d="M45.3124 13.3301C45.7007 15.3412 44.1458 8.02173 48.9352 6.89183C50.7642 6.45905 54.2256 6.48692 55.7217 9.36658C59.7895 17.1944 47.9365 24.7507 37.0039 27.8368C26.0713 30.9229 16.8163 22.4128 23.4593 17.4608C27.3331 14.5733 33.6974 17.7528 33.6974 17.7528C33.6974 17.7528 29.5061 10.8881 33.6974 6.89179C37.8887 2.89551 43.703 4.99076 45.3124 13.3301Z" fill="#67B225"/></svg>`;
+fetch('toolbox-assets/crop_chars.json')
+  .then(r => r.json())
+  .then(chars => {
+    const uri = chars[CROP.key];
+    if (!uri) return; // 沒有角色圖才沿用預設（PNG 自帶草地，不疊草）
+    const img = document.getElementById('mascot');
+    img.src = uri;
+    img.style.cssText = 'position:relative;width:126px;height:126px;object-fit:contain;flex:none;display:block;border:none;border-radius:0;box-shadow:none;margin-bottom:16px;z-index:1';
+    const g = document.getElementById('stagegrass');
+    g.innerHTML = STAGE_GRASS_SVG;
+    g.style.display = 'block';
+  })
+  .catch(() => {});
 
 renderTabs();
 renderTools();
