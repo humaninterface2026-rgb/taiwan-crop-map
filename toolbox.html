@@ -86,7 +86,10 @@ header{display:flex;align-items:center;justify-content:space-between}
 <div class="wrap">
   <header>
     <div class="brand">農知島 <small>The Island of Harvest</small></div>
-    <a class="backlink" href="./index.html">← 回作物地圖</a>
+    <div style="display:flex;gap:8px">
+      <a class="backlink" id="dashlink" href="./crop-dashboard.html">📊 行情儀表板</a>
+      <a class="backlink" href="./index.html">← 回作物地圖</a>
+    </div>
   </header>
 
   <div class="mock">
@@ -360,6 +363,8 @@ const CROP = {
 document.getElementById('subline').textContent =
   CROP.display + '・' + CROP.county + '｜30 個小幫手（MVP）';
 document.title = '小農工具箱｜' + CROP.display + '・' + CROP.county + '｜農知島';
+document.getElementById('dashlink').href =
+  'crop-dashboard.html?county=' + encodeURIComponent(CROP.county) + '&crop=' + encodeURIComponent(CROP.display);
 
 // 換上該作物的官方角色圖（來源：主頁 page-data.json 抽出的 crop_chars.json）
 if (!CROP.isTomato) {
