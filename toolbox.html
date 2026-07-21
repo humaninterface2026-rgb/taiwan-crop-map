@@ -198,22 +198,22 @@ const TOOLS = [
   { stage: 2, icon: '📈', type: 'data', name: '產量預估', desc: '輸入面積和季節，幫你抓這季大概收多少。',
     principles: ['總產量 = 面積 × 基準值 × 季節基準倍率 × 季節係數', '春季常較佳、夏季常偏低（以氣候風險折算）'],
     calc: 'yield' },
-  { stage: 2, icon: '🏭', type: 'link', name: '加工建議', desc: '看庫存和價格，幫你決定鮮售還是轉加工。',
+  { stage: 2, icon: '🏭', type: 'link', name: '加工建議', desc: '看庫存和價格，幫你決定鮮售還是轉加工。', calc: 'proc',
     principles: ['庫存門檻：高 >800kg／中 400~800kg／低 <400kg', '價格門檻：低 <40／中 40~50／高 >50 元/kg', '高庫存＋低價優先加工；低庫存＋高價優先鮮售'] },
   // ── 銷售市場 ──
   { stage: 3, icon: '🏷️', type: 'chat', name: '定價策略建議', desc: '幫你依品質和通路算出建議售價。', calc: 'price',
     principles: ['品質係數：A 1.15、B 1.00、C 0.85', '通路係數：批發 1.00、直銷 1.10、電商 1.20', '行情判讀：低價 <40、中價 40~55、高價 >55 元/kg'] },
-  { stage: 3, icon: '🔗', type: 'auto', name: '溯源履歷生成', desc: '幫你把產地、採收日、用藥紀錄整理成履歷。',
+  { stage: 3, icon: '🔗', type: 'auto', name: '溯源履歷生成', desc: '一鍵把產地、時程、用藥紀錄整理成履歷卡。', calc: 'trace',
     principles: [] },
-  { stage: 3, icon: '🤝', type: 'link', name: '買家媒合', desc: '幫你找適合的買家：餐廳、超市或出口商。',
+  { stage: 3, icon: '🤝', type: 'link', name: '買家媒合', desc: '想走哪種通路？給你具體的接洽方法和眉角。', calc: 'buyer',
     principles: [] },
-  { stage: 3, icon: '📣', type: 'link', name: '行銷文案生成', desc: '幫你寫貼文文案，把今天採收的番茄賣出去。',
+  { stage: 3, icon: '📣', type: 'link', name: '行銷文案生成', desc: '幫你寫貼文文案，把今天採收的番茄賣出去。', calc: 'copywrite',
     principles: [],
     extra: '例：「幫我寫 IG 貼文：今日牛蕃茄採收」。' },
   { stage: 3, icon: '📦', type: 'auto', name: '出口文件輔助', desc: '幫你列出外銷要準備哪些文件。',
     principles: [] },
   // ── 經營管理 ──
-  { stage: 4, icon: '💰', type: 'auto', name: '財務損益分析', desc: '幫你算這一季賺不賺，收入成本毛利一次看。',
+  { stage: 4, icon: '💰', type: 'auto', name: '財務損益分析', desc: '幫你算這一季賺不賺，收入成本毛利一次看。', calc: 'pnl',
     principles: ['總收入 = 產量 × 售價 × 面積', '總成本沿用成本試算（種苗＋肥料＋人力）', '輸出毛利、毛利率與損平售價，判斷是否值得種'] },
   { stage: 4, icon: '👥', type: 'auto', name: '人力排班', desc: '幫你排每週人力，採收最忙的時候不缺工。', calc: 'labor',
     principles: ['採收日優先配足人力，避免過熟與損耗', '採收高峰期：20~28 人天/週（約每天 4~5 人）', '育苗/定植期：10~14 人天/週；連續高工時需安排輪休'] },
@@ -311,6 +311,144 @@ const CALCS = {
       return {
         headline: '判斷結果：' + level + '（均溫 ' + t + '°C、雨量 ' + r + 'mm/7日）',
         detail: impact + ' ' + action + ' 門檻：理想 20~30°C 且 <60mm；16~20°C 或 60~120mm 需管理；<16°C、>32°C 或 >120mm 不建議。',
+      };
+    },
+  },
+  proc: {
+    inputs: [
+      { key: 'stock', label: '目前庫存', unit: 'kg', def: '500' },
+      { key: 'price', label: '現貨價', unit: '元/kg', def: '45' },
+    ],
+    button: '鮮售還是加工？›',
+    async prepare() {
+      const g = NZD.S.get('grades');
+      if (g && g.kg) document.getElementById('f_stock').value = g.kg;
+      try {
+        const m = await getMarket();
+        if (m && m.latest_price) {
+          document.getElementById('f_price').value = m.latest_price.price;
+          calcNote('📡 現貨價已帶今日批發均價 ' + m.latest_price.price + ' 元/kg' + (g ? '；庫存帶入上次分級的 ' + g.kg + ' kg' : ''));
+        }
+      } catch (e) {}
+    },
+    run(v) {
+      const s = +v.stock || 0, p = +v.price || 0;
+      const P = NZD.C.processing;
+      const sLv = s > P.stockHi ? '高' : s >= 400 ? '中' : '低';
+      const pLv = p < P.priceLo ? '低' : p <= NZD.C.priceBand.high ? '中' : '高';
+      let head, det;
+      if (sLv === '高' && pLv === '低') { head = '優先加工！庫存壓著、行情又差，硬出只會賠運費。';
+        det = '建議：C 級全部轉加工（番茄醬/曬乾/醃漬），A/B 級分批慢出等價。'; }
+      else if (sLv === '低' && pLv === '高') { head = '全力鮮售！量不多、價又好，趁現在出。';
+        det = '好行情別留貨——快採快出，A 級走直銷/電商賺價差。'; }
+      else if (pLv === '高') { head = '行情好（' + p + ' 元）——以鮮售為主，加工留給次級品。';
+        det = '庫存' + sLv + '量還壓得住；A/B 級盡快出貨，C 級才進加工。'; }
+      else if (sLv === '高') { head = '庫存偏高（' + s + 'kg）——雙軌走：好貨慢出、次貨加工。';
+        det = '行情中等不用賤賣；每日出一部分 A/B 級，C 級與過熟果轉加工止損。'; }
+      else { head = '不急，照正常節奏出貨就好。'; det = '庫存' + sLv + '、行情' + pLv + '——維持分級出貨；每天看一次行情再決定。'; }
+      return { headline: head, detail: det + ' 判斷門檻：庫存高>' + P.stockHi + 'kg／行情低<' + P.priceLo + ' 元、高>' + NZD.C.priceBand.high + ' 元（牛蕃茄口徑）。加工前先算過成本：代工費+包材若吃掉價差就別做。' };
+    },
+  },
+  copywrite: {
+    inputs: [
+      { key: 'sell', label: '主打賣點', unit: '', def: '今日現採', options: ['今日現採', '產地直送', '安心栽培', '量大優惠'] },
+      { key: 'tone', label: '要發到哪', unit: '', def: 'FB/LINE 社團', options: ['FB/LINE 社團', 'IG 貼文', '拍賣/蝦皮商品文'] },
+      { key: 'price', label: '售價', unit: '元/台斤', def: '45' },
+    ],
+    button: '生文案 ›',
+    async prepare() {
+      const p = NZD.S.get('profile');
+      try {
+        const m = await getMarket();
+        if (m && m.latest_price) {
+          document.getElementById('f_price').value = Math.round(m.latest_price.price * 1.1 / NZD.C.taikinDiv);
+          calcNote('📡 售價預設＝今日批發價 ×1.1（直銷係數）換算台斤' + (p && p.farm_name ? '；署名用「' + p.farm_name + '」' : '——到 ⚙️ 我的農場填農場名，文案會自動署名'));
+        }
+      } catch (e) {}
+    },
+    run(v) {
+      const p = NZD.S.get('profile');
+      const farm = (p && p.farm_name) ? p.farm_name : (CROP.county + '小農');
+      const price = +v.price || 45;
+      const hooks = {
+        '今日現採': '🍅 今天早上剛從藤上摘下來，太陽還沒曬熱就裝箱！',
+        '產地直送': '🚚 ' + CROP.county + '產地直送，不進批發市場、少一層就是新鮮！',
+        '安心栽培': '🌱 自家田自己顧，用藥嚴守停藥期，給家人吃的標準！',
+        '量大優惠': '📦 產季正旺量大出清，揪鄰居親友一起訂更划算！',
+      };
+      const body = hooks[v.sell] + '\n\n' + farm + '的牛番茄 🍅\n💰 ' + price + ' 元/台斤';
+      let text;
+      if (v.tone === 'IG 貼文') text = body + '\n\n#' + CROP.county.slice(0, 2) + '小農 #牛番茄 #產地直送 #當季水果 #自家栽種';
+      else if (v.tone === '拍賣/蝦皮商品文') text = '【' + farm + '】牛番茄 ' + v.sell + '\n規格：一台斤 ' + price + ' 元，五斤免運\n' + hooks[v.sell] + '\n產地：' + CROP.county + '｜出貨：採收後 24 小時內寄出';
+      else text = body + '\n📍 ' + CROP.county + '面交／可宅配\n🛒 +1 留言或私訊我～';
+      return { headline: '文案好了，長按複製直接發！', detail: text };
+    },
+  },
+  buyer: {
+    inputs: [
+      { key: 'ch', label: '想走的通路', unit: '', def: '農會共同運銷', options: ['農會共同運銷', '果菜批發市場', '餐廳/店家直供', '社區團購', '電商平台'] },
+    ],
+    button: '怎麼接洽？›',
+    run(v) {
+      const guide = {
+        '農會共同運銷': ['帶身分證+存摺到你所在地的區農會推廣或供銷部登記共同運銷', '好處：量大穩定、有共同運銷手續費但省運輸麻煩', '眉角：品質分級照農會標準來，A 級率高拿的價才好'],
+        '果菜批發市場': ['先到「行情儀表板」看哪個市場你的作物量大價好', '聯絡該市場的承銷人/行口（市場管理處可查名冊）', '眉角：首次合作先小量試，確認拍賣價回報透明再加量'],
+        '餐廳/店家直供': ['列出附近義式/火鍋/早午餐店——牛番茄用量大的店', '帶樣品直接拜訪主廚或採購，附價目表與供貨日', '眉角：穩定供應比低價重要，寧可少接幾家也別斷貨'],
+        '社區團購': ['加入在地社區 FB 社團/LINE 群，先發「行銷文案生成」做的貼文', '收單→採收→面交點交貨，貨到收現金最單純', '眉角：固定每週開團日，養成回購習慣'],
+        '電商平台': ['蝦皮/農產電商開店，用「行銷文案生成」的商品文', '寄送用產地箱+緩衝材，夏天建議低溫宅配', '眉角：運費是獲利殺手——滿額免運門檻設在五斤以上'],
+      };
+      const g = guide[v.ch];
+      return { headline: '走「' + v.ch + '」的三步驟：', detail: '① ' + g[0] + '。② ' + g[1] + '。③ ' + g[2] + '。搭配：先用「定價策略建議」算這個通路該賣多少，再去談。' };
+    },
+  },
+  trace: {
+    inputs: [],
+    button: '生成履歷卡 ›',
+    run() {
+      const p = NZD.S.get('profile') || {};
+      const season = NZD.S.get('season');
+      const logs = NZD.S.get('logs', []);
+      const sprays = logs.filter(x => x.cat === '噴藥').slice(0, 5);
+      const ferts = logs.filter(x => x.cat === '施肥').slice(0, 5);
+      const lines = [
+        '🍅 產品履歷卡',
+        '品名：牛番茄（' + CROP.county + '產）',
+        '生產者：' + (p.farm_name || '（到 ⚙️ 我的農場填名稱）'),
+        season ? '定植：' + season.transplant_date + '｜採收期：' + (season.harvest_start || '—') + ' 起' : '種植時程：（到「最佳播種時機」排時程後自動帶入）',
+        sprays.length ? '用藥紀錄：' + sprays.map(x => x.date.slice(5) + ' ' + x.txt).join('；') : '用藥紀錄：本季無噴藥紀錄',
+        ferts.length ? '施肥紀錄：' + ferts.map(x => x.date.slice(5) + ' ' + x.txt).join('；') : '',
+        '（資料來自小農工具箱作業日誌，' + new Date().toISOString().slice(0, 10) + ' 產出）',
+      ].filter(Boolean);
+      return { headline: '履歷卡生成了——複製貼到出貨單、貼文或印出來附箱！',
+        detail: lines.join('\n') };
+    },
+  },
+  pnl: {
+    inputs: [
+      { key: 'soldKg', label: '實際售出量', unit: 'kg', def: '3000' },
+      { key: 'avgPrice', label: '平均售價', unit: '元/kg', def: '50' },
+    ],
+    button: '結算 ›',
+    prepare() {
+      const cost = NZD.S.get('cost');
+      if (cost) {
+        if (cost.expected_qty) document.getElementById('f_soldKg').value = cost.expected_qty;
+        calcNote('📡 已讀到成本試算存檔：總成本 ' + cost.total_cost.toLocaleString() + ' 元、損平價 ' + cost.breakeven_price + ' 元/kg（' + (cost.saved_at || '').slice(0, 10) + '）');
+      } else calcNote('還沒做成本試算——先去「成本試算」存一份，這裡才能對帳。');
+    },
+    run(v) {
+      const cost = NZD.S.get('cost');
+      if (!cost) return { headline: '先去「成本試算」存一份計畫，我才有成本可以對！', detail: '成本試算會存總成本與損平價，季末回來這裡輸入實際賣量和均價就能結算。' };
+      const kg = +v.soldKg || 0, p = +v.avgPrice || 0;
+      const rev = kg * p, profit = rev - cost.total_cost;
+      const margin = rev > 0 ? (profit / rev * 100).toFixed(1) : 0;
+      const fmt = n => Math.round(n).toLocaleString();
+      const vsPlan = cost.expected_qty ? '（計畫產量 ' + cost.expected_qty.toLocaleString() + ' kg，實售達成 ' + Math.round(kg / cost.expected_qty * 100) + '%）' : '';
+      return {
+        headline: profit >= 0 ? '這季賺 ' + fmt(profit) + ' 元！毛利率 ' + margin + '%。' : '這季虧 ' + fmt(-profit) + ' 元（毛利率 ' + margin + '%）。',
+        detail: '營收 ' + fmt(rev) + ' 元（' + kg.toLocaleString() + ' kg × ' + p + ' 元）− 總成本 ' + fmt(cost.total_cost) + ' 元。'
+          + '實際均價 ' + p + ' vs 損平價 ' + cost.breakeven_price + ' 元/kg' + (p >= cost.breakeven_price ? '，有守住！' : '——低於損平，下季從「降成本」或「拉高 A 級率賣好通路」下手。')
+          + vsPlan + ' 成本組成參考：種苗 ' + fmt(cost.items.seedlings) + '／肥料 ' + fmt(cost.items.fert) + '／人力 ' + fmt(cost.items.labor) + ' 元。',
       };
     },
   },
@@ -795,7 +933,9 @@ async function runCalc(kind) {
   c.inputs.forEach(f => { v[f.key] = document.getElementById('f_' + f.key).value; });
   const out = await c.run(v);
   document.getElementById('resH').textContent = out.headline;
-  document.getElementById('resD').textContent = out.detail;
+  const rd = document.getElementById('resD');
+  rd.textContent = out.detail;
+  rd.style.whiteSpace = out.detail.includes('\n') ? 'pre-wrap' : 'normal';
   document.getElementById('calcResult').classList.add('show');
 }
 
