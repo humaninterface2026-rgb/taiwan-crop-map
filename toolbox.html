@@ -1175,13 +1175,22 @@ function openModal(idx) {
       + '<div><div class="r1" id="resH"></div><div class="r2" id="resD"></div></div></div>';
   }
 
-  if (t.principles && t.principles.length) {
+  // 小抄：專屬包存在 → 依該作物參數動態生成；否則顯示牛蕃茄版
+  const dynP = (NZD.A._pack && DYN_PRINCIPLES[t.name]) ? DYN_PRINCIPLES[t.name]() : null;
+  const packNotes = (NZD.A._pack && NZD.A.notes) ? NZD.A.notes : null;
+  if (dynP && dynP.length) {
+    html += '<div class="ptitle">📌 「' + CROP.display + '」小抄（依專屬參數）</div><div class="plist">'
+      + dynP.map(p => '<div class="pitem">' + p + '</div>').join('') + '</div>';
+  } else if (packNotes && t.principles && t.principles.length) {
+    html += '<div class="ptitle">📌 「' + CROP.display + '」種植小抄（通則整理）</div><div class="plist">'
+      + packNotes.map(p => '<div class="pitem">' + p + '</div>').join('') + '</div>';
+  } else if (t.principles && t.principles.length) {
     const ph = CROP.isTomato ? '📌 牛蕃茄小抄（固定原則）'
       : '📌 小抄（以牛蕃茄示範，「' + CROP.display + '」版準備中）';
     html += '<div class="ptitle">' + ph + '</div><div class="plist">'
       + t.principles.map(p => '<div class="pitem">' + p + '</div>').join('') + '</div>';
   }
-  if (t.extra) html += '<div class="extra">' + t.extra + '</div>';
+  if (t.extra && !(NZD.A._pack && /牛蕃茄|番茄/.test(t.extra))) html += '<div class="extra">' + t.extra + '</div>';
   if (t.calc && !CROP.isTomato) html += '<div class="extra">' + (NZD.A._pack
     ? '＊已套用「' + CROP.display + '」專屬參數（通則整理 ' + NZD.A._pack.updated + '；' + NZD.A._pack.caveat.slice(0, 60) + '…）'
     : '＊試算參數以牛蕃茄常態為預設，「' + CROP.display + '」專屬參數陸續補上。') + '</div>';
@@ -1301,6 +1310,38 @@ fetch('toolbox-assets/crop_chars.json')
     g.style.display = 'block';
   })
   .catch(() => {});
+
+/* ── 動態小抄：從作用中參數(NZD.A)生成，各工具顯示與計算口徑一致 ── */
+const DYN_PRINCIPLES = {
+  '最佳播種時機': () => {
+    const T = NZD.A.sowTemp, R = NZD.A.sowRain7d;
+    return ['理想：' + T.idealLo + '~' + T.idealHi + '°C 且雨量 <' + R.ideal + 'mm/7日',
+      '可播但需管理：' + T.okLo + '~' + T.idealLo + '°C 或 ' + R.ideal + '~' + R.ok + 'mm/7日',
+      '不建議：<' + T.okLo + '°C、>' + T.hardHi + '°C 或雨量 >' + R.ok + 'mm/7日'];
+  },
+  '採收時機預測': () => {
+    const D = NZD.A.daysToHarvest, H = NZD.A.hotHarvestAdvance;
+    return ['主窗口：約 ' + D.lo + '~' + D.hi + ' 天（' + (NZD.A._pack ? '天數口徑見下方說明' : '定植後') + '）',
+      '高溫（≥' + H.temp + '°C）成熟提早約 ' + H.days + ' 天', '建議分批採收，先採成熟度高的'];
+  },
+  '保鮮／儲存建議': () => {
+    const S = NZD.A.storage;
+    return ['建議 ' + S.tempLo + '~' + S.tempHi + '°C、' + S.rhLo + '~' + S.rhHi + '%RH',
+      '避免與高乙烯水果（香蕉、蘋果）同倉', '先分級再入庫，降低交叉損耗'];
+  },
+  '土壤／地力分析': () => ['pH 建議：' + NZD.A.ph.lo + '~' + NZD.A.ph.hi,
+    '排水、通氣、根系健康比單次施肥更關鍵', '撒石灰後兩週複測再決定下一步'],
+  '灌溉排程': () => ['土壤濕度目標區間：約 ' + NZD.A.soilMoist.lo + '~' + NZD.A.soilMoist.hi + '%',
+    '建議時段：清晨為主，避免中午高溫灌溉', '豪雨後優先排水，再評估補灌'],
+  '施肥計畫': () => NZD.A.growthPhases.map(g => g.name + '（第 ' + g.lo + '~' + (g.hi > 900 ? '…' : g.hi) + ' 天）：' + g.fert),
+  '病蟲害辨識': () => (NZD.A.pestTable || []).slice(0, 4).map(p => p.symptom.slice(0, 18) + '→ 可能是' + p.name),
+  '成本試算': () => ['常態基準：每分地約 ' + NZD.A.plantsPerFen + ' 株、產量約 ' + NZD.A.normalYieldKgFen.toLocaleString() + ' kg/分',
+    '人力高峰參考：' + NZD.A.laborPeak.lo + '~' + NZD.A.laborPeak.hi + ' 人天/週'],
+  '產量預估': () => ['常態產量基準：約 ' + NZD.A.normalYieldKgFen.toLocaleString() + ' kg/分（' + (NZD.A.normalYieldKgFen / 1000).toFixed(1) + ' 噸）',
+    '實際依樹齡/株況/氣候調整，詳見專屬參數說明'],
+  '人力排班': () => ['採收高峰常態：' + NZD.A.laborPeak.lo + '~' + NZD.A.laborPeak.hi + ' 人天/週',
+    '採收日優先配足人力，包裝分級次高，連續高工時安排輪休'],
+};
 
 /* ── 自訂介面工具（批次1）── */
 const CUSTOMS = {
