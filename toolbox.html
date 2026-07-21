@@ -171,7 +171,7 @@ const TOOLS = [
     principles: ['苗期：根系建立優先，氮不宜過高避免徒長', '開花期：提高鉀、鈣、硼，提升開花著果率', '結果期：分次追肥，鉀鈣為主，控制氮避免裂果與軟果'] },
   { stage: 1, icon: '🐛', type: 'chat', name: '病蟲害辨識', desc: '拍張照就幫你看是什麼病蟲、怎麼處理。',
     principles: ['拍照：葉片正反面＋莖部＋果實（同地塊至少 3 株）', '葉斑：常見早晚疫病/細菌性斑點', '捲葉：常見病毒病或粉蝨壓力', '黃化：常見根系受損、缺素或病害前期'] },
-  { stage: 1, icon: '⛈️', type: 'auto', name: '氣象預警推播', desc: '壞天氣來之前先警報，提醒你顧好田區。',
+  { stage: 1, icon: '⛈️', type: 'auto', name: '氣象預警推播', desc: '壞天氣來之前先警報，提醒你顧好田區。', calc: 'warn',
     principles: ['強風：風速 ≥10 級｜倒伏、落果、設施損傷', '高溫：日間 ≥35°C｜日灼、授粉不良', '低溫：最低溫 ≤12°C｜生長停滯、著果率下降', '暴雨：24h ≥80mm｜積水、根腐與青枯病壓力上升'] },
   { stage: 1, icon: '📝', type: 'auto', name: '作業日誌記錄', desc: '用講的就幫你記下每天田裡做了什麼。',
     principles: ['建議格式：日期／地塊／作業內容／投入人力／異常狀況（支援語音轉文字）'],
@@ -195,7 +195,7 @@ const TOOLS = [
   { stage: 2, icon: '🏭', type: 'link', name: '加工建議', desc: '看庫存和價格，幫你決定鮮售還是轉加工。',
     principles: ['庫存門檻：高 >800kg／中 400~800kg／低 <400kg', '價格門檻：低 <40／中 40~50／高 >50 元/kg', '高庫存＋低價優先加工；低庫存＋高價優先鮮售'] },
   // ── 銷售市場 ──
-  { stage: 3, icon: '🏷️', type: 'chat', name: '定價策略建議', desc: '幫你依品質和通路算出建議售價。',
+  { stage: 3, icon: '🏷️', type: 'chat', name: '定價策略建議', desc: '幫你依品質和通路算出建議售價。', calc: 'price',
     principles: ['品質係數：A 1.15、B 1.00、C 0.85', '通路係數：批發 1.00、直銷 1.10、電商 1.20', '行情判讀：低價 <40、中價 40~55、高價 >55 元/kg'] },
   { stage: 3, icon: '🔗', type: 'auto', name: '溯源履歷生成', desc: '幫你把產地、採收日、用藥紀錄整理成履歷。',
     principles: [] },
@@ -251,6 +251,18 @@ const CALCS = {
       { key: 'temp', label: '未來7日均溫', unit: '°C', def: '24' },
       { key: 'rain', label: '未來7日累積雨量', unit: 'mm', def: '18' },
     ],
+    async prepare() {
+      try {
+        const d = await getWeather();
+        const avg = d.temperature_2m_max.map((x, i) => (x + d.temperature_2m_min[i]) / 2);
+        const t = (avg.reduce((a, b) => a + b, 0) / avg.length).toFixed(1);
+        const r = d.precipitation_sum.reduce((a, b) => a + b, 0).toFixed(1);
+        const ti = document.getElementById('f_temp'), ri = document.getElementById('f_rain');
+        if (ti) ti.value = t;
+        if (ri) ri.value = r;
+        calcNote('📡 已自動帶入 <b>' + CROP.county + '未來 7 天實際預報</b>（均溫 ' + t + '°C、累積雨量 ' + r + ' mm，來源 open-meteo，可手動修改）');
+      } catch (e) { calcNote('⚠️ 天氣預報暫時抓不到，請手動輸入。'); }
+    },
     run(v) {
       const t = +v.temp, r = +v.rain;
       let level = '理想播種窗口', impact = '發芽整齊、苗勢穩定。', action = '可以安排播種與育苗！';
@@ -262,6 +274,64 @@ const CALCS = {
       return {
         headline: '判斷結果：' + level + '（均溫 ' + t + '°C、雨量 ' + r + 'mm/7日）',
         detail: impact + ' ' + action + ' 門檻：理想 20~30°C 且 <60mm；16~20°C 或 60~120mm 需管理；<16°C、>32°C 或 >120mm 不建議。',
+      };
+    },
+  },
+  warn: {
+    inputs: [],
+    button: '檢查未來 7 天 ›',
+    async run() {
+      const d = await getWeather();
+      const hits = [];
+      for (let i = 0; i < d.time.length; i++) {
+        const day = d.time[i].slice(5).replace('-', '/');
+        if (d.temperature_2m_max[i] >= 35) hits.push(day + ' 高溫 ' + d.temperature_2m_max[i] + '°C：日灼、授粉不良——當天上午遮陰、加強灌溉');
+        if (d.temperature_2m_min[i] <= 12) hits.push(day + ' 低溫 ' + d.temperature_2m_min[i] + '°C：生長停滯、裂果風險——前一晚做好保溫');
+        if (d.precipitation_sum[i] >= 80) hits.push(day + ' 暴雨 ' + d.precipitation_sum[i] + 'mm：積水與青枯病壓力——先清溝渠、雨後優先排水');
+        if (d.wind_speed_10m_max[i] >= 89) hits.push(day + ' 強風 ' + Math.round(d.wind_speed_10m_max[i]) + 'km/h（約10級）：倒伏落果——加固支架與設施');
+      }
+      if (!hits.length) {
+        return {
+          headline: CROP.county + '未來 7 天沒有達到警戒的壞天氣，安心工作！',
+          detail: '每天都低於警戒門檻（高溫≥35°C、低溫≤12°C、暴雨≥80mm/日、風≥10級）。7 日概況：高溫 '
+            + Math.max(...d.temperature_2m_max).toFixed(1) + '°C、低溫 ' + Math.min(...d.temperature_2m_min).toFixed(1)
+            + '°C、單日最大雨量 ' + Math.max(...d.precipitation_sum).toFixed(1) + 'mm。建議每天早上再點一次確認。',
+        };
+      }
+      return {
+        headline: '注意！未來 7 天有 ' + hits.length + ' 個警戒訊號，先做防範！',
+        detail: hits.join('｜') + '（門檻與對策依牛蕃茄防災原則，預報來源 open-meteo，每天早上建議重新檢查）',
+      };
+    },
+  },
+  price: {
+    inputs: [
+      { key: 'grade', label: '這批的品質', unit: '', def: 'A級（果形完整、色澤佳）', options: ['A級（果形完整、色澤佳）', 'B級（輕微瑕疵、可正常賣）', 'C級（次級果、建議加工促銷）'] },
+      { key: 'channel', label: '要走的通路', unit: '', def: '直銷（市集/宅配）', options: ['批發（果菜市場）', '直銷（市集/宅配）', '電商（網路平台）'] },
+    ],
+    async prepare() {
+      try {
+        const m = await getMarket();
+        if (m && m.latest_price) {
+          _live.basePrice = m.latest_price.price;
+          calcNote('📡 今日批發均價 <b>' + m.latest_price.price + ' 元/公斤</b>（AMIS ' + m.latest_price.date + '，自動作為定價基準）');
+        } else calcNote('⚠️ 這個作物還沒有即時行情，將以 50 元/公斤示範計算。');
+      } catch (e) { calcNote('⚠️ 行情暫時抓不到，將以 50 元/公斤示範計算。'); }
+    },
+    run(v) {
+      const base = _live.basePrice || 50;
+      const q = v.grade.startsWith('A') ? 1.15 : v.grade.startsWith('B') ? 1.0 : 0.85;
+      const c = v.channel.startsWith('批發') ? 1.0 : v.channel.startsWith('直銷') ? 1.1 : 1.2;
+      const p = base * q * c;
+      const lo = Math.round(p * 0.95), hi = Math.round(p * 1.05);
+      const mood = base < 40 ? '目前行情偏低，別急著全出——好貨可以留給直銷/電商賣好價。'
+        : base > 55 ? '目前行情偏高，是出貨的好時機，把握這幾天！'
+        : '目前行情中等，照建議價出貨即可。';
+      return {
+        headline: '這批建議賣 ' + lo + '～' + hi + ' 元/公斤（約 ' + Math.round(lo / 1.5) + '～' + Math.round(hi / 1.5) + ' 元/台斤）！',
+        detail: '算法：基準 ' + base + ' 元/公斤（今日批發均價）× 品質係數 ' + q + '（' + v.grade.slice(0, 2) + '）× 通路係數 ' + c
+          + '（' + v.channel.split('（')[0] + '）＝ ' + Math.round(p) + ' 元，上下 5% 為議價空間。' + mood
+          + ' 行情判讀門檻：<40 偏低、40~55 中等、>55 偏高（牛蕃茄口徑）。',
       };
     },
   },
@@ -330,13 +400,16 @@ function openModal(idx) {
 
   if (t.calc) {
     const c = CALCS[t.calc];
-    html += '<div class="inputs">' + c.inputs.map(f => {
-      const inner = f.options
-        ? '<select id="f_' + f.key + '">' + f.options.map(o => '<option' + (o === f.def ? ' selected' : '') + '>' + o + '</option>').join('') + '</select>'
-        : '<div class="inrow"><input id="f_' + f.key + '" type="text" inputmode="decimal" value="' + f.def + '"><span class="u">' + f.unit + '</span></div>';
-      return '<div class="infield"><div class="l">' + f.label + (f.unit && f.options ? '（' + f.unit + '）' : '') + '</div>' + inner + '</div>';
-    }).join('') + '</div>'
-      + '<button class="gobtn" onclick="runCalc(\'' + t.calc + '\')">幫我算算看 ›</button>'
+    if (c.inputs.length) {
+      html += '<div class="inputs">' + c.inputs.map(f => {
+        const inner = f.options
+          ? '<select id="f_' + f.key + '">' + f.options.map(o => '<option' + (o === f.def ? ' selected' : '') + '>' + o + '</option>').join('') + '</select>'
+          : '<div class="inrow"><input id="f_' + f.key + '" type="text" inputmode="decimal" value="' + f.def + '"><span class="u">' + f.unit + '</span></div>';
+        return '<div class="infield"><div class="l">' + f.label + (f.unit && f.options ? '（' + f.unit + '）' : '') + '</div>' + inner + '</div>';
+      }).join('') + '</div>';
+    }
+    html += '<div class="extra" id="calcNote" style="display:none;margin-top:10px"></div>'
+      + '<button class="gobtn" onclick="runCalc(\'' + t.calc + '\')">' + (c.button || '幫我算算看 ›') + '</button>'
       + '<div class="result" id="calcResult"><img src="toolbox-assets/m_assist_circle.png" alt="農知助理">'
       + '<div><div class="r1" id="resH"></div><div class="r2" id="resD"></div></div></div>';
   }
@@ -354,16 +427,56 @@ function openModal(idx) {
   modal.innerHTML = html;
   overlay.classList.add('show');
   overlay.scrollTop = 0;
+  // 自動預填（例如抓即時天氣/行情帶入欄位）
+  if (t.calc && CALCS[t.calc].prepare) {
+    Promise.resolve(CALCS[t.calc].prepare()).catch(() => {});
+  }
 }
 
-function runCalc(kind) {
+function calcNote(msg) {
+  const n = document.getElementById('calcNote');
+  if (!n) return;
+  n.innerHTML = msg;
+  n.style.display = msg ? 'block' : 'none';
+}
+
+async function runCalc(kind) {
   const c = CALCS[kind];
   const v = {};
   c.inputs.forEach(f => { v[f.key] = document.getElementById('f_' + f.key).value; });
-  const out = c.run(v);
+  const out = await c.run(v);
   document.getElementById('resH').textContent = out.headline;
   document.getElementById('resD').textContent = out.detail;
   document.getElementById('calcResult').classList.add('show');
+}
+
+/* ── 共用即時資料（open-meteo 天氣 / AMIS 行情），10 分鐘記憶快取 ── */
+const COUNTY_COORDS = {
+  '桃園市': [24.99, 121.30], '台北市': [25.03, 121.56], '新北市': [25.01, 121.47],
+  '台中市': [24.14, 120.68], '台南市': [23.00, 120.23], '高雄市': [22.63, 120.30],
+  '宜蘭縣': [24.75, 121.75], '苗栗縣': [24.56, 120.82], '彰化縣': [24.08, 120.54],
+  '雲林縣': [23.71, 120.43], '嘉義縣': [23.46, 120.29], '屏東縣': [22.55, 120.55],
+  '花蓮縣': [23.99, 121.60], '台東縣': [22.76, 121.14], '南投縣': [23.90, 120.69],
+};
+const TB_CODE_MAP = { '番茄': 'code_FJ3', '牛蕃茄': 'code_FJ3', '水蜜桃': 'fruit_Y1', '甜柿': 'fruit_Z0',
+  '綠竹筍': 'code_SH2', '哈密瓜': 'fruit_W1', '包心白': 'code_LC1', '甘藍-初秋': 'code_LA1', '青蔥-粉蔥': 'code_SE6' };
+const _live = {};
+async function getWeather() {
+  if (_live.wx && Date.now() - _live.wxAt < 6e5) return _live.wx;
+  const [lat, lon] = COUNTY_COORDS[CROP.county] || COUNTY_COORDS['桃園市'];
+  const u = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon
+    + '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&timezone=Asia%2FTaipei&forecast_days=7';
+  const j = await (await fetch(u)).json();
+  _live.wx = j.daily; _live.wxAt = Date.now();
+  return j.daily;
+}
+async function getMarket() {
+  if (_live.mkt && Date.now() - _live.mktAt < 6e5) return _live.mkt;
+  const code = TB_CODE_MAP[CROP.display === '番茄' ? '番茄' : CROP.key] || TB_CODE_MAP[CROP.display];
+  if (!code) return null;
+  const j = await (await fetch('https://wyaoguang3-code.github.io/nongzhidao/data/' + code + '.json', { cache: 'no-store' })).json();
+  _live.mkt = j; _live.mktAt = Date.now();
+  return j;
 }
 
 // ── 作物參數化：?county=桃園市&crop=水蜜桃（embed=1 時做為儀表板下方區塊嵌入） ──
