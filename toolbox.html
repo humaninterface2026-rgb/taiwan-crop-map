@@ -159,7 +159,7 @@ const TOOLS = [
   { stage: 0, icon: '🔄', type: 'chat', name: '輪作／間作規劃', desc: '幫你排下幾季種什麼，避免連作生病。',
     principles: ['避免茄科連作超過 2 季', '至少插入 1 季非茄科（豆科/十字花科/禾本科）', '間作可用短期葉菜或香草作物分散病蟲壓力'],
     extra: '之後可選規劃季數（2–4 季）與目標（穩定收益/土壤恢復/降病蟲害）。' },
-  { stage: 0, icon: '📅', type: 'data', name: '最佳播種時機', desc: '幫你看未來一週溫度雨量，能不能播種。',
+  { stage: 0, icon: '📅', type: 'data', name: '最佳播種時機', desc: '看未來 16 天哪天最適合播種，選定後幫你排整季時程。', custom: 'sow',
     principles: ['理想：20~30°C 且雨量 <60mm/7日', '可播但需管理：16~20°C 或 60~120mm/7日', '不建議：<16°C、>32°C 或雨量 >120mm/7日'],
     calc: 'sow' },
   { stage: 0, icon: '🧮', type: 'chat', name: '成本試算', desc: '輸入面積和預算，幫你算成本和毛利。',
@@ -173,9 +173,9 @@ const TOOLS = [
   // ── 生長管理 ──
   { stage: 1, icon: '💧', type: 'auto', name: '灌溉排程', desc: '幫你算今天要不要澆水、什麼時候澆。', calc: 'water',
     principles: ['土壤濕度目標區間：約 40%~60%', '建議時段：清晨為主，必要時傍晚補水，避免中午高溫灌溉', '豪雨後優先排水，再評估是否補灌'] },
-  { stage: 1, icon: '🧪', type: 'chat', name: '施肥計畫', desc: '照生長階段幫你排肥料怎麼下、下多少。',
+  { stage: 1, icon: '🧪', type: 'chat', name: '施肥計畫', desc: '照生長階段幫你排肥料怎麼下、下多少。', calc: 'fert',
     principles: ['苗期：根系建立優先，氮不宜過高避免徒長', '開花期：提高鉀、鈣、硼，提升開花著果率', '結果期：分次追肥，鉀鈣為主，控制氮避免裂果與軟果'] },
-  { stage: 1, icon: '🐛', type: 'chat', name: '病蟲害辨識', desc: '拍張照就幫你看是什麼病蟲、怎麼處理。',
+  { stage: 1, icon: '🐛', type: 'chat', name: '病蟲害辨識', desc: '照症狀一步步問答，判斷可能是什麼、先做什麼。', calc: 'pest',
     principles: ['拍照：葉片正反面＋莖部＋果實（同地塊至少 3 株）', '葉斑：常見早晚疫病/細菌性斑點', '捲葉：常見病毒病或粉蝨壓力', '黃化：常見根系受損、缺素或病害前期'] },
   { stage: 1, icon: '⛈️', type: 'auto', name: '氣象預警推播', desc: '壞天氣來之前先警報，提醒你顧好田區。', calc: 'warn',
     principles: ['強風：風速 ≥10 級｜倒伏、落果、設施損傷', '高溫：日間 ≥35°C｜日灼、授粉不良', '低溫：最低溫 ≤12°C｜生長停滯、著果率下降', '暴雨：24h ≥80mm｜積水、根腐與青枯病壓力上升'] },
@@ -186,7 +186,7 @@ const TOOLS = [
     principles: ['異常門檻範例：土壤濕度 <30%、棚內 >35°C、濕度 >90% 持續 2 小時即告警'] },
   { stage: 1, icon: '🚁', type: 'data', name: '無人機影像分析', desc: '用空拍圖幫你找出田裡哪一區有狀況。',
     principles: ['流程：空拍影像 → 區塊分割 → 異常熱點標記 → 回傳巡田優先順序'] },
-  { stage: 1, icon: '🛡️', type: 'chat', name: '連作障礙預防', desc: '幫你評估連作風險，避免越種越差。',
+  { stage: 1, icon: '🛡️', type: 'chat', name: '連作障礙預防', desc: '幫你評估連作風險，避免越種越差。', calc: 'chain',
     principles: ['低風險：連作 <2 季 且 病害 ≤1 次', '中風險：連作 2 季 或 病害 1~2 次', '高風險：連作 ≥3 季 或 病害 ≥2 次'] },
   // ── 採收保鮮 ──
   { stage: 2, icon: '⏰', type: 'data', name: '採收時機預測', desc: '幫你抓最好採收時間，不怕採太早或放過熟。',
@@ -314,6 +314,97 @@ const CALCS = {
       };
     },
   },
+  fert: {
+    inputs: [
+      { key: 'tdate', label: '定植日期', unit: '', def: '', type: 'date' },
+      { key: 'area', label: '面積', unit: '分地', def: '1' },
+    ],
+    button: '排施肥計畫 ›',
+    prepare() {
+      const season = NZD.S.get('season');
+      if (season && season.transplant_date) {
+        document.getElementById('f_tdate').value = season.transplant_date;
+        const p = NZD.phase(season.transplant_date);
+        calcNote('📡 已帶入你存的季節檔：定植 ' + season.transplant_date + '（第 ' + p.days + ' 天，' + p.name + '）');
+      } else calcNote('還沒排季節時程——先去「最佳播種時機」選日子，這裡就會自動帶入。');
+      const fields = NZD.S.get('fields', []);
+      const sum = fields.reduce((a, f) => a + (+f.area_fen || 0), 0);
+      if (sum > 0) document.getElementById('f_area').value = sum;
+    },
+    run(v) {
+      if (!v.tdate) return { headline: '先告訴我定植日期，我才能算你現在在哪一期！', detail: '不知道確切日期抓大概也行；或先到「最佳播種時機」把整季時程排出來。' };
+      const p = NZD.phase(v.tdate);
+      const area = +v.area || 1;
+      if (p.days < 0) return { headline: '還沒定植（還有 ' + (-p.days) + ' 天），先準備基肥！', detail: '整地時施基肥：低氮高磷開根配方＋完熟堆肥。定植後回來看追肥怎麼下。' };
+      const plans = {
+        seedling: { now: '苗期追肥：稀薄液肥為主（氮磷均衡），7~10 天一次，量少多餐', next: '約第 26 天進開花期——提前備好鉀鈣硼資材' },
+        flower: { now: '開花期追肥：提高鉀、鈣、硼——每分地高鉀複合肥約 20~30kg 分 2 次，葉面補硼鈣 7~10 天一次', next: '約第 56 天進結果期——追肥改鉀鈣為主、控氮' },
+        fruit: { now: '結果期追肥：鉀鈣為主分次下（每分地高鉀肥 15~25kg/次，2~3 週一次），控制氮免得裂果軟果', next: '採收前 2 週停止追肥，顧品質' },
+      };
+      const pl = plans[p.key];
+      return {
+        headline: '你現在第 ' + p.days + ' 天，是「' + p.name + '」——' + p.fert + '！',
+        detail: '本期怎麼下（' + area + ' 分地）：' + pl.now + '。下一步：' + pl.next + '。原則：' + p.fert + '。施肥後記得到「作業日誌」記一筆。',
+      };
+    },
+  },
+  pest: {
+    inputs: [
+      { key: 'part', label: '哪裡不對勁', unit: '', def: '葉子有斑點', options: ['葉子有斑點', '葉子捲曲變形', '葉子黃化', '整株萎凋垂頭', '果實裂開', '果實屁股黑爛', '果實有蟲孔'] },
+      { key: 'sev', label: '嚴重程度', unit: '', def: '輕微（少數幾株）', options: ['輕微（少數幾株）', '中等（一小區）', '嚴重（整片蔓延）'] },
+    ],
+    button: '幫我判斷 ›',
+    run(v) {
+      const table = {
+        '葉子有斑點': { name: '早疫病/晚疫病或細菌性斑點', act: '先摘除病葉帶出田區銷毀；加強通風、避免傍晚澆水淋葉', soil: false },
+        '葉子捲曲變形': { name: '病毒病（粉蝨傳播）或薊馬危害', act: '先掛黃色黏板抓粉蝨；病毒株無藥可治、確認後儘早拔除', soil: false },
+        '葉子黃化': { name: '根系受損、缺素（氮鎂）或病害前期', act: '先檢查排水與根系；由下位葉開始黃通常是缺氮鎂，補肥觀察 5~7 天', soil: false },
+        '整株萎凋垂頭': { name: '青枯病（土傳）——中午垂、早晚恢復是典型', act: '立刻整株拔除（連土球）帶出銷毀，病穴撒石灰；這是土傳病，本季病株位置記下來', soil: true },
+        '果實裂開': { name: '水分管理不均（久旱後大水）', act: '不是病！穩定灌溉頻率、雨前先採轉色果', soil: false },
+        '果實屁股黑爛': { name: '臍腐病（缺鈣＋水分不穩）', act: '葉面噴鈣 7 天一次、穩定澆水；病果摘除', soil: false },
+        '果實有蟲孔': { name: '番茄夜蛾類鑽果', act: '摘除蟲果銷毀（蟲還在裡面！）、掛性費洛蒙誘蟲盒', soil: false },
+      };
+      const t = table[v.part];
+      const sev = v.sev.startsWith('嚴重') ? 2 : v.sev.startsWith('中') ? 1 : 0;
+      const sevAdd = sev === 2 ? '已經整片蔓延——除了上述處理，建議儘快找在地農會植保員或改良場現場看，不要拖。'
+        : sev === 1 ? '一小區的規模還壓得住，這 3 天每天巡、擴大就升級處理。' : '早期發現處理最省錢，做完先觀察 3~5 天。';
+      const rec = NZD.S.get('pest', []);
+      rec.unshift({ date: new Date().toISOString().slice(0, 10), part: v.part, sev, soilborne: t.soil });
+      NZD.S.set('pest', rec.slice(0, 100));
+      return {
+        headline: '比較可能是：' + t.name + '。',
+        detail: '先做這件事：' + t.act + '。' + sevAdd + (t.soil ? ' ⚠️ 這是土傳病——已記錄，「連作障礙預防」會把它算進下季風險。' : '')
+          + ' 用藥請洽農藥行並遵守停藥期（採收前施藥務必問清楚天數）。',
+      };
+    },
+  },
+  chain: {
+    inputs: [
+      { key: 'seasons', label: '茄科連作季數', unit: '季', def: '2' },
+      { key: 'disease', label: '本季病害次數', unit: '次', def: '0' },
+    ],
+    button: '評估風險 ›',
+    prepare() {
+      const pest = NZD.S.get('pest', []);
+      const soil = pest.filter(p => p.soilborne).length;
+      if (soil > 0) {
+        document.getElementById('f_disease').value = soil;
+        calcNote('📡 病蟲害工具記錄到 ' + soil + ' 次土傳病（青枯病類），已自動帶入。');
+      }
+    },
+    run(v) {
+      const n = +v.seasons || 0, d = +v.disease || 0;
+      const month = new Date().getMonth() + 1;
+      const solar = (month >= 6 && month <= 8) ? '現在正好是 6~8 月——收完可做「太陽能消毒」：整地後蓋透明膜曝曬 4 週，最省錢的土壤消毒。' : '';
+      let head, act;
+      if (n >= 3 || d >= 2) { head = '🔴 高風險！連作 ' + n + ' 季＋病害 ' + d + ' 次，下季強烈建議輪作或休耕。';
+        act = '建議：下季改種非茄科（豆科毛豆固氮／禾本科玉米斷病原／蔥蒜抑菌），或休耕消毒一季。' + solar; }
+      else if (n === 2 || d === 1) { head = '🟡 中風險——這是最後一季，下季務必輪作。';
+        act = '本季顧好排水與病株清除；下季排非茄科作物。' + solar; }
+      else { head = '🟢 低風險，可以續種！'; act = '維持病株即拔即清的習慣；畦邊可間作羅勒/萬壽菊驅蟲。茄科（番茄/茄子/辣椒/馬鈴薯）同科都算連作。'; }
+      return { headline: head, detail: act + ' 門檻：<2 季且病害≤1 次＝低；2 季或 1~2 次＝中；≥3 季或≥2 次＝高。' };
+    },
+  },
   water: {
     inputs: [
       { key: 'moist', label: '土壤濕度（有量再填）', unit: '%', def: '' },
@@ -370,28 +461,32 @@ const CALCS = {
   },
   warn: {
     inputs: [],
-    button: '檢查未來 7 天 ›',
+    button: '檢查未來 16 天 ›',
     async run() {
-      const d = await getWeather();
+      const d = await NZD.D.weather(CROP.county);
       const hits = [];
       for (let i = 0; i < d.time.length; i++) {
         const day = d.time[i].slice(5).replace('-', '/');
         if (d.temperature_2m_max[i] >= 35) hits.push(day + ' 高溫 ' + d.temperature_2m_max[i] + '°C：日灼、授粉不良——當天上午遮陰、加強灌溉');
         if (d.temperature_2m_min[i] <= 12) hits.push(day + ' 低溫 ' + d.temperature_2m_min[i] + '°C：生長停滯、裂果風險——前一晚做好保溫');
         if (d.precipitation_sum[i] >= 80) hits.push(day + ' 暴雨 ' + d.precipitation_sum[i] + 'mm：積水與青枯病壓力——先清溝渠、雨後優先排水');
-        if (d.wind_speed_10m_max[i] >= 89) hits.push(day + ' 強風 ' + Math.round(d.wind_speed_10m_max[i]) + 'km/h（約10級）：倒伏落果——加固支架與設施');
+        const gust = (d.wind_gusts_10m_max || d.wind_speed_10m_max)[i];
+        if (gust >= NZD.C.alert.windKmh) hits.push(day + ' 強陣風 ' + Math.round(gust) + 'km/h（約10級）：倒伏落果——加固支架、災前拍照存證（申請救助要用）');
       }
+      const season = NZD.S.get('season');
+      const ph = season ? NZD.phase(season.transplant_date) : null;
+      const phNote = ph && ph.days >= 0 ? '你的田正值' + ph.name + '（第 ' + ph.days + ' 天）。' : '';
       if (!hits.length) {
         return {
-          headline: CROP.county + '未來 7 天沒有達到警戒的壞天氣，安心工作！',
+          headline: CROP.county + '未來 16 天沒有達到警戒的壞天氣，安心工作！',
           detail: '每天都低於警戒門檻（高溫≥35°C、低溫≤12°C、暴雨≥80mm/日、風≥10級）。7 日概況：高溫 '
             + Math.max(...d.temperature_2m_max).toFixed(1) + '°C、低溫 ' + Math.min(...d.temperature_2m_min).toFixed(1)
-            + '°C、單日最大雨量 ' + Math.max(...d.precipitation_sum).toFixed(1) + 'mm。建議每天早上再點一次確認。',
+            + '°C、單日最大雨量 ' + Math.max(...d.precipitation_sum).toFixed(1) + 'mm。' + phNote + '建議每天早上再點一次確認。',
         };
       }
       return {
-        headline: '注意！未來 7 天有 ' + hits.length + ' 個警戒訊號，先做防範！',
-        detail: hits.join('｜') + '（門檻與對策依牛蕃茄防災原則，預報來源 open-meteo，每天早上建議重新檢查）',
+        headline: '注意！未來 16 天有 ' + hits.length + ' 個警戒訊號，先做防範！',
+        detail: phNote + hits.join('｜') + '（門檻與對策依牛蕃茄防災原則，預報來源 open-meteo，每天早上建議重新檢查）',
       };
     },
   },
@@ -502,6 +597,8 @@ function openModal(idx) {
       html += '<div class="inputs">' + c.inputs.map(f => {
         const inner = f.options
           ? '<select id="f_' + f.key + '">' + f.options.map(o => '<option' + (o === f.def ? ' selected' : '') + '>' + o + '</option>').join('') + '</select>'
+          : f.type === 'date'
+          ? '<input id="f_' + f.key + '" type="date" value="' + f.def + '" style="font-size:15px">'
           : '<div class="inrow"><input id="f_' + f.key + '" type="text" inputmode="decimal" value="' + f.def + '"><span class="u">' + f.unit + '</span></div>';
         return '<div class="infield"><div class="l">' + f.label + (f.unit && f.options ? '（' + f.unit + '）' : '') + '</div>' + inner + '</div>';
       }).join('') + '</div>';
@@ -631,6 +728,75 @@ fetch('toolbox-assets/crop_chars.json')
 
 /* ── 自訂介面工具（批次1）── */
 const CUSTOMS = {
+  sow: {
+    html() {
+      return '<div class="extra" id="sw_status" style="margin-top:12px">📡 正在抓 ' + CROP.county + ' 未來 16 天預報…</div>'
+        + '<div id="sw_strip" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px"></div>'
+        + '<div id="sw_detail"></div>';
+    },
+    async init() {
+      const st = document.getElementById('sw_status');
+      let d;
+      try { d = await NZD.D.weather(CROP.county); }
+      catch (e) { st.textContent = '⚠️ 預報抓不到，稍後再試。'; return; }
+      const rate = i => {
+        const avg = (d.temperature_2m_max[i] + d.temperature_2m_min[i]) / 2;
+        let rain = 0, days = 0;
+        for (let k = i; k < Math.min(i + 7, d.time.length); k++) { rain += d.precipitation_sum[k]; days++; }
+        rain = rain * 7 / days;
+        const T = NZD.C.sowTemp, R = NZD.C.sowRain7d;
+        const tScore = (avg >= T.idealLo && avg <= T.idealHi && d.temperature_2m_max[i] < T.hardHi) ? 2
+          : (avg >= T.okLo && avg < T.idealLo) || (avg > T.idealHi && d.temperature_2m_max[i] <= T.hardHi) ? 1 : 0;
+        const rScore = rain < R.ideal ? 2 : rain <= R.ok ? 1 : 0;
+        return { level: (tScore === 0 || rScore === 0) ? 0 : (tScore + rScore >= 4) ? 2 : 1, avg, rain };
+      };
+      const col = ['#e88', '#e8b84c', '#7fae4e'], lab = ['不建議', '可播', '理想'];
+      const season = NZD.S.get('season');
+      st.innerHTML = '每天一顆球：🟢理想 🟡可播但要顧 🔴不建議。點一天看整季時程' + (season ? '（目前已存：' + season.sow_date + ' 播種）' : '') + '。';
+      const strip = document.getElementById('sw_strip');
+      strip.innerHTML = d.time.map((t, i) => {
+        const r = rate(i);
+        return '<div data-i="' + i + '" style="cursor:pointer;text-align:center;border:2px solid #e8dcc0;border-radius:12px;padding:7px 9px;background:#fff;min-width:52px">'
+          + '<div style="font-size:10.5px;color:#a89070;font-weight:700">' + t.slice(5).replace('-', '/') + '</div>'
+          + '<div style="font-size:17px;line-height:1.4">' + ['🔴', '🟡', '🟢'][r.level] + '</div>'
+          + '<div style="font-size:10px;color:#8a7a5c;font-weight:700">' + lab[r.level] + '</div></div>';
+      }).join('');
+      const detail = document.getElementById('sw_detail');
+      strip.querySelectorAll('[data-i]').forEach(el => el.onclick = async () => {
+        strip.querySelectorAll('[data-i]').forEach(x => x.style.borderColor = '#e8dcc0');
+        el.style.borderColor = '#7fae4e';
+        const i = +el.dataset.i, r = rate(i), sowDate = d.time[i];
+        const tp = new Date(sowDate); tp.setDate(tp.getDate() + 30);
+        const tpISO = tp.toISOString().slice(0, 10);
+        const hw = NZD.harvestWindow(tpISO, r.avg);
+        // 採收月行情（近3年月均價）
+        let mktLine = '';
+        try {
+          const m = await NZD.D.market(CROP.display);
+          if (m && m.monthly) {
+            const hm = hw.start.slice(5, 7);
+            const rows = m.monthly.filter(x => x.key.slice(5, 7) === hm).slice(-3);
+            if (rows.length) {
+              const avgP = rows.reduce((a, x) => a + x.price, 0) / rows.length;
+              mktLine = '預計 ' + +hm + ' 月起採——近 ' + rows.length + ' 年 ' + +hm + ' 月均價約 <b>' + avgP.toFixed(0) + ' 元/kg</b>。';
+            }
+          }
+        } catch (e) {}
+        detail.innerHTML = '<div class="result show" style="display:flex"><img src="toolbox-assets/m_assist_circle.png">'
+          + '<div><div class="r1">' + sowDate.slice(5).replace('-', '/') + ' 播種（' + lab[r.level] + '）：'
+          + '約 ' + tpISO.slice(5).replace('-', '/') + ' 定植、' + hw.start.slice(5).replace('-', '/') + '～' + hw.end.slice(5).replace('-', '/') + ' 採收。</div>'
+          + '<div class="r2">當日均溫 ' + r.avg.toFixed(1) + '°C、往後 7 日雨量約 ' + r.rain.toFixed(0) + 'mm。' + mktLine
+          + ' 存檔後施肥/預警/採收工具都會跟著這份時程走。</div>'
+          + '<button class="gobtn" id="sw_save" style="margin-top:10px">就選這天，存整季時程 ›</button></div></div>';
+        document.getElementById('sw_save').onclick = () => {
+          NZD.S.set('season', { sow_date: sowDate, transplant_date: tpISO, harvest_start: hw.start, harvest_end: hw.end,
+            crop: CROP.display, county: CROP.county, decided_at: new Date().toISOString() });
+          document.getElementById('sw_save').textContent = '✓ 已存！施肥計畫、氣象預警現在都認得你的時程了';
+          document.getElementById('sw_save').style.background = '#5d8a34';
+        };
+      });
+    },
+  },
   logs: {
     html() {
       const today = new Date().toISOString().slice(0, 10);

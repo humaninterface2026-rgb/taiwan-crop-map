@@ -40,7 +40,7 @@ window.NZD = (function () {
       catch (e) { return fallback ?? null; }
     },
     set(n, v) { try { localStorage.setItem(KEY(n), JSON.stringify(v)); } catch (e) {} },
-    names: ['pref', 'profile', 'fields', 'season', 'logs', 'readings', 'cost'],
+    names: ['pref', 'profile', 'fields', 'season', 'logs', 'readings', 'cost', 'pest'],
     exportAll() {
       const out = { _exported_at: new Date().toISOString(), _app: 'nzd-toolbox-v1' };
       S.names.forEach(n => { const v = S.get(n); if (v != null) out[n] = v; });
