@@ -3,6 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>小農工具箱｜農知島</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="toolbox-shared.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Noto Sans TC',sans-serif;background:#faf6ec;color:#5a4a30;min-height:100vh;display:flex;flex-direction:column}
@@ -64,6 +65,7 @@ img.charimg{position:relative;width:126px;height:126px;object-fit:contain;flex:n
 .s4{background:#e4f5ef;border-color:#b0dcc8}
 .footnote{margin-top:14px;font-size:12.5px;color:#a89070}
 .footnote b{color:#3b6826}
+.swsel{font-size:12.5px;font-weight:700;color:#7a5418;background:#fff;border:2px solid #d8c9a4;border-radius:99px;padding:5px 10px;font-family:inherit;cursor:pointer}
 
 /* modal */
 .overlay{position:fixed;inset:0;background:rgba(90,74,48,.45);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;z-index:50}
@@ -99,14 +101,18 @@ img.charimg{position:relative;width:126px;height:126px;object-fit:contain;flex:n
 <div class="wrap">
   <header>
     <div class="brand">農知島 <small>The Island of Harvest</small></div>
-    <div style="display:flex;gap:8px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a class="backlink" id="farmbtn" href="javascript:void 0">⚙️ 我的農場</a>
       <a class="backlink" id="dashlink" href="./crop-dashboard.html">📊 行情儀表板</a>
       <a class="backlink" href="./index.html">← 回作物地圖</a>
     </div>
   </header>
 
   <div class="mock">
-    <div class="mh"><div class="t">🧰 小農工具箱</div><div class="s" id="subline">番茄・桃園市｜30 個小幫手（MVP）</div></div>
+    <div class="mh"><div class="t">🧰 小農工具箱</div><div class="s" id="subline">番茄・桃園市｜30 個小幫手（MVP）</div>
+      <span style="display:flex;gap:6px;margin-left:auto" id="switcher">
+        <select id="sw_county" class="swsel"></select><select id="sw_crop" class="swsel"></select>
+      </span></div>
     <div class="banner">
       <div id="stage">
         <div id="stagegrass"></div>
@@ -165,7 +171,7 @@ const TOOLS = [
     principles: [],
     extra: '可直接問：「我有 2 分地牛蕃茄，想申請灌溉設備補助，幫我整理可申請方案與所需文件」。' },
   // ── 生長管理 ──
-  { stage: 1, icon: '💧', type: 'auto', name: '灌溉排程', desc: '幫你算今天要不要澆水、什麼時候澆。',
+  { stage: 1, icon: '💧', type: 'auto', name: '灌溉排程', desc: '幫你算今天要不要澆水、什麼時候澆。', calc: 'water',
     principles: ['土壤濕度目標區間：約 40%~60%', '建議時段：清晨為主，必要時傍晚補水，避免中午高溫灌溉', '豪雨後優先排水，再評估是否補灌'] },
   { stage: 1, icon: '🧪', type: 'chat', name: '施肥計畫', desc: '照生長階段幫你排肥料怎麼下、下多少。',
     principles: ['苗期：根系建立優先，氮不宜過高避免徒長', '開花期：提高鉀、鈣、硼，提升開花著果率', '結果期：分次追肥，鉀鈣為主，控制氮避免裂果與軟果'] },
@@ -173,10 +179,10 @@ const TOOLS = [
     principles: ['拍照：葉片正反面＋莖部＋果實（同地塊至少 3 株）', '葉斑：常見早晚疫病/細菌性斑點', '捲葉：常見病毒病或粉蝨壓力', '黃化：常見根系受損、缺素或病害前期'] },
   { stage: 1, icon: '⛈️', type: 'auto', name: '氣象預警推播', desc: '壞天氣來之前先警報，提醒你顧好田區。', calc: 'warn',
     principles: ['強風：風速 ≥10 級｜倒伏、落果、設施損傷', '高溫：日間 ≥35°C｜日灼、授粉不良', '低溫：最低溫 ≤12°C｜生長停滯、著果率下降', '暴雨：24h ≥80mm｜積水、根腐與青枯病壓力上升'] },
-  { stage: 1, icon: '📝', type: 'auto', name: '作業日誌記錄', desc: '用講的就幫你記下每天田裡做了什麼。',
+  { stage: 1, icon: '📝', type: 'auto', name: '作業日誌記錄', desc: '兩下點選就記好今天田裡做了什麼，全存在手機裡。', custom: 'logs',
     principles: ['建議格式：日期／地塊／作業內容／投入人力／異常狀況（支援語音轉文字）'],
     extra: '例：「今天 16:30 灌溉 20 分鐘，番茄區 B 有黃葉」。' },
-  { stage: 1, icon: '📶', type: 'data', name: 'IoT 感測器整合', desc: '接上田裡的感測器，數值不對馬上通知你。',
+  { stage: 1, icon: '📶', type: 'data', name: 'IoT 感測器整合', desc: '把田裡量到的數值輸進來，馬上判斷要不要處理。', calc: 'readings',
     principles: ['異常門檻範例：土壤濕度 <30%、棚內 >35°C、濕度 >90% 持續 2 小時即告警'] },
   { stage: 1, icon: '🚁', type: 'data', name: '無人機影像分析', desc: '用空拍圖幫你找出田裡哪一區有狀況。',
     principles: ['流程：空拍影像 → 區塊分割 → 異常熱點標記 → 回傳巡田優先順序'] },
@@ -228,21 +234,52 @@ const CALCS = {
       { key: 'area', label: '種植面積', unit: '分地', def: '1' },
       { key: 'seedlingPrice', label: '種苗單價', unit: '元/株', def: '8' },
       { key: 'fertPerFen', label: '肥料成本', unit: '元/分地', def: '6000' },
+      { key: 'pestPerFen', label: '農藥資材', unit: '元/分地', def: '3000' },
+      { key: 'rentPerFen', label: '地租', unit: '元/分地/季', def: '8000' },
       { key: 'laborPerFen', label: '人力預算', unit: '元/分地', def: '18000' },
       { key: 'yieldKgPerFen', label: '預估產量', unit: 'kg/分', def: '3200' },
       { key: 'pricePerKg', label: '預估售價', unit: '元/kg', def: '50' },
     ],
+    async prepare() {
+      const fields = NZD.S.get('fields', []);
+      if (fields.length) {
+        const sum = fields.reduce((a, f) => a + (+f.area_fen || 0), 0);
+        if (sum > 0) document.getElementById('f_area').value = sum;
+      }
+      const saved = NZD.S.get('cost');
+      let noteBits = [];
+      if (fields.length) noteBits.push('面積已帶入你的田區合計');
+      try {
+        const m = await getMarket();
+        if (m && m.latest_price) {
+          document.getElementById('f_pricePerKg').value = m.latest_price.price;
+          noteBits.push('售價已帶入今日批發均價 <b>' + m.latest_price.price + ' 元/kg</b>');
+        }
+      } catch (e) {}
+      if (saved) noteBits.push('上次試算：' + (saved.saved_at || '').slice(0, 10) + ' 總成本 ' + (saved.total_cost || 0).toLocaleString() + ' 元');
+      calcNote(noteBits.length ? '📡 ' + noteBits.join('；') : '');
+    },
     run(v) {
-      const area = +v.area || 0, seed = +v.seedlingPrice || 0, fert = +v.fertPerFen || 0, labor = +v.laborPerFen || 0;
-      const y = +v.yieldKgPerFen || 3200, p = +v.pricePerKg || 50;
-      const seedlings = area * 1800 * seed;
-      const total = seedlings + fert * area + labor * area;
+      const area = +v.area || 0, seed = +v.seedlingPrice || 0, fert = +v.fertPerFen || 0,
+        pest = +v.pestPerFen || 0, rent = +v.rentPerFen || 0, labor = +v.laborPerFen || 0;
+      const y = +v.yieldKgPerFen || NZD.C.normalYieldKgFen, p = +v.pricePerKg || 50;
+      const seedlings = area * NZD.C.plantsPerFen * seed;
+      const total = seedlings + (fert + pest + rent + labor) * area;
       const totalYield = Math.max(1, area * y);
-      const revenue = totalYield * p, gross = revenue - total;
+      const breakeven = total / totalYield;
+      const scen = m => Math.round(totalYield * p * m - total);
       const fmt = n => Math.round(n).toLocaleString();
+      const light = p >= breakeven * 1.2 ? '🟢 照這售價有不錯的利潤空間'
+        : p >= breakeven ? '🟡 有賺但空間不大，售價要顧好' : '🔴 照這售價會賠，要嘛降成本要嘛等價';
+      NZD.S.set('cost', { saved_at: new Date().toISOString(), area_fen: area,
+        items: { seedlings: Math.round(seedlings), fert: fert * area, pest: pest * area, rent: rent * area, labor: labor * area },
+        total_cost: Math.round(total), expected_qty: Math.round(totalYield), breakeven_price: +breakeven.toFixed(1), expected_price: p });
       return {
-        headline: '種 ' + area + ' 分地總成本約 ' + fmt(total) + ' 元，照 ' + p + ' 元/kg 賣，毛利大概 ' + fmt(gross) + ' 元喔！',
-        detail: '假設每分地種 1,800 株、產量 ' + y.toLocaleString() + ' kg/分。成本組成：種苗約 ' + fmt(seedlings) + ' 元、肥料約 ' + fmt(fert * area) + ' 元、人力約 ' + fmt(labor * area) + ' 元。每公斤成本（＝損平售價）約 ' + (total / totalYield).toFixed(1) + ' 元/kg。想拉高毛利，可以再看「產品分級建議」和「定價策略建議」！',
+        headline: '種 ' + area + ' 分地總投入約 ' + fmt(total) + ' 元，一公斤賣過 ' + breakeven.toFixed(1) + ' 元就不賠！',
+        detail: '成本組成：種苗 ' + fmt(seedlings) + '、肥料 ' + fmt(fert * area) + '、農藥資材 ' + fmt(pest * area)
+          + '、地租 ' + fmt(rent * area) + '、人力 ' + fmt(labor * area) + ' 元。預估產量 ' + fmt(totalYield) + ' kg。'
+          + '三種行情試算（照 ' + p + ' 元/kg 為基準）：行情差 8 折→淨利 ' + fmt(scen(0.8)) + ' 元；持平→ ' + fmt(scen(1))
+          + ' 元；行情好 1.2 倍→ ' + fmt(scen(1.2)) + ' 元。' + light + '。已存檔，季末損益分析會直接拿這份來對帳。',
       };
     },
   },
@@ -275,6 +312,60 @@ const CALCS = {
         headline: '判斷結果：' + level + '（均溫 ' + t + '°C、雨量 ' + r + 'mm/7日）',
         detail: impact + ' ' + action + ' 門檻：理想 20~30°C 且 <60mm；16~20°C 或 60~120mm 需管理；<16°C、>32°C 或 >120mm 不建議。',
       };
+    },
+  },
+  water: {
+    inputs: [
+      { key: 'moist', label: '土壤濕度（有量再填）', unit: '%', def: '' },
+    ],
+    button: '今天要澆水嗎 ›',
+    async prepare() {
+      const last = (NZD.S.get('readings', []))[0];
+      if (last && last.moist != null) {
+        document.getElementById('f_moist').value = last.moist;
+        calcNote('📡 已帶入你上次記錄的土壤濕度 ' + last.moist + '%（' + (last.date || '').slice(5, 10).replace('-', '/') + ' 記錄）');
+      } else calcNote('沒有濕度計也沒關係，留空我會用天氣判斷。');
+    },
+    async run(v) {
+      const d = await getWeather();
+      const rainToday = d.precipitation_sum[0], rainTmr = d.precipitation_sum[1];
+      const tmax = d.temperature_2m_max[0];
+      const m = v.moist === '' ? null : +v.moist;
+      const { lo, hi } = NZD.C.soilMoist;
+      let head, act;
+      if (m != null && m >= hi) { head = '今天不用澆，土還很濕（' + m + '%）！'; act = '濕度超過 ' + hi + '% 反而要注意排水通氣，午後巡一下有沒有積水。'; }
+      else if (rainToday >= 10) { head = '今天老天爺會幫你澆（預報雨量 ' + rainToday + 'mm）！'; act = '不用人工灌溉；雨後記得檢查畦溝排水。'; }
+      else if (m != null && m < lo) {
+        head = '要澆！土壤只有 ' + m + '%，低於目標 ' + lo + '%。';
+        act = rainTmr >= 20 ? '明天預報有雨 ' + rainTmr + 'mm——今天澆半量就好，明天讓雨接手。'
+          : '建議清晨澆透一次' + (tmax >= 33 ? '；今天高溫 ' + tmax + '°C，必要時傍晚補一次輕的' : '') + '。避開中午高溫。';
+      } else {
+        head = rainTmr >= 20 ? '可以撐一天——明天有雨 ' + rainTmr + 'mm 幫你澆。' : '看情況澆：今明兩天都沒什麼雨。';
+        act = '目標把土壤維持在 ' + lo + '~' + hi + '%。沒有濕度計的話，抓一把土能捏成團但不出水＝剛好。建議清晨澆。';
+      }
+      return { headline: head, detail: act + '（今天 ' + tmax + '°C／雨 ' + rainToday + 'mm，明天雨 ' + rainTmr + 'mm，' + CROP.county + ' open-meteo 預報）' };
+    },
+  },
+  readings: {
+    inputs: [
+      { key: 'moist', label: '土壤濕度', unit: '%', def: '45' },
+      { key: 'temp', label: '棚內/田間溫度', unit: '°C', def: '30' },
+      { key: 'rh', label: '空氣濕度', unit: '%', def: '75' },
+    ],
+    button: '幫我判讀 ›',
+    run(v) {
+      const m = +v.moist, t = +v.temp, rh = +v.rh;
+      const issues = [], tips = [];
+      if (m < 30) { issues.push('土壤太乾（' + m + '%）'); tips.push('儘快灌溉，目標 ' + NZD.C.soilMoist.lo + '~' + NZD.C.soilMoist.hi + '%'); }
+      else if (m < NZD.C.soilMoist.lo) { issues.push('土壤偏乾'); tips.push('今明安排澆水'); }
+      else if (m > NZD.C.soilMoist.hi) { issues.push('土壤偏濕（' + m + '%）'); tips.push('暫停灌溉、檢查排水'); }
+      if (t >= NZD.C.houseTemp) { issues.push('溫度過高（' + t + '°C）'); tips.push('立刻通風/遮陰，高溫會日灼與著果不良'); }
+      if (rh >= NZD.C.houseRH) { issues.push('濕度過高（' + rh + '%）'); tips.push('加強通風；持續 2 小時以上病害壓力大增'); }
+      const rec = NZD.S.get('readings', []);
+      rec.unshift({ date: new Date().toISOString(), moist: m, temp: t, rh: rh });
+      NZD.S.set('readings', rec.slice(0, 60));
+      if (!issues.length) return { headline: '三個數值都在安全範圍，田況不錯！', detail: '土壤 ' + m + '%（目標 ' + NZD.C.soilMoist.lo + '~' + NZD.C.soilMoist.hi + '%）、溫度 ' + t + '°C（警戒 ' + NZD.C.houseTemp + '°C）、濕度 ' + rh + '%（警戒 ' + NZD.C.houseRH + '%）。已記錄，累積起來就能看趨勢。' };
+      return { headline: '注意：' + issues.join('、') + '！', detail: '建議動作：' + tips.join('；') + '。已記錄這筆讀值（近 60 筆保留在手機）。' };
     },
   },
   warn: {
@@ -397,6 +488,13 @@ function openModal(idx) {
   let html = '<div class="mhd"><div class="mt">' + t.icon + ' ' + t.name + '</div>'
     + '<button class="mx" onclick="closeModal()">✕</button></div>'
     + '<div class="msub">' + CROP.display + '・' + CROP.county + '｜' + t.desc + '</div>';
+
+  if (t.custom) {
+    modal.innerHTML = html + CUSTOMS[t.custom].html();
+    overlay.classList.add('show'); overlay.scrollTop = 0;
+    CUSTOMS[t.custom].init();
+    return;
+  }
 
   if (t.calc) {
     const c = CALCS[t.calc];
@@ -530,6 +628,135 @@ fetch('toolbox-assets/crop_chars.json')
     g.style.display = 'block';
   })
   .catch(() => {});
+
+/* ── 自訂介面工具（批次1）── */
+const CUSTOMS = {
+  logs: {
+    html() {
+      const today = new Date().toISOString().slice(0, 10);
+      return '<div class="inputs" style="grid-template-columns:1fr 1fr">'
+        + '<div class="infield"><div class="l">日期</div><input id="lg_date" type="date" value="' + today + '" style="border:none;outline:none;font-family:inherit;font-size:15px;font-weight:900;color:#5a4a30;width:100%;background:transparent"></div>'
+        + '<div class="infield"><div class="l">類別</div><select id="lg_cat">' + ['灌溉','施肥','噴藥','整枝疏果','採收','防颱','其他'].map(c => '<option>' + c + '</option>').join('') + '</select></div>'
+        + '</div>'
+        + '<div class="infield" style="margin-top:10px"><div class="l">內容（例：B 區滴灌 20 分鐘，發現少量黃葉）</div><input id="lg_txt" type="text" placeholder="做了什麼、看到什麼" style="font-size:14px"></div>'
+        + '<button class="gobtn" id="lg_add">記一筆 ›</button>'
+        + '<div class="ptitle" style="margin-top:16px">📒 最近的紀錄</div><div class="plist" id="lg_list"></div>'
+        + '<div class="extra">紀錄存在這支手機的瀏覽器裡（換手機/清資料會不見）——記得到「⚙️ 我的農場」定期匯出備份。</div>';
+    },
+    init() {
+      const render = () => {
+        const logs = NZD.S.get('logs', []);
+        document.getElementById('lg_list').innerHTML = logs.length
+          ? logs.slice(0, 20).map((x, i) => '<div class="pitem" style="display:flex;gap:8px;align-items:baseline">'
+              + '<b style="white-space:nowrap">' + x.date.slice(5) + '</b>'
+              + '<span style="background:#dce8b8;color:#3b6826;font-size:11px;font-weight:900;border-radius:99px;padding:1px 8px;white-space:nowrap">' + x.cat + '</span>'
+              + '<span style="flex:1">' + x.txt.replace(/</g, '&lt;') + '</span>'
+              + '<a href="javascript:void 0" data-del="' + i + '" style="color:#b05548;font-weight:900;text-decoration:none">✕</a></div>').join('')
+          : '<div class="pitem" style="color:#a89070">還沒有紀錄——第一筆從今天開始！</div>';
+        document.querySelectorAll('#lg_list [data-del]').forEach(a => a.onclick = () => {
+          const logs2 = NZD.S.get('logs', []); logs2.splice(+a.dataset.del, 1); NZD.S.set('logs', logs2); render();
+        });
+      };
+      document.getElementById('lg_add').onclick = () => {
+        const txt = document.getElementById('lg_txt').value.trim();
+        if (!txt) { document.getElementById('lg_txt').focus(); return; }
+        const logs = NZD.S.get('logs', []);
+        logs.unshift({ date: document.getElementById('lg_date').value, cat: document.getElementById('lg_cat').value, txt });
+        NZD.S.set('logs', logs.slice(0, 500));
+        document.getElementById('lg_txt').value = '';
+        render();
+      };
+      render();
+    },
+  },
+  farm: {
+    html() {
+      const p = NZD.S.get('profile', {});
+      return '<div class="inputs" style="grid-template-columns:1fr 1fr">'
+        + '<div class="infield"><div class="l">農場/自家名號</div><input id="fm_name" type="text" value="' + (p.farm_name || '') + '" placeholder="例：阿明果園" style="font-size:14px"></div>'
+        + '<div class="infield"><div class="l">主要通路</div><select id="fm_ch">' + ['批發','直銷','電商'].map(c => '<option' + (p.channel_pref === c ? ' selected' : '') + '>' + c + '</option>').join('') + '</select></div>'
+        + '</div>'
+        + '<div class="ptitle" style="margin-top:14px">🗺 我的田區（成本試算會自動帶面積）</div><div class="plist" id="fm_list"></div>'
+        + '<div class="inputs" style="grid-template-columns:2fr 1fr auto;margin-top:8px;align-items:end">'
+        + '<div class="infield"><div class="l">田區名</div><input id="fm_fname" type="text" placeholder="例：東邊那塊" style="font-size:14px"></div>'
+        + '<div class="infield"><div class="l">面積</div><div class="inrow"><input id="fm_farea" type="text" inputmode="decimal" placeholder="2"><span class="u">分</span></div></div>'
+        + '<button class="gobtn" id="fm_addf" style="margin-top:0;padding:11px 18px;width:auto">＋</button>'
+        + '</div>'
+        + '<button class="gobtn" id="fm_save">儲存設定 ›</button>'
+        + '<div class="ptitle" style="margin-top:16px">💾 備份（很重要！）</div>'
+        + '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">'
+        + '<button class="gobtn" id="fm_exp" style="margin-top:0;width:auto;padding:10px 18px">匯出備份檔</button>'
+        + '<label class="gobtn" style="margin-top:0;width:auto;padding:10px 18px;background:#fff;color:#7a5418;border:2px solid #d8c9a4;box-shadow:none;cursor:pointer">匯入備份<input id="fm_imp" type="file" accept=".json" style="display:none"></label>'
+        + '</div>'
+        + '<div class="extra">所有工具的紀錄（日誌/讀值/成本/田區）都存在這支手機的瀏覽器。換手機或清瀏覽資料前，先匯出備份檔傳給自己。</div>';
+    },
+    init() {
+      const renderF = () => {
+        const fs = NZD.S.get('fields', []);
+        document.getElementById('fm_list').innerHTML = fs.length
+          ? fs.map((f, i) => '<div class="pitem" style="display:flex;gap:8px;align-items:baseline"><span style="flex:1"><b>' + f.name.replace(/</g, '&lt;') + '</b>　' + f.area_fen + ' 分</span><a href="javascript:void 0" data-fdel="' + i + '" style="color:#b05548;font-weight:900;text-decoration:none">✕</a></div>').join('')
+          : '<div class="pitem" style="color:#a89070">還沒有田區——右下 ＋ 加一塊！</div>';
+        document.querySelectorAll('#fm_list [data-fdel]').forEach(a => a.onclick = () => {
+          const fs2 = NZD.S.get('fields', []); fs2.splice(+a.dataset.fdel, 1); NZD.S.set('fields', fs2); renderF();
+        });
+      };
+      document.getElementById('fm_addf').onclick = () => {
+        const name = document.getElementById('fm_fname').value.trim();
+        const area = +document.getElementById('fm_farea').value;
+        if (!name || !(area > 0)) return;
+        const fs = NZD.S.get('fields', []);
+        fs.push({ id: 'f' + Date.now(), name, area_fen: area });
+        NZD.S.set('fields', fs);
+        document.getElementById('fm_fname').value = ''; document.getElementById('fm_farea').value = '';
+        renderF();
+      };
+      document.getElementById('fm_save').onclick = () => {
+        NZD.S.set('profile', { farm_name: document.getElementById('fm_name').value.trim(),
+          channel_pref: document.getElementById('fm_ch').value, county: CROP.county, crop: CROP.display,
+          updated_at: new Date().toISOString() });
+        closeModal();
+      };
+      document.getElementById('fm_exp').onclick = () => {
+        const blob = new Blob([NZD.S.exportAll()], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = '小農工具箱備份_' + new Date().toISOString().slice(0, 10) + '.json';
+        a.click(); URL.revokeObjectURL(a.href);
+      };
+      document.getElementById('fm_imp').onchange = async e => {
+        const f = e.target.files[0]; if (!f) return;
+        try { const n = NZD.S.importAll(await f.text()); alert('匯入完成，共還原 ' + n + ' 類資料。'); closeModal(); }
+        catch (err) { alert('匯入失敗：' + err.message); }
+      };
+      renderF();
+    },
+  },
+};
+
+function openCustom(kind, title, desc) {
+  modal.innerHTML = '<div class="mhd"><div class="mt">' + title + '</div>'
+    + '<button class="mx" onclick="closeModal()">✕</button></div>'
+    + '<div class="msub">' + desc + '</div>' + CUSTOMS[kind].html();
+  overlay.classList.add('show'); overlay.scrollTop = 0;
+  CUSTOMS[kind].init();
+}
+document.getElementById('farmbtn')?.addEventListener('click', () =>
+  openCustom('farm', '⚙️ 我的農場', '田區、通路與資料備份——所有工具共用這裡的設定'));
+
+/* ── 縣市/作物切換器 ── */
+(function initSwitcher() {
+  const sc = document.getElementById('sw_county'), sp = document.getElementById('sw_crop');
+  if (!sc) return;
+  sc.innerHTML = NZD.D.countyList().map(c => '<option' + (c === CROP.county ? ' selected' : '') + '>' + c + '</option>').join('');
+  sp.innerHTML = NZD.D.cropList().map(c => '<option' + (c === CROP.display ? ' selected' : '') + '>' + c + '</option>').join('');
+  const go = () => {
+    NZD.S.set('pref', { county: sc.value, crop: sp.value });
+    const p = new URLSearchParams(location.search);
+    p.set('county', sc.value); p.set('crop', sp.value);
+    location.search = p.toString();
+  };
+  sc.onchange = go; sp.onchange = go;
+})();
 
 renderTabs();
 renderTools();
