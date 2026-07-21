@@ -114,7 +114,7 @@ window.NZD = (function () {
     try {
       const j = await _cached('params', async () =>
         (await (await fetch('toolbox-assets/crop-params.json')).json()));
-      const p = j.crops && (j.crops[crop] || j.crops[{'哈蜜瓜':'哈密瓜','水稻':'稻米','包種茶':'茶葉','文旦':'柚子','桃子':'水蜜桃'}[crop]]);
+      const p = j.crops && (j.crops[crop] || j.crops[{'哈蜜瓜':'哈密瓜','水稻':'稻米','包種茶':'茶葉','文旦':'柚子','桃子':'水蜜桃','大西瓜':'西瓜','西瓜-大西瓜':'西瓜','梨-寶島甘露梨':'梨','青蔥-北蔥':'青蔥','大蒜-硬梗':'大蒜','包心白菜':'包心白'}[crop]]);
       if (p) {
         Object.assign(A, p);
         // growthPhases 需要 key 欄位（pack 只有 name）
