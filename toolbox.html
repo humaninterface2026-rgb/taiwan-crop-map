@@ -452,22 +452,35 @@ const CALCS = {
     button: '看我能領什麼 ›',
     run(v) {
       const okIns = v.ins === '有', okLand = v.land !== '承租（口頭約）', young = v.age === '未滿 45 歲';
+      // 各方案的「最直接申請入口」——2026-07 逐一實測可達；申請模式誠實標註
       const items = [
-        { name: '農業設施補助（溫網室）', need: okIns && okLand, gap: !okIns ? '要先有農保' : !okLand ? '承租要有書面契約' : '', agency: '農糧署（向公所/農會申請）', docs: '土地證明、經營計畫、報價單', link: { label: '農糧署', url: 'https://www.afa.gov.tw' } },
-        { name: '小型農機補助', need: okIns, gap: okIns ? '' : '要先有農保', agency: '農糧署', docs: '購機發票、農保證明', link: { label: '農糧署', url: 'https://www.afa.gov.tw' } },
-        { name: '產銷履歷驗證補助', need: true, gap: '', agency: '農糧署/驗證機構', docs: '驗證合約、繳費單據', link: { label: '產銷履歷網', url: 'https://taft.moa.gov.tw' } },
-        { name: '農業保險保費補助（保費 1/2 起）', need: true, gap: '', agency: '投保時由保險公司/農會辦理折抵', docs: '投保時由保險公司處理', link: { label: '農業部（搜尋農業保險）', url: 'https://www.moa.gov.tw' } },
-        { name: '青年農民專案輔導（貸款利息/百萬獎勵）', need: young, gap: young ? '' : '限 18~45 歲', agency: '農業部青農輔導平台', docs: '經營計畫書', link: { label: '青農輔導平台', url: 'https://academy.moa.gov.tw/YF/' } },
-        { name: '天然災害現金救助', need: true, gap: '', agency: '災後向公所申報（有時限！）', docs: '災前災後照片、耕作事實證明', link: { label: '農業部（災害救助專區）', url: 'https://www.moa.gov.tw' } },
+        { name: '農業設施補助（溫網室）', need: okIns && okLand, gap: !okIns ? '要先有農保' : !okLand ? '承租要有書面契約' : '',
+          mode: '📄 官網下載須知表單 → 公所/農會送件（隨到隨辦）', docs: '土地證明、經營計畫、報價單',
+          link: { label: '溫網室設施補助專區（農糧署）', url: 'https://www.afa.gov.tw/cht/index.php?code=list&ids=643' } },
+        { name: '小型農機補助', need: okIns, gap: okIns ? '' : '要先有農保',
+          mode: '📄 每年公告受理期（115 年為 5/25~8/31）→ 基層農會送件，核定後才能買機', docs: '申請表、農保證明',
+          link: { label: '農機補助專區（農糧署）', url: 'https://www.afa.gov.tw/cht/index.php?code=list&ids=3314' } },
+        { name: '產銷履歷驗證補助', need: true, gap: '',
+          mode: '🖥 有線上系統——取得驗證後交驗證機構透過系統代辦', docs: '驗證證書、存摺影本',
+          link: { label: '產銷履歷補助線上系統', url: 'https://resume.afa.gov.tw/' } },
+        { name: '農業保險保費補助（保費 1/2 起）', need: true, gap: '',
+          mode: '📄 投保時向農會/產險送件，補助直接從保費折抵', docs: '投保時由承辦單位處理',
+          link: { label: '農產業保險專區（農糧署）', url: 'https://www.afa.gov.tw/cht/index.php?code=list&ids=277' } },
+        { name: '青年農民專案輔導（百大青農/貸款免息）', need: young, gap: young ? '' : '限 18~45 歲',
+          mode: '🖥 真的可以線上報名！每年約 12 月~隔年 1 月遴選', docs: '經營計畫書（線上填寫上傳）',
+          link: { label: '百大青農線上報名系統', url: 'https://100farmer.moa.gov.tw/' } },
+        { name: '天然災害現金救助', need: true, gap: '',
+          mode: '📄 公告後 10 日內向公所送件（有時限！表單可先下載）', docs: '災前災後照片、身分證、存摺、土地權狀或租約',
+          link: { label: '天然災害救助專區（含申請表）', url: 'https://www.afa.gov.tw/cht/index.php?code=list&ids=636' } },
       ];
       const ok = items.filter(x => x.need && !x.gap), near = items.filter(x => x.gap);
       const links = [];
-      [...ok, ...near].forEach(x => { if (!links.some(l => l.url === x.link.url && l.label === x.link.label)) links.push(x.link); });
+      [...ok, ...near].forEach(x => { if (!links.some(l => l.url === x.link.url)) links.push(x.link); });
       return {
         headline: '你目前符合 ' + ok.length + ' 項' + (near.length ? '、差一步 ' + near.length + ' 項' : '') + '！',
-        detail: '✅ 符合：' + ok.map(x => x.name + '（' + x.agency + '；備 ' + x.docs + '）').join('｜')
+        detail: '✅ 符合：' + ok.map(x => x.name + '——' + x.mode + '（備：' + x.docs + '）').join('｜')
           + (near.length ? '。🟡 差一步：' + near.map(x => x.name + '——' + x.gap).join('｜') : '')
-          + '。💡 天災救助的關鍵是「災前照片」——颱風來之前記得去田裡拍全景＋設施照。點下方官方網站查最新公告與申請窗口；金額與資格以公告為準（2026-07 整理）。',
+          + '。💡 多數方案送件在公所/農會臨櫃，但表單和須知先在下面的官方專區下載能省一趟；天災救助關鍵是「災前照片」，颱風來前先去田裡拍。（連結 2026-07 實測可達；受理期間與金額以各專區最新公告為準）',
         links,
       };
     },
@@ -596,7 +609,10 @@ const CALCS = {
       const m = map[v.fear];
       return { headline: '怕' + v.fear + '→ 建議：' + m.pick + '！',
         detail: '為什麼：' + m.why + '。怎麼保：' + m.how + '。投保時效：多數險種有投保截止日（颱風季前！），現在就去農會問。＊險種開放品項每年調整，以主管機關與保險公司公告為準（2026-07 整理）。',
-        links: [{ label: '農業部（搜尋「農業保險」）', url: 'https://www.moa.gov.tw' }] };
+        links: [
+          { label: '農產業保險專區（農糧署，含各作物保單與申請書）', url: 'https://www.afa.gov.tw/cht/index.php?code=list&ids=277' },
+          { label: '農業金融署・推動農業保險', url: 'https://www.afna.gov.tw/view.php?theme=web_structure&id=208' },
+        ] };
     },
   },
   proc: {
