@@ -3771,6 +3771,21 @@ const PriceOverlay = ({ cropName, variety, market }) => {
     lineHeight: 1
   } }, sparkDates[i])))));
 };
+const _CROP_ALIAS = { "\u54C8\u5BC6\u74DC": "\u54C8\u871C\u74DC", "\u54C8\u871C\u74DC": "\u54C8\u5BC6\u74DC", "\u7A3B\u7C73": "\u6C34\u7A3B", "\u6C34\u7A3B": "\u7A3B\u7C73", "\u8336\u8449": "\u5305\u7A2E\u8336", "\u5305\u7A2E\u8336": "\u8336\u8449", "\u756A\u8304": "\u725B\u8543\u8304" };
+const cropCharSrc = (crop) => {
+  if (!crop || typeof window === "undefined") return null;
+  const ty = window.TAOYUAN_CROPS || {}, lib = window.COUNTY_CHARS || {};
+  if (ty[crop]) return ty[crop];
+  if (_CROP_ALIAS[crop] && ty[_CROP_ALIAS[crop]]) return ty[_CROP_ALIAS[crop]];
+  for (const [key, r] of Object.entries(REGIONS_DATA)) {
+    if (r.cropApi === crop || r.cropApi === _CROP_ALIAS[crop]) {
+      const ck = REGION_TO_CHAR_KEY[key];
+      if (ck && lib[ck]) return lib[ck];
+    }
+  }
+  return null;
+};
+const SWITCHABLE_CROPS = ["\u756A\u8304", "\u6C34\u871C\u6843", "\u751C\u67FF", "\u7DA0\u7AF9\u7B4D", "\u54C8\u5BC6\u74DC", "\u5305\u5FC3\u767D", "\u7518\u85CD-\u521D\u79CB", "\u9752\u8525-\u7C89\u8525", "\u67DA\u5B50", "\u8336\u8449", "\u7A3B\u7C73", "\u9752\u8525", "\u5927\u849C", "\u6D0B\u8525", "\u5C71\u85E5", "\u68A8", "\u897F\u74DC", "\u8292\u679C", "\u82AD\u6A02", "\u8349\u8393", "\u8461\u8404", "\u91CB\u8FE6", "\u9999\u8549", "\u9CF3\u68A8"];
 const ScaledOverlay = ({ x, y, w, h, children }) => /* @__PURE__ */ React.createElement("div", { style: {
   position: "absolute",
   left: `${x / 1440 * 100}%`,
@@ -3943,8 +3958,8 @@ const COUNTY_NAMES = {
   "extra_hsinchu_city": "\u65B0\u7AF9\u5E02",
   "extra_chiayi_city": "\u5609\u7FA9\u5E02"
 };
-const Page = ({ selected, cropOverride, onSelect, onCropSelect }) => {
-  const effectiveCrop = selected === "taoyuan" && cropOverride ? cropOverride : null;
+const Page = ({ selected, cropOverride, onSelect, onCropSelect, onCountyCropChange }) => {
+  const effectiveCrop = cropOverride || null;
   usePageDataReady();
   const region = REGIONS_DATA[selected] || REGIONS_DATA.taoyuan;
   const wx = useLiveWeather(selected);
@@ -4544,7 +4559,7 @@ const Page = ({ selected, cropOverride, onSelect, onCropSelect }) => {
     const charsLib = typeof window !== "undefined" && window.COUNTY_CHARS || {};
     const tyCrops = typeof window !== "undefined" && window.TAOYUAN_CROPS || {};
     const charKey = REGION_TO_CHAR_KEY[selected];
-    const svgStr = effectiveCrop && tyCrops[effectiveCrop] ? tyCrops[effectiveCrop] : selected === "taoyuan" ? tyCrops["\u725B\u8543\u8304"] || (charKey ? charsLib[charKey] : null) : charKey ? charsLib[charKey] : null;
+    const svgStr = effectiveCrop ? cropCharSrc(effectiveCrop) || (charKey ? charsLib[charKey] : null) : selected === "taoyuan" ? tyCrops["\u725B\u8543\u8304"] || (charKey ? charsLib[charKey] : null) : charKey ? charsLib[charKey] : null;
     const w = 181, h = 200;
     const cx = 846, footY = 143 + h;
     return /* @__PURE__ */ React.createElement(ScaledOverlay, { x: cx - w / 2, y: footY - h, w, h }, svgStr ? /* @__PURE__ */ React.createElement(
@@ -4569,7 +4584,29 @@ const Page = ({ selected, cropOverride, onSelect, onCropSelect }) => {
     letterSpacing: 1.5,
     lineHeight: "42px",
     fontFamily: "'Noto Sans TC',sans-serif"
-  } }, effectiveCrop || region.cropApi)), /* @__PURE__ */ React.createElement(ScaledOverlay, { x: 1042, y: 203, w: 310, h: 90 }, /* @__PURE__ */ React.createElement("div", { style: {
+  } }, effectiveCrop || region.cropApi)), /* @__PURE__ */ React.createElement(ScaledOverlay, { x: 1180, y: 140, w: 150, h: 34 }, /* @__PURE__ */ React.createElement(
+    "select",
+    {
+      value: SWITCHABLE_CROPS.includes(effectiveCrop || region.cropApi) ? effectiveCrop || region.cropApi : "",
+      onChange: (e) => {
+        if (e.target.value && onCountyCropChange) onCountyCropChange(e.target.value);
+      },
+      title: "\u9019\u500B\u7E23\u5E02\u60F3\u770B\u5225\u7684\u4F5C\u7269\uFF1F",
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: "#7a5418",
+        fontFamily: "'Noto Sans TC',sans-serif",
+        background: "#fff",
+        border: "2px solid #d8c9a4",
+        borderRadius: 99,
+        padding: "4px 8px",
+        cursor: "pointer"
+      }
+    },
+    !SWITCHABLE_CROPS.includes(effectiveCrop || region.cropApi) ? /* @__PURE__ */ React.createElement("option", { value: "" }, effectiveCrop || region.cropApi) : null,
+    SWITCHABLE_CROPS.map((c) => /* @__PURE__ */ React.createElement("option", { key: c, value: c }, c))
+  )), /* @__PURE__ */ React.createElement(ScaledOverlay, { x: 1042, y: 203, w: 310, h: 90 }, /* @__PURE__ */ React.createElement("div", { style: {
     fontSize: 15,
     fontWeight: 700,
     color: "#4e3628",
@@ -5831,9 +5868,15 @@ const Dashboard = ({ onBack, selected, cropOverride }) => {
 };
 const App = () => {
   const [selected, setSelected] = useState(() => localStorage.getItem("tw-map-sel") || "taoyuan");
-  const [taoyuanCrop, setTaoyuanCrop] = useState(
-    () => (localStorage.getItem("tw-map-sel") || "taoyuan") === "taoyuan" ? "\u6C34\u871C\u6843" : null
-  );
+  const [taoyuanCrop, setTaoyuanCrop] = useState(() => {
+    const sel = localStorage.getItem("tw-map-sel") || "taoyuan";
+    try {
+      const o = JSON.parse(localStorage.getItem("tw-map-crop-overrides") || "{}");
+      if (o[sel]) return o[sel];
+    } catch (e) {
+    }
+    return sel === "taoyuan" ? "\u6C34\u871C\u6843" : null;
+  });
   const computeView = () => {
     const h = window.location.hash;
     if (h === "#dashboard") return "dashboard";
@@ -5893,10 +5936,30 @@ const App = () => {
     handleSelect("taoyuan");
     setTaoyuanCrop(crop);
   };
+  const [countyCrops, setCountyCrops] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("tw-map-crop-overrides") || "{}");
+    } catch (e) {
+      return {};
+    }
+  });
+  const onCountyCropChange = (crop) => {
+    const next = { ...countyCrops };
+    const region = REGIONS_DATA[selected];
+    if (region && (crop === region.cropApi || _CROP_ALIAS[crop] === region.cropApi)) delete next[selected];
+    else next[selected] = crop;
+    setCountyCrops(next);
+    try {
+      localStorage.setItem("tw-map-crop-overrides", JSON.stringify(next));
+    } catch (e) {
+    }
+    setTaoyuanCrop(selected === "taoyuan" ? crop : null);
+  };
+  const effectiveOverride = taoyuanCrop || countyCrops[selected] || null;
   if (view === "dashboard") {
     return /* @__PURE__ */ React.createElement(Dashboard, { onBack: () => {
       window.location.hash = "";
-    }, selected, cropOverride: taoyuanCrop });
+    }, selected, cropOverride: effectiveOverride });
   }
   if (view === "taoyuan-detail") {
     return /* @__PURE__ */ React.createElement(TaoyuanDetail, { onBack: () => {
@@ -5907,13 +5970,14 @@ const App = () => {
     Page,
     {
       selected,
-      cropOverride: taoyuanCrop,
+      cropOverride: effectiveOverride,
       onSelect: (id) => {
         handleSelect(id);
-        if (id === "taoyuan") setTaoyuanCrop("\u6C34\u871C\u6843");
+        if (id === "taoyuan") setTaoyuanCrop(countyCrops["taoyuan"] || "\u6C34\u871C\u6843");
         else setTaoyuanCrop(null);
       },
-      onCropSelect
+      onCropSelect,
+      onCountyCropChange
     }
   );
 };
@@ -5922,6 +5986,5 @@ ReactDOM.createRoot(document.getElementById("root")).render(/* @__PURE__ */ Reac
 
 
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js",{updateViaCache:"none"}).catch(e=>console.warn("[sw] register failed",e)));}</script>
-
 <!-- 小農工具箱入口（repack.py 會重新注入此行） -->
 <script id="toolbox-entry" src="toolbox-entry.js"></script></body></html>

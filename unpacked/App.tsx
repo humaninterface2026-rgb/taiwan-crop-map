@@ -484,6 +484,26 @@ const PriceOverlay = ({cropName, variety, market}) => {
  * iPhone). Everything inside (fonts, SVG icons, padding) scales together so
  * the layout stays pixel-perfect to the design at any viewport.
  */
+/* ── B案: 任意作物 → 角色圖 ─────────────────────────────────────────────
+ * TAOYUAN_CROPS(10 鄉鎮作物) 優先；否則找「該作物是哪個縣市的代表作」→
+ * COUNTY_CHARS[該縣市]。含哈密瓜/哈蜜瓜、稻米/水稻、茶葉/包種茶 別名。 */
+const _CROP_ALIAS = { '哈密瓜':'哈蜜瓜','哈蜜瓜':'哈密瓜','稻米':'水稻','水稻':'稻米','茶葉':'包種茶','包種茶':'茶葉','番茄':'牛蕃茄' };
+const cropCharSrc = (crop) => {
+  if (!crop || typeof window === 'undefined') return null;
+  const ty = window.TAOYUAN_CROPS || {}, lib = window.COUNTY_CHARS || {};
+  if (ty[crop]) return ty[crop];
+  if (_CROP_ALIAS[crop] && ty[_CROP_ALIAS[crop]]) return ty[_CROP_ALIAS[crop]];
+  for (const [key, r] of Object.entries(REGIONS_DATA)) {
+    if (r.cropApi === crop || r.cropApi === _CROP_ALIAS[crop]) {
+      const ck = REGION_TO_CHAR_KEY[key];
+      if (ck && lib[ck]) return lib[ck];
+    }
+  }
+  return null;
+};
+// 換作物下拉清單（有行情資料 + 有角色圖的作物）
+const SWITCHABLE_CROPS = ['番茄','水蜜桃','甜柿','綠竹筍','哈密瓜','包心白','甘藍-初秋','青蔥-粉蔥','柚子','茶葉','稻米','青蔥','大蒜','洋蔥','山藥','梨','西瓜','芒果','芭樂','草莓','葡萄','釋迦','香蕉','鳳梨'];
+
 const ScaledOverlay = ({x, y, w, h, children}) => (
   <div style={{
     position:'absolute',
@@ -706,12 +726,13 @@ const COUNTY_NAMES = {
  * positioned cards (Weather, Price) that overlay the static data figures so
  * they show live values from Open-Meteo + 農業部交易行情 APIs.
  */
-const Page = ({selected, cropOverride, onSelect, onCropSelect}) => {
+const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChange}) => {
   // When a taoyuan township polygon is clicked, App sets selected='taoyuan'
   // AND cropOverride=<that township's crop>. The hero panel then uses this
   // crop name everywhere instead of the county default (番茄), so character /
   // 作物名 / hello text / 今日價格 / 查看更多 all flip to the township's crop.
-  const effectiveCrop = (selected === 'taoyuan' && cropOverride) ? cropOverride : null;
+  // B案: 所有縣市皆可帶 cropOverride（App 端已含 localStorage 的縣市自選作物）
+  const effectiveCrop = cropOverride || null;
   // Subscribe to async page-data load so we re-render once COUNTY_CHARS /
   // BUTTON_SVGS / TAOYUAN_CROPS land. Before that, hover overlays render as
   // empty (existing `?.` chains already handle missing keys gracefully).
@@ -1280,7 +1301,7 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect}) => {
         const tyCrops   = (typeof window !== 'undefined' && window.TAOYUAN_CROPS) || {};
         const charKey   = REGION_TO_CHAR_KEY[selected];
         // Priority: taoyuan-township override → taoyuan default 牛蕃茄 → county SVG
-        const svgStr    = effectiveCrop && tyCrops[effectiveCrop] ? tyCrops[effectiveCrop]
+        const svgStr    = effectiveCrop ? (cropCharSrc(effectiveCrop) || (charKey ? charsLib[charKey] : null))
                        : selected === 'taoyuan'
                          ? (tyCrops['牛蕃茄'] || (charKey ? charsLib[charKey] : null))
                          : (charKey ? charsLib[charKey] : null);
@@ -1322,6 +1343,22 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect}) => {
         }}>
           {effectiveCrop || region.cropApi}
         </div>
+      </ScaledOverlay>
+
+      {/* (3b) B案: 換作物下拉 — 貼在作物名右側的小 pill */}
+      <ScaledOverlay x={1180} y={140} w={150} h={34}>
+        <select
+          value={SWITCHABLE_CROPS.includes(effectiveCrop || region.cropApi) ? (effectiveCrop || region.cropApi) : ''}
+          onChange={(e) => { if (e.target.value && onCountyCropChange) onCountyCropChange(e.target.value); }}
+          title="這個縣市想看別的作物？"
+          style={{
+            fontSize:12, fontWeight:700, color:'#7a5418', fontFamily:"'Noto Sans TC',sans-serif",
+            background:'#fff', border:'2px solid #d8c9a4', borderRadius:99, padding:'4px 8px', cursor:'pointer',
+          }}>
+          {!SWITCHABLE_CROPS.includes(effectiveCrop || region.cropApi)
+            ? <option value="">{effectiveCrop || region.cropApi}</option> : null}
+          {SWITCHABLE_CROPS.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
       </ScaledOverlay>
 
       {/* (4) 3-line hello text inside the Figma-baked speech bubble.
@@ -2837,9 +2874,15 @@ const App = () => {
   // CharacterCard so it shows e.g. 綠竹筍 + the matching TAOYUAN_CROPS SVG.
   // Default 水蜜桃 so the cold-load landing shows the 拉拉山 township slot
   // (Figma's headline crop) instead of inheriting 番茄 from region.cropApi.
-  const [taoyuanCrop, setTaoyuanCrop] = useState(
-    () => (localStorage.getItem('tw-map-sel') || 'taoyuan') === 'taoyuan' ? '水蜜桃' : null
-  );
+  const [taoyuanCrop, setTaoyuanCrop] = useState(() => {
+    const sel = localStorage.getItem('tw-map-sel') || 'taoyuan';
+    // B案: 冷載入先讀該縣市的自選作物（localStorage），沒有才用桃園預設水蜜桃
+    try {
+      const o = JSON.parse(localStorage.getItem('tw-map-crop-overrides') || '{}');
+      if (o[sel]) return o[sel];
+    } catch (e) {}
+    return sel === 'taoyuan' ? '水蜜桃' : null;
+  });
   const computeView = () => {
     const h = window.location.hash;
     if (h === '#dashboard') return 'dashboard';
@@ -2921,8 +2964,26 @@ const App = () => {
     setTaoyuanCrop(crop);
   };
 
+  // B案: 各縣市自選作物（persist 到 localStorage，重整/回訪都記得）
+  const [countyCrops, setCountyCrops] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('tw-map-crop-overrides') || '{}'); }
+    catch (e) { return {}; }
+  });
+  const onCountyCropChange = (crop) => {
+    const next = { ...countyCrops };
+    const region = REGIONS_DATA[selected];
+    // 選回該縣市的預設作物＝清掉 override
+    if (region && (crop === region.cropApi || _CROP_ALIAS[crop] === region.cropApi)) delete next[selected];
+    else next[selected] = crop;
+    setCountyCrops(next);
+    try { localStorage.setItem('tw-map-crop-overrides', JSON.stringify(next)); } catch (e) {}
+    setTaoyuanCrop(selected === 'taoyuan' ? crop : null);
+  };
+  // 有效 override：鄉鎮點選(taoyuanCrop) 優先，其次縣市自選
+  const effectiveOverride = taoyuanCrop || countyCrops[selected] || null;
+
   if (view === 'dashboard') {
-    return <Dashboard onBack={() => { window.location.hash = ''; }} selected={selected} cropOverride={taoyuanCrop}/>;
+    return <Dashboard onBack={() => { window.location.hash = ''; }} selected={selected} cropOverride={effectiveOverride}/>;
   }
   if (view === 'taoyuan-detail') {
     return <TaoyuanDetail onBack={() => { window.location.hash = 'dashboard'; }} onCropSelect={onCropSelect}/>;
@@ -2931,15 +2992,16 @@ const App = () => {
   // taoyuan-crop override.
   return <Page
     selected={selected}
-    cropOverride={taoyuanCrop}
+    cropOverride={effectiveOverride}
     onSelect={(id) => {
       handleSelect(id);
-      // 桃園 default crop = 水蜜桃 (拉拉山, the township slot Figma highlights).
-      // Other counties clear any stale override.
-      if (id === 'taoyuan') setTaoyuanCrop('水蜜桃');
+      // 桃園 default crop = 自選 or 水蜜桃；其他縣市清掉 session override，
+      // 但 countyCrops 的自選（localStorage）仍會經由 effectiveOverride 生效。
+      if (id === 'taoyuan') setTaoyuanCrop(countyCrops['taoyuan'] || '水蜜桃');
       else                  setTaoyuanCrop(null);
     }}
     onCropSelect={onCropSelect}
+    onCountyCropChange={onCountyCropChange}
   />;
 };
 
