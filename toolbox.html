@@ -344,7 +344,7 @@ const CALCS = {
         return {
           headline: '「' + CROP.display + '」選品種，先看這幾個重點！',
           detail: notes.map((n, i) => (i + 1) + '. ' + n).join(' ') + ' ' + mkt
-            + ' ＊實際品種名請洽在地農業改良場與種苗行，小面積試種後再擴大。（' + (NZD.A._pack.caveat || '').slice(0, 70) + '…）',
+            + ' ＊實際品種名請洽在地農業改良場與種苗行，小面積試種後再擴大。',
         };
       }
       const summer = m >= 5 && m <= 9;
@@ -391,7 +391,7 @@ const CALCS = {
       if (isPerennial) {
         return {
           headline: '「' + CROP.display + '」是多年生作物——重點不是輪作，是園區管理！',
-          detail: (packRot ? packRot + ' ' : '') + '多年生果樹/茶園沒有「每季換作物」的問題；要顧的是：老園更新時避免立刻在原穴補植同種（忌地現象）、行間可種綠肥（魯冰/大豆）養地、病株移除後該區土壤先消毒休養。詳見專屬參數說明：' + (NZD.A._pack.caveat || '').slice(0, 80) + '…',
+          detail: (packRot ? packRot + ' ' : '') + '多年生果樹/茶園沒有「每季換作物」的問題；要顧的是：老園更新時避免立刻在原穴補植同種（忌地現象）、行間可種綠肥（魯冰/大豆）養地、病株移除後該區土壤先消毒休養。',
         };
       }
       const plans = {
@@ -1224,7 +1224,7 @@ function openModal(idx) {
   }
   if (t.extra && !(NZD.A._pack && /牛蕃茄|番茄/.test(t.extra))) html += '<div class="extra">' + t.extra + '</div>';
   if (t.calc && !CROP.isTomato) html += '<div class="extra">' + (NZD.A._pack
-    ? '＊已套用「' + CROP.display + '」專屬參數（通則整理 ' + NZD.A._pack.updated + '；' + NZD.A._pack.caveat.slice(0, 60) + '…）'
+    ? '＊數字為「' + CROP.display + '」的通則參考（' + NZD.A._pack.updated + ' 整理），實際請依品種與當地條件調整。'
     : '＊試算參數以牛蕃茄常態為預設，「' + CROP.display + '」專屬參數陸續補上。') + '</div>';
   if (!t.calc) html += '<span class="phase-badge">🔧 完整互動功能規劃中（目前提供原則建議）</span>';
 
@@ -1353,7 +1353,8 @@ const DYN_PRINCIPLES = {
   },
   '採收時機預測': () => {
     const D = NZD.A.daysToHarvest, H = NZD.A.hotHarvestAdvance;
-    return ['主窗口：約 ' + D.lo + '~' + D.hi + ' 天（' + (NZD.A._pack ? '天數口徑見下方說明' : '定植後') + '）',
+    const basis = NZD.A._pack && /多年生|果樹|茶樹|竹/.test(NZD.A._pack.caveat || '') ? '以當年生長季計' : '定植後';
+    return ['主窗口：約 ' + D.lo + '~' + D.hi + ' 天（' + basis + '）',
       '高溫（≥' + H.temp + '°C）成熟提早約 ' + H.days + ' 天', '建議分批採收，先採成熟度高的'];
   },
   '保鮮／儲存建議': () => {
