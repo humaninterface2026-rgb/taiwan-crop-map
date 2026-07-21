@@ -153,10 +153,10 @@ const STAGES = [
 
 const TOOLS = [
   // ── 種前規劃 ──
-  { stage: 0, icon: '🌱', type: 'chat', name: '作物選種建議', desc: '幫你依地區、氣候、土質挑適合的品種。',
+  { stage: 0, icon: '🌱', type: 'chat', name: '作物選種建議', desc: '幫你依定植月份和目標挑對路的品種方向。', calc: 'variety',
     principles: ['高溫潮濕：優先耐熱、抗病（青枯/葉斑）型', '日夜溫差大：可選高糖度與果色穩定型', '黏土：建議嫁接苗或強根系砧木，降低積水風險'],
     extra: '之後可選地區（北/中/南/東）、氣候、土壤後直接產生建議。' },
-  { stage: 0, icon: '🔄', type: 'chat', name: '輪作／間作規劃', desc: '幫你排下幾季種什麼，避免連作生病。',
+  { stage: 0, icon: '🔄', type: 'chat', name: '輪作／間作規劃', desc: '幫你排下幾季種什麼，避免連作生病。', calc: 'rotate',
     principles: ['避免茄科連作超過 2 季', '至少插入 1 季非茄科（豆科/十字花科/禾本科）', '間作可用短期葉菜或香草作物分散病蟲壓力'],
     extra: '之後可選規劃季數（2–4 季）與目標（穩定收益/土壤恢復/降病蟲害）。' },
   { stage: 0, icon: '📅', type: 'data', name: '最佳播種時機', desc: '看未來 16 天哪天最適合播種，選定後幫你排整季時程。', custom: 'sow',
@@ -165,9 +165,9 @@ const TOOLS = [
   { stage: 0, icon: '🧮', type: 'chat', name: '成本試算', desc: '輸入面積和預算，幫你算成本和毛利。',
     principles: ['常態範例（1 分地）：產量 3,200 kg/分、售價 40~50 元/kg、總成本約 3.8~5.5 萬元', '毛收入約 12.8~16.0 萬元，毛利常見落點約 7.3~12.2 萬元/分地'],
     calc: 'cost' },
-  { stage: 0, icon: '🪱', type: 'chat', name: '土壤／地力分析', desc: '輸入 pH 和有機質，幫你看地力健不健康。',
+  { stage: 0, icon: '🪱', type: 'chat', name: '土壤／地力分析', desc: '輸入 pH 和有機質，直接給你資材採買清單。', calc: 'soil',
     principles: ['pH 建議：6.0 ~ 6.8', '有機質以「適中」為佳，過低補有機質、過高防氮過剩', '排水、通氣、根系健康比單次施肥更關鍵'] },
-  { stage: 0, icon: '📋', type: 'data', name: '補助申請助理', desc: '幫你找可申請的補助和要準備的文件。',
+  { stage: 0, icon: '📋', type: 'data', name: '補助申請助理', desc: '三題快篩，看你符合哪些補助、缺什麼文件。', calc: 'subsidy',
     principles: [],
     extra: '可直接問：「我有 2 分地牛蕃茄，想申請灌溉設備補助，幫我整理可申請方案與所需文件」。' },
   // ── 生長管理 ──
@@ -184,7 +184,7 @@ const TOOLS = [
     extra: '例：「今天 16:30 灌溉 20 分鐘，番茄區 B 有黃葉」。' },
   { stage: 1, icon: '📶', type: 'data', name: 'IoT 感測器整合', desc: '把田裡量到的數值輸進來，馬上判斷要不要處理。', calc: 'readings',
     principles: ['異常門檻範例：土壤濕度 <30%、棚內 >35°C、濕度 >90% 持續 2 小時即告警'] },
-  { stage: 1, icon: '🚁', type: 'data', name: '無人機影像分析', desc: '用空拍圖幫你找出田裡哪一區有狀況。',
+  { stage: 1, icon: '🚁', type: 'data', name: '無人機影像分析', desc: '想代噴或空拍巡田？告訴你怎麼找服務、行情多少。', calc: 'drone',
     principles: ['流程：空拍影像 → 區塊分割 → 異常熱點標記 → 回傳巡田優先順序'] },
   { stage: 1, icon: '🛡️', type: 'chat', name: '連作障礙預防', desc: '幫你評估連作風險，避免越種越差。', calc: 'chain',
     principles: ['低風險：連作 <2 季 且 病害 ≤1 次', '中風險：連作 2 季 或 病害 1~2 次', '高風險：連作 ≥3 季 或 病害 ≥2 次'] },
@@ -210,20 +210,20 @@ const TOOLS = [
   { stage: 3, icon: '📣', type: 'link', name: '行銷文案生成', desc: '幫你寫貼文文案，把今天採收的番茄賣出去。', calc: 'copywrite',
     principles: [],
     extra: '例：「幫我寫 IG 貼文：今日牛蕃茄採收」。' },
-  { stage: 3, icon: '📦', type: 'auto', name: '出口文件輔助', desc: '幫你列出外銷要準備哪些文件。',
+  { stage: 3, icon: '📦', type: 'auto', name: '出口文件輔助', desc: '選目的地，給你外銷文件清單和申請順序。', calc: 'export',
     principles: [] },
   // ── 經營管理 ──
   { stage: 4, icon: '💰', type: 'auto', name: '財務損益分析', desc: '幫你算這一季賺不賺，收入成本毛利一次看。', calc: 'pnl',
     principles: ['總收入 = 產量 × 售價 × 面積', '總成本沿用成本試算（種苗＋肥料＋人力）', '輸出毛利、毛利率與損平售價，判斷是否值得種'] },
   { stage: 4, icon: '👥', type: 'auto', name: '人力排班', desc: '幫你排每週人力，採收最忙的時候不缺工。', calc: 'labor',
     principles: ['採收日優先配足人力，避免過熟與損耗', '採收高峰期：20~28 人天/週（約每天 4~5 人）', '育苗/定植期：10~14 人天/週；連續高工時需安排輪休'] },
-  { stage: 4, icon: '📊', type: 'data', name: '跨季績效比較', desc: '幫你比這季和上季，看有沒有種得更好。',
+  { stage: 4, icon: '📊', type: 'data', name: '跨季績效比較', desc: '幫你比這季和上季，看有沒有種得更好。', calc: 'compare',
     principles: ['看產量是否提升', '看單位成本是否下降', '看平均售價是否提升'] },
-  { stage: 4, icon: '🌍', type: 'data', name: '碳足跡計算', desc: '幫你估每公斤產品排多少碳，肥料用電都算。',
+  { stage: 4, icon: '🌍', type: 'data', name: '碳足跡計算', desc: '幫你估每公斤產品排多少碳，肥料用電都算。', calc: 'carbon',
     principles: ['計算項目：肥料、用電、用水、運輸里程；輸出每公斤產品碳排估值'] },
-  { stage: 4, icon: '📚', type: 'link', name: '學習資源推薦', desc: '幫你挑值得學的主題和課程，種得更上手。',
+  { stage: 4, icon: '📚', type: 'link', name: '學習資源推薦', desc: '選主題，給你免費的官方課程和講習資源。', calc: 'learn',
     principles: ['推薦主題：病蟲害整合管理、精準灌溉、採後處理、農產品牌行銷'] },
-  { stage: 4, icon: '☂️', type: 'link', name: '農業保險諮詢', desc: '幫你看該保哪種險，天災來了不怕血本無歸。',
+  { stage: 4, icon: '☂️', type: 'link', name: '農業保險諮詢', desc: '選你最怕的風險，告訴你保什麼險、去哪保。', calc: 'insure',
     principles: ['先評估颱風豪雨與病害風險，再比對天災保險與收入保險方案'] },
 ];
 
@@ -312,6 +312,246 @@ const CALCS = {
         headline: '判斷結果：' + level + '（均溫 ' + t + '°C、雨量 ' + r + 'mm/7日）',
         detail: impact + ' ' + action + ' 門檻：理想 20~30°C 且 <60mm；16~20°C 或 60~120mm 需管理；<16°C、>32°C 或 >120mm 不建議。',
       };
+    },
+  },
+  /* ── 批次5：靜態知識庫（資料截至 2026-07，金額/資格以主辦單位公告為準）── */
+  variety: {
+    inputs: [
+      { key: 'month', label: '預計定植月', unit: '月', def: String(new Date().getMonth() + 2 > 12 ? 1 : new Date().getMonth() + 2) },
+      { key: 'goal', label: '你最在意', unit: '', def: '價格好', options: ['價格好', '穩定不怕病', '省工好照顧'] },
+    ],
+    button: '推薦品種方向 ›',
+    async run(v) {
+      const m = Math.min(12, Math.max(1, +v.month || 1));
+      const summer = m >= 5 && m <= 9;
+      const lib = [
+        { name: '耐熱型（如夏季專用品系）', fit: summer ? 2 : 0, note: '6~9 月定植首選，高溫著果率較穩' },
+        { name: '抗病型（抗青枯/萎凋病系）', fit: 1, note: '連作田或發過土傳病的田優先' },
+        { name: '高糖高品質型', fit: summer ? 0 : 2, note: '日夜溫差大的秋冬作風味最好，走直銷賣好價' },
+        { name: '大果量產型', fit: 1, note: '走批發衝量用，管理要跟得上' },
+      ];
+      const goalBoost = v.goal === '穩定不怕病' ? '抗病型' : v.goal === '省工好照顧' ? '大果量產型' : '高糖高品質型';
+      lib.forEach(x => { if (x.name.startsWith(goalBoost.slice(0, 3))) x.fit += 1; });
+      lib.sort((a, b) => b.fit - a.fit);
+      const hm = String((m + 3) % 12 === 0 ? 12 : (m + 3) % 12).padStart(2, '0');
+      let mkt = '';
+      try {
+        const mk = await getMarket();
+        if (mk && mk.monthly) {
+          const rows = mk.monthly.filter(x => x.key.slice(5, 7) === hm).slice(-3);
+          if (rows.length) mkt = ' 行情面：' + m + ' 月定植約 ' + +hm + ' 月起採，近 ' + rows.length + ' 年 ' + +hm + ' 月均價約 ' + (rows.reduce((a, x) => a + x.price, 0) / rows.length).toFixed(0) + ' 元/kg。';
+        }
+      } catch (e) {}
+      return {
+        headline: '建議方向：' + lib[0].name + '！',
+        detail: '排序理由：' + lib.slice(0, 3).map((x, i) => (i + 1) + '. ' + x.name + '——' + x.note).join('；') + '。'
+          + mkt + ' ＊品種方向為通則示範，實際品種名請洽在地種苗行與桃園區農業改良場，並小面積試種後再擴大。',
+      };
+    },
+  },
+  rotate: {
+    inputs: [
+      { key: 'goal', label: '下季目標', unit: '', def: '養地恢復', options: ['養地恢復', '打斷病蟲循環', '還是要有收入'] },
+    ],
+    button: '排下季 ›',
+    prepare() {
+      const pest = NZD.S.get('pest', []);
+      const soil = pest.filter(p => p.soilborne).length;
+      if (soil) calcNote('📡 本季有 ' + soil + ' 次土傳病紀錄——強烈建議下季輪作，別再種茄科。');
+    },
+    run(v) {
+      const month = new Date().getMonth() + 1;
+      const plans = {
+        '養地恢復': { pick: '豆科毛豆（或休耕種綠肥田菁）', why: '固氮養地，收成還能賣；綠肥翻耕更省事', when: '秋作 9~10 月、春作 2~3 月播' },
+        '打斷病蟲循環': { pick: '禾本科硬質玉米（或水稻輪作）', why: '和茄科完全不同科，土傳病原斷糧', when: '春秋皆可；田若能淹水，水旱輪作效果最好' },
+        '還是要有收入': { pick: '蔥蒜類（青蔥/大蒜）', why: '非茄科又有行情，還有抑菌效果', when: '大蒜 9~10 月種、青蔥全年可分批' },
+      };
+      const p = plans[v.goal];
+      const solar = month >= 6 && month <= 8 ? ' 另外現在是 6~8 月——收完可先做太陽能消毒（透明膜覆蓋曝曬 4 週）再種下季。' : '';
+      return {
+        headline: '下季建議：' + p.pick + '！',
+        detail: '為什麼：' + p.why + '。時機：' + p.when + '。連作判定：番茄/茄子/辣椒/馬鈴薯同為茄科都算連作。'
+          + '綠燈田區可在畦邊間作羅勒或萬壽菊驅粉蝨薊馬（忌與茴香、馬鈴薯相鄰）。' + solar,
+      };
+    },
+  },
+  soil: {
+    inputs: [
+      { key: 'ph', label: '土壤 pH', unit: '', def: '6.2' },
+      { key: 'ec', label: 'EC 電導度（有測再填）', unit: 'dS/m', def: '' },
+      { key: 'om', label: '有機質', unit: '', def: '不清楚', options: ['不清楚', '偏低(<2%)', '適中(2~3%)', '偏高(>3%)'] },
+    ],
+    button: '開採買清單 ›',
+    run(v) {
+      const ph = +v.ph, ec = v.ec === '' ? null : +v.ec;
+      const cards = [];
+      if (ph < NZD.C.ph.lo) {
+        const lime = Math.min(200, Math.round((6.4 - ph) / 0.5 * 100 / 20) * 20);
+        cards.push('偏酸（pH ' + ph + '）→ 苦土石灰每分地約 ' + lime + ' kg，整地時撒；一次最多 200kg，兩週後複測');
+      } else if (ph > NZD.C.ph.hi) cards.push('偏鹼（pH ' + ph + '）→ 不撒石灰！改施硫磺粉每分地 20~40kg 或多下有機質堆肥慢慢調');
+      else cards.push('pH ' + ph + ' 在理想區間 ' + NZD.C.ph.lo + '~' + NZD.C.ph.hi + ' ✓');
+      if (ec != null) {
+        if (ec > 2.0) cards.push('EC ' + ec + ' 太高→先大水淹灌洗鹽 1~2 次再定植，基肥減 3 成');
+        else if (ec > 1.2) cards.push('EC ' + ec + ' 偏高→鹽分開始累積，減化肥、多有機質');
+        else cards.push('EC ' + ec + ' 正常 ✓');
+      }
+      if (v.om === '偏低(<2%)') cards.push('有機質偏低→完熟堆肥每分地約 2 噸，整地時混入');
+      else if (v.om === '適中(2~3%)') cards.push('有機質適中→堆肥每分地 1 噸保養即可');
+      else if (v.om === '偏高(>3%)') cards.push('有機質充足→免補堆肥，注意氮不要過量');
+      const rec = NZD.S.get('readings', []);
+      rec.unshift({ date: new Date().toISOString(), type: 'soil', ph, ec, om: v.om });
+      NZD.S.set('readings', rec.slice(0, 60));
+      const bad = cards.filter(c => !c.includes('✓')).length;
+      return {
+        headline: bad ? '要處理 ' + bad + ' 件事，清單開好了！' : '土壤狀況很好，照常管理！',
+        detail: cards.join('。') + '。基肥原則：低氮高磷開根配方；之後追肥照「施肥計畫」的生育期走。已記錄這次檢測，下次再測就能看趨勢。',
+      };
+    },
+  },
+  subsidy: {
+    inputs: [
+      { key: 'ins', label: '有沒有農保/農職保', unit: '', def: '有', options: ['有', '沒有'] },
+      { key: 'land', label: '土地狀況', unit: '', def: '自有', options: ['自有', '承租（有書面契約）', '承租（口頭約）'] },
+      { key: 'age', label: '年齡', unit: '', def: '45 歲以上', options: ['未滿 45 歲', '45 歲以上'] },
+    ],
+    button: '看我能領什麼 ›',
+    run(v) {
+      const okIns = v.ins === '有', okLand = v.land !== '承租（口頭約）', young = v.age === '未滿 45 歲';
+      const items = [
+        { name: '農業設施補助（溫網室）', need: okIns && okLand, gap: !okIns ? '要先有農保' : !okLand ? '承租要有書面契約' : '', agency: '農糧署（向公所/農會申請）', docs: '土地證明、經營計畫、報價單' },
+        { name: '小型農機補助', need: okIns, gap: okIns ? '' : '要先有農保', agency: '農糧署', docs: '購機發票、農保證明' },
+        { name: '產銷履歷驗證補助', need: true, gap: '', agency: '農糧署/驗證機構', docs: '驗證合約、繳費單據' },
+        { name: '農業保險保費補助（保費 1/2 起）', need: true, gap: '', agency: '農金署（投保時自動折抵）', docs: '投保時由保險公司處理' },
+        { name: '青年農民專案輔導（貸款利息/百萬獎勵）', need: young, gap: young ? '' : '限 18~45 歲', agency: '農業部青農輔導平台', docs: '經營計畫書' },
+        { name: '天然災害現金救助', need: true, gap: '', agency: '災後向公所申報（有時限！）', docs: '災前災後照片、耕作事實證明' },
+      ];
+      const ok = items.filter(x => x.need && !x.gap), near = items.filter(x => x.gap);
+      return {
+        headline: '你目前符合 ' + ok.length + ' 項' + (near.length ? '、差一步 ' + near.length + ' 項' : '') + '！',
+        detail: '✅ 符合：' + ok.map(x => x.name + '（' + x.agency + '；備 ' + x.docs + '）').join('｜')
+          + (near.length ? '。🟡 差一步：' + near.map(x => x.name + '——' + x.gap).join('｜') : '')
+          + '。💡 天災救助的關鍵是「災前照片」——颱風來之前記得去田裡拍全景＋設施照。＊方案與金額為 2026-07 整理的示範清單，申請前以公所/農會公告為準。',
+      };
+    },
+  },
+  drone: {
+    inputs: [
+      { key: 'need', label: '你想做什麼', unit: '', def: '代噴農藥', options: ['代噴農藥', '空拍巡田看長勢'] },
+    ],
+    button: '怎麼找服務 ›',
+    run(v) {
+      if (v.need === '代噴農藥') return {
+        headline: '找「植保無人機代噴」——從農會問最快！',
+        detail: '① 向所在地農會推廣部問在地代噴業者名單（需有農噴專業證照）。② 行情概算：每分地約 100~200 元/次，大面積另議。③ 眉角：藥劑要自備並確認適用航噴劑型；噴後在「作業日誌」記一筆（含停藥期）。無人機代噴適合大面積或設施頂噴不到的地方，小田區人工還是比較划算。',
+      };
+      return {
+        headline: '空拍巡田：小面積用手機無人機就夠！',
+        detail: '① 消費級空拍機（照相畫質即可）飛田區上方 30~50 公尺拍全景。② 看什麼：色差區塊（黃化=缺肥或病害前期）、倒伏、積水點。③ 發現異常區→下田對照，用「病蟲害辨識」判斷。沒有無人機也可以問農會或青農聯誼會有沒有共用機。＊空拍需遵守民航法規：機場周邊禁飛、400 呎以下。',
+      };
+    },
+  },
+  export: {
+    inputs: [
+      { key: 'dest', label: '想外銷去哪', unit: '', def: '日本', options: ['日本', '香港/澳門', '新加坡/馬來西亞'] },
+    ],
+    button: '要準備什麼 ›',
+    run(v) {
+      const common = '共同必備：① 輸出檢疫證明書（向防檢署申請，貨到港前辦好）② 農藥殘留檢驗報告（目的地標準比台灣嚴，先送驗）③ 包裝標示（品名/重量/產地/生產者）④ 報關文件（多半交給報關行處理）';
+      const extra = {
+        '日本': '日本另需：符合日本肯定列表農殘標準（最嚴！建議用藥期就對表管理）；生鮮番茄輸日有指定檢疫條件，務必先向防檢署確認品項開放狀態。',
+        '香港/澳門': '港澳門檻相對低：無檢疫證明強制要求（仍建議附），但通路商多半要農殘報告與產銷履歷。',
+        '新加坡/馬來西亞': '星馬：新加坡 SFA 對農殘查驗嚴格；馬來西亞清真市場對包裝標示有額外要求。兩地都建議走有經驗的貿易商。',
+      };
+      return {
+        headline: '外銷' + v.dest + '的文件清單開好了！',
+        detail: common + '。' + extra[v.dest] + ' 建議路徑：第一次外銷先找有經驗的貿易商或農會外銷班合作，別自己單打。單位：防檢署（檢疫）、標檢局（部分品項）。＊流程為 2026-07 整理概要，出貨前以防檢署公告為準。',
+      };
+    },
+  },
+  compare: {
+    inputs: [
+      { key: 'lastYield', label: '上季產量', unit: 'kg', def: '3000' },
+      { key: 'lastCost', label: '上季總成本', unit: '元', def: '90000' },
+      { key: 'lastPrice', label: '上季均價', unit: '元/kg', def: '45' },
+    ],
+    button: '跟這季比 ›',
+    prepare() {
+      const cost = NZD.S.get('cost'), y = NZD.S.get('yield');
+      const bits = [];
+      if (y) bits.push('本季產量用預估 ' + y.total_kg.toLocaleString() + ' kg');
+      if (cost) bits.push('本季成本用試算 ' + cost.total_cost.toLocaleString() + ' 元、售價 ' + cost.expected_price + ' 元');
+      calcNote(bits.length ? '📡 ' + bits.join('；') + '——輸入上季數字就能比' : '先做過成本試算/產量預估，比較才有本季資料。');
+    },
+    run(v) {
+      const cost = NZD.S.get('cost'), y = NZD.S.get('yield');
+      if (!cost && !y) return { headline: '本季還沒有資料可以比！', detail: '先用「成本試算」和「產量預估」建立本季數字，季末再回來比。' };
+      const cur = { yield: y ? y.total_kg : (cost ? cost.expected_qty : 0), cost: cost ? cost.total_cost : 0, price: cost ? cost.expected_price : 0 };
+      const pct = (a, b) => b > 0 ? Math.round((a - b) / b * 100) : 0;
+      const dy = pct(cur.yield, +v.lastYield), dc = pct(cur.cost, +v.lastCost), dp = pct(cur.price, +v.lastPrice);
+      const good = (dy > 0 ? 1 : 0) + (dc < 0 ? 1 : 0) + (dp > 0 ? 1 : 0);
+      const arrow = n => n > 0 ? '↑' + n + '%' : n < 0 ? '↓' + (-n) + '%' : '持平';
+      return {
+        headline: good >= 2 ? '有進步！三個指標中 ' + good + ' 個變好。' : good === 1 ? '互有勝負——一個指標變好。' : '這季比較辛苦，三個指標都沒贏。',
+        detail: '產量 ' + arrow(dy) + '（' + (+v.lastYield).toLocaleString() + '→' + cur.yield.toLocaleString() + ' kg）、成本 ' + arrow(dc)
+          + '（' + (+v.lastCost).toLocaleString() + '→' + cur.cost.toLocaleString() + ' 元，降才是好）、售價 ' + arrow(dp)
+          + '（' + v.lastPrice + '→' + cur.price + ' 元/kg）。歸因建議：產量掉→回看病蟲害與缺工紀錄；成本升→看成本試算哪項暴增；售價低→分級率與通路要調。',
+      };
+    },
+  },
+  carbon: {
+    inputs: [
+      { key: 'fert', label: '化肥用量', unit: 'kg/季', def: '300' },
+      { key: 'power', label: '用電', unit: '度/季', def: '500' },
+      { key: 'km', label: '運輸里程', unit: 'km/季', def: '400' },
+      { key: 'out', label: '總產量', unit: 'kg', def: '3200' },
+    ],
+    button: '算碳足跡 ›',
+    prepare() {
+      const y = NZD.S.get('yield');
+      if (y && y.total_kg) { document.getElementById('f_out').value = y.total_kg; calcNote('📡 產量已帶入預估的 ' + y.total_kg.toLocaleString() + ' kg'); }
+    },
+    run(v) {
+      const EF = { fert: 3.0, power: 0.494, km: 0.25 }; // kgCO2e/單位（概算係數：化肥製造+施用、台電排碳係數、小貨車）
+      const total = (+v.fert || 0) * EF.fert + (+v.power || 0) * EF.power + (+v.km || 0) * EF.km;
+      const per = total / Math.max(1, +v.out || 1);
+      return {
+        headline: '這季碳足跡約 ' + Math.round(total).toLocaleString() + ' kgCO2e，每公斤番茄約 ' + per.toFixed(2) + ' kg！',
+        detail: '組成：化肥 ' + Math.round((+v.fert || 0) * EF.fert) + '（係數 3.0/kg 概算）＋用電 ' + Math.round((+v.power || 0) * EF.power)
+          + '（0.494/度）＋運輸 ' + Math.round((+v.km || 0) * EF.km) + '（0.25/km）kgCO2e。減碳最有感的順序：化肥減量精準施（用「施肥計畫」分期下）→ 就近銷售減運輸 → 省電。＊為概算係數（2026-07 整理），正式碳盤查請依環境部/農業部公告方法學。',
+      };
+    },
+  },
+  learn: {
+    inputs: [
+      { key: 'topic', label: '想學什麼', unit: '', def: '病蟲害管理', options: ['病蟲害管理', '肥培與土壤', '採後處理保鮮', '行銷與品牌', '智慧農業'] },
+    ],
+    button: '推薦資源 ›',
+    run(v) {
+      const lib = {
+        '病蟲害管理': '① 農民學院（academy.moa.gov.tw）搜「病蟲害整合管理 IPM」入門班——免費線上課。② 桃園區農業改良場（tydares.gov.tw）不定期辦番茄栽培講習，追蹤官網「講習訓練」。③ 防檢署植物保護資訊系統可查各病害用藥。',
+        '肥培與土壤': '① 農民學院「土壤肥料管理」系列課。② 各改良場提供免費土壤檢測服務（送樣前先電洽）——比自己買試紙準。③ 農業部智慧農業網有肥培管理專區。',
+        '採後處理保鮮': '① 農民學院「採後處理技術」課程。② 農業試驗所鳳山分所是果菜採後處理權威，官網有技術專刊可下載。',
+        '行銷與品牌': '① 農民學院「農產品行銷」入門到進階。② 各縣市青農聯誼會常辦電商實戰工作坊——加入在地青農 LINE 群。③ 水保署（農村水保署）農村體驗行銷輔導案可申請。',
+        '智慧農業': '① 農業部智慧農業網（智農推動方案）有補助與案例。② 農民學院「智慧農業導入」課。③ 桃改場智慧農業示範場域可預約參觀。',
+      };
+      return { headline: '「' + v.topic + '」的免費資源清單來了！',
+        detail: lib[v.topic] + ' 全部免費或政府補助。建議路徑：先上農民學院線上課打底 → 報改良場實體講習 → 加入在地青農群跟同行交流。＊單位與網址為 2026-07 整理。' };
+    },
+  },
+  insure: {
+    inputs: [
+      { key: 'fear', label: '你最怕什麼', unit: '', def: '颱風豪雨', options: ['颱風豪雨', '病蟲害歉收', '價格崩盤'] },
+    ],
+    button: '該保什麼 ›',
+    run(v) {
+      const map = {
+        '颱風豪雨': { pick: '農作物天然災害保險（設施型/實損實賠型）', why: '颱風豪雨造成的損失直接理賠，比政府現金救助額度高', how: '向農會保險部或產物保險公司（富邦/國泰等有農險）投保，保費政府補助 1/2 起' },
+        '病蟲害歉收': { pick: '收穫量保障型保險（部分品項）＋做好紀錄', why: '病蟲害險種有限——番茄可留意區域收穫型；同時把「作業日誌」記好，理賠與救助都要佐證', how: '先向農會問你的品項目前開放哪些險種；沒有合適險種就靠天災救助＋日誌佐證' },
+        '價格崩盤': { pick: '收入保險（品項陸續開放）＋分散通路', why: '收入險同時保「量」與「價」，是最完整的保障，但開放品項有限', how: '向農金署網站查目前開放品項；還沒開放的話，用「買家媒合」分散通路是最實際的避險' },
+      };
+      const m = map[v.fear];
+      return { headline: '怕' + v.fear + '→ 建議：' + m.pick + '！',
+        detail: '為什麼：' + m.why + '。怎麼保：' + m.how + '。投保時效：多數險種有投保截止日（颱風季前！），現在就去農會問。＊險種開放品項每年調整，以農金署與保險公司 2026 公告為準。' };
     },
   },
   proc: {
