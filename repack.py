@@ -519,8 +519,26 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Assets: cache-first. The cache name includes VERSION, so a new deploy
-  // gets a fresh cache and old entries are dropped in activate().
+  // 工具箱資料與腳本（非 /assets/ 的一般檔案）更新頻繁 → network-first，
+  // 快取只當離線備援。這樣推新資料（crop-params 等）不必等 SW 版本號。
+  if (!url.pathname.includes('/assets/')) {
+    e.respondWith((async () => {
+      try {
+        const res = await fetch(req);
+        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
+        return res;
+      } catch {
+        const cached = await caches.match(req);
+        if (cached) return cached;
+        throw new Error('offline + no cache');
+      }
+    })());
+    return;
+  }
+
+  // 重資產（/assets/ 的 avif/woff2/js bundle）: cache-first。The cache name
+  // includes VERSION, so a new deploy gets a fresh cache and old entries are
+  // dropped in activate().
   e.respondWith((async () => {
     const cached = await caches.match(req);
     if (cached) return cached;

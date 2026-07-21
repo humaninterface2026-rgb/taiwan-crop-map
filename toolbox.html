@@ -327,6 +327,26 @@ const CALCS = {
     button: '推薦品種方向 ›',
     async run(v) {
       const m = Math.min(12, Math.max(1, +v.month || 1));
+      // 有專屬參數包 → 不套番茄式品種方向，改用該作物的重點與時程
+      if (NZD.A._pack) {
+        const D = NZD.A.daysToHarvest;
+        const months = Math.max(1, Math.round((D.lo + D.hi) / 2 / 30));
+        const hm2 = String(((m - 1 + months) % 12) + 1).padStart(2, '0');
+        let mkt = '';
+        try {
+          const mk = await getMarket();
+          if (mk && mk.monthly) {
+            const rows = mk.monthly.filter(x => x.key.slice(5, 7) === hm2).slice(-3);
+            if (rows.length) mkt = '行情面：' + m + ' 月開始種、約 ' + months + ' 個月後採，近 ' + rows.length + ' 年 ' + +hm2 + ' 月均價約 ' + (rows.reduce((a, x) => a + x.price, 0) / rows.length).toFixed(0) + ' 元/kg。';
+          }
+        } catch (e) {}
+        const notes = (NZD.A.notes || []).slice(0, 3);
+        return {
+          headline: '「' + CROP.display + '」選品種，先看這幾個重點！',
+          detail: notes.map((n, i) => (i + 1) + '. ' + n).join(' ') + ' ' + mkt
+            + ' ＊實際品種名請洽在地農業改良場與種苗行，小面積試種後再擴大。（' + (NZD.A._pack.caveat || '').slice(0, 70) + '…）',
+        };
+      }
       const summer = m >= 5 && m <= 9;
       const lib = [
         { name: '耐熱型（如夏季專用品系）', fit: summer ? 2 : 0, note: '6~9 月定植首選，高溫著果率較穩' },
@@ -365,17 +385,28 @@ const CALCS = {
     },
     run(v) {
       const month = new Date().getMonth() + 1;
+      // 該作物專屬的連作提醒（從參數包 notes 撈「連作/輪作」相關條目）
+      const packRot = NZD.A._pack ? (NZD.A.notes || []).find(n => /連作|輪作/.test(n)) : null;
+      const isPerennial = NZD.A._pack && /多年生|果樹|茶樹|竹/.test(NZD.A._pack.caveat || '');
+      if (isPerennial) {
+        return {
+          headline: '「' + CROP.display + '」是多年生作物——重點不是輪作，是園區管理！',
+          detail: (packRot ? packRot + ' ' : '') + '多年生果樹/茶園沒有「每季換作物」的問題；要顧的是：老園更新時避免立刻在原穴補植同種（忌地現象）、行間可種綠肥（魯冰/大豆）養地、病株移除後該區土壤先消毒休養。詳見專屬參數說明：' + (NZD.A._pack.caveat || '').slice(0, 80) + '…',
+        };
+      }
       const plans = {
         '養地恢復': { pick: '豆科毛豆（或休耕種綠肥田菁）', why: '固氮養地，收成還能賣；綠肥翻耕更省事', when: '秋作 9~10 月、春作 2~3 月播' },
-        '打斷病蟲循環': { pick: '禾本科硬質玉米（或水稻輪作）', why: '和茄科完全不同科，土傳病原斷糧', when: '春秋皆可；田若能淹水，水旱輪作效果最好' },
-        '還是要有收入': { pick: '蔥蒜類（青蔥/大蒜）', why: '非茄科又有行情，還有抑菌效果', when: '大蒜 9~10 月種、青蔥全年可分批' },
+        '打斷病蟲循環': { pick: '禾本科硬質玉米（或水稻輪作）', why: '和原作物不同科，土傳病原斷糧', when: '春秋皆可；田若能淹水，水旱輪作效果最好' },
+        '還是要有收入': { pick: '換科的高行情蔬菜', why: '不同科又有收入；選哪支先看行情儀表板', when: '依作物產季安排' },
       };
       const p = plans[v.goal];
       const solar = month >= 6 && month <= 8 ? ' 另外現在是 6~8 月——收完可先做太陽能消毒（透明膜覆蓋曝曬 4 週）再種下季。' : '';
+      const family = NZD.A._pack
+        ? (packRot ? '本作物連作重點：' + packRot : '同科作物連續種都算連作，換科才有效。')
+        : '連作判定：番茄/茄子/辣椒/馬鈴薯同為茄科都算連作。綠燈田區可在畦邊間作羅勒或萬壽菊驅粉蝨薊馬（忌與茴香、馬鈴薯相鄰）。';
       return {
         headline: '下季建議：' + p.pick + '！',
-        detail: '為什麼：' + p.why + '。時機：' + p.when + '。連作判定：番茄/茄子/辣椒/馬鈴薯同為茄科都算連作。'
-          + '綠燈田區可在畦邊間作羅勒或萬壽菊驅粉蝨薊馬（忌與茴香、馬鈴薯相鄰）。' + solar,
+        detail: '為什麼：' + p.why + '。時機：' + p.when + '。' + family + solar,
       };
     },
   },
@@ -943,6 +974,7 @@ const CALCS = {
     },
     run(v) {
       const n = +v.seasons || 0, d = +v.disease || 0;
+      if (NZD.A._pack && /多年生|果樹|茶樹|竹/.test(NZD.A._pack.caveat || '')) return { headline: '「' + CROP.display + '」是多年生作物，沒有逐季連作的問題！', detail: '要注意的是「忌地」：老園更新或補植時，避免立刻在原位置種同種作物；病株移除後該區先消毒休養。園區病害紀錄仍建議用「病蟲害辨識」持續記。' };
       const month = new Date().getMonth() + 1;
       const solar = (month >= 6 && month <= 8) ? '現在正好是 6~8 月——收完可做「太陽能消毒」：整地後蓋透明膜曝曬 4 週，最省錢的土壤消毒。' : '';
       let head, act;
@@ -950,7 +982,7 @@ const CALCS = {
         act = '建議：下季改種非茄科（豆科毛豆固氮／禾本科玉米斷病原／蔥蒜抑菌），或休耕消毒一季。' + solar; }
       else if (n === 2 || d === 1) { head = '🟡 中風險——這是最後一季，下季務必輪作。';
         act = '本季顧好排水與病株清除；下季排非茄科作物。' + solar; }
-      else { head = '🟢 低風險，可以續種！'; act = '維持病株即拔即清的習慣；畦邊可間作羅勒/萬壽菊驅蟲。茄科（番茄/茄子/辣椒/馬鈴薯）同科都算連作。'; }
+      else { head = '🟢 低風險，可以續種！'; act = '維持病株即拔即清的習慣。' + (NZD.A._pack ? ((NZD.A.notes || []).find(n => /連作|輪作/.test(n)) || '同科作物連續種都算連作。') : '畦邊可間作羅勒/萬壽菊驅蟲。茄科（番茄/茄子/辣椒/馬鈴薯）同科都算連作。'); }
       return { headline: head, detail: act + ' 門檻：<2 季且病害≤1 次＝低；2 季或 1~2 次＝中；≥3 季或≥2 次＝高。' };
     },
   },
