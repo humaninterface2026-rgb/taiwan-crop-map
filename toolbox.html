@@ -453,19 +453,22 @@ const CALCS = {
     run(v) {
       const okIns = v.ins === '有', okLand = v.land !== '承租（口頭約）', young = v.age === '未滿 45 歲';
       const items = [
-        { name: '農業設施補助（溫網室）', need: okIns && okLand, gap: !okIns ? '要先有農保' : !okLand ? '承租要有書面契約' : '', agency: '農糧署（向公所/農會申請）', docs: '土地證明、經營計畫、報價單' },
-        { name: '小型農機補助', need: okIns, gap: okIns ? '' : '要先有農保', agency: '農糧署', docs: '購機發票、農保證明' },
-        { name: '產銷履歷驗證補助', need: true, gap: '', agency: '農糧署/驗證機構', docs: '驗證合約、繳費單據' },
-        { name: '農業保險保費補助（保費 1/2 起）', need: true, gap: '', agency: '農金署（投保時自動折抵）', docs: '投保時由保險公司處理' },
-        { name: '青年農民專案輔導（貸款利息/百萬獎勵）', need: young, gap: young ? '' : '限 18~45 歲', agency: '農業部青農輔導平台', docs: '經營計畫書' },
-        { name: '天然災害現金救助', need: true, gap: '', agency: '災後向公所申報（有時限！）', docs: '災前災後照片、耕作事實證明' },
+        { name: '農業設施補助（溫網室）', need: okIns && okLand, gap: !okIns ? '要先有農保' : !okLand ? '承租要有書面契約' : '', agency: '農糧署（向公所/農會申請）', docs: '土地證明、經營計畫、報價單', link: { label: '農糧署', url: 'https://www.afa.gov.tw' } },
+        { name: '小型農機補助', need: okIns, gap: okIns ? '' : '要先有農保', agency: '農糧署', docs: '購機發票、農保證明', link: { label: '農糧署', url: 'https://www.afa.gov.tw' } },
+        { name: '產銷履歷驗證補助', need: true, gap: '', agency: '農糧署/驗證機構', docs: '驗證合約、繳費單據', link: { label: '產銷履歷網', url: 'https://taft.moa.gov.tw' } },
+        { name: '農業保險保費補助（保費 1/2 起）', need: true, gap: '', agency: '投保時由保險公司/農會辦理折抵', docs: '投保時由保險公司處理', link: { label: '農業部（搜尋農業保險）', url: 'https://www.moa.gov.tw' } },
+        { name: '青年農民專案輔導（貸款利息/百萬獎勵）', need: young, gap: young ? '' : '限 18~45 歲', agency: '農業部青農輔導平台', docs: '經營計畫書', link: { label: '青農輔導平台', url: 'https://academy.moa.gov.tw/YF/' } },
+        { name: '天然災害現金救助', need: true, gap: '', agency: '災後向公所申報（有時限！）', docs: '災前災後照片、耕作事實證明', link: { label: '農業部（災害救助專區）', url: 'https://www.moa.gov.tw' } },
       ];
       const ok = items.filter(x => x.need && !x.gap), near = items.filter(x => x.gap);
+      const links = [];
+      [...ok, ...near].forEach(x => { if (!links.some(l => l.url === x.link.url && l.label === x.link.label)) links.push(x.link); });
       return {
         headline: '你目前符合 ' + ok.length + ' 項' + (near.length ? '、差一步 ' + near.length + ' 項' : '') + '！',
         detail: '✅ 符合：' + ok.map(x => x.name + '（' + x.agency + '；備 ' + x.docs + '）').join('｜')
           + (near.length ? '。🟡 差一步：' + near.map(x => x.name + '——' + x.gap).join('｜') : '')
-          + '。💡 天災救助的關鍵是「災前照片」——颱風來之前記得去田裡拍全景＋設施照。＊方案與金額為 2026-07 整理的示範清單，申請前以公所/農會公告為準。',
+          + '。💡 天災救助的關鍵是「災前照片」——颱風來之前記得去田裡拍全景＋設施照。點下方官方網站查最新公告與申請窗口；金額與資格以公告為準（2026-07 整理）。',
+        links,
       };
     },
   },
@@ -499,7 +502,8 @@ const CALCS = {
       };
       return {
         headline: '外銷' + v.dest + '的文件清單開好了！',
-        detail: common + '。' + extra[v.dest] + ' 建議路徑：第一次外銷先找有經驗的貿易商或農會外銷班合作，別自己單打。單位：防檢署（檢疫）、標檢局（部分品項）。＊流程為 2026-07 整理概要，出貨前以防檢署公告為準。',
+        detail: common + '。' + extra[v.dest] + ' 建議路徑：第一次外銷先找有經驗的貿易商或農會外銷班合作，別自己單打。＊流程為 2026-07 整理概要，出貨前以防檢署公告為準。',
+        links: [{ label: '動植物防疫檢疫署（輸出檢疫）', url: 'https://www.aphia.gov.tw' }],
       };
     },
   },
@@ -570,7 +574,12 @@ const CALCS = {
         '智慧農業': '① 農業部智慧農業網（智農推動方案）有補助與案例。② 農民學院「智慧農業導入」課。③ 桃改場智慧農業示範場域可預約參觀。',
       };
       return { headline: '「' + v.topic + '」的免費資源清單來了！',
-        detail: lib[v.topic] + ' 全部免費或政府補助。建議路徑：先上農民學院線上課打底 → 報改良場實體講習 → 加入在地青農群跟同行交流。＊單位與網址為 2026-07 整理。' };
+        detail: lib[v.topic] + ' 全部免費或政府補助。建議路徑：先上農民學院線上課打底 → 報改良場實體講習 → 加入在地青農群跟同行交流。（2026-07 整理）',
+        links: [
+          { label: '農民學院（線上課程）', url: 'https://academy.moa.gov.tw' },
+          { label: '桃園區農業改良場', url: 'https://www.tydares.gov.tw' },
+          { label: '農業試驗所', url: 'https://www.tari.gov.tw' },
+        ] };
     },
   },
   insure: {
@@ -586,7 +595,8 @@ const CALCS = {
       };
       const m = map[v.fear];
       return { headline: '怕' + v.fear + '→ 建議：' + m.pick + '！',
-        detail: '為什麼：' + m.why + '。怎麼保：' + m.how + '。投保時效：多數險種有投保截止日（颱風季前！），現在就去農會問。＊險種開放品項每年調整，以農金署與保險公司 2026 公告為準。' };
+        detail: '為什麼：' + m.why + '。怎麼保：' + m.how + '。投保時效：多數險種有投保截止日（颱風季前！），現在就去農會問。＊險種開放品項每年調整，以主管機關與保險公司公告為準（2026-07 整理）。',
+        links: [{ label: '農業部（搜尋「農業保險」）', url: 'https://www.moa.gov.tw' }] };
     },
   },
   proc: {
@@ -1253,6 +1263,22 @@ async function runCalc(kind) {
   const rd = document.getElementById('resD');
   rd.textContent = out.detail;
   rd.style.whiteSpace = out.detail.includes('\n') ? 'pre-wrap' : 'normal';
+  // 官方連結釦（只放實測可達的網址）
+  let lk = document.getElementById('resLinks');
+  if (lk) lk.remove();
+  if (out.links && out.links.length) {
+    lk = document.createElement('div');
+    lk.id = 'resLinks';
+    lk.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:10px';
+    out.links.forEach(l => {
+      const a = document.createElement('a');
+      a.href = l.url; a.target = '_blank'; a.rel = 'noopener';
+      a.textContent = '🔗 ' + l.label;
+      a.style.cssText = 'font-size:12.5px;font-weight:900;color:#3b6826;background:#fff;border:2px solid #cfe0a8;border-radius:99px;padding:5px 13px;text-decoration:none';
+      lk.appendChild(a);
+    });
+    rd.parentNode.appendChild(lk);
+  }
   document.getElementById('calcResult').classList.add('show');
 }
 
