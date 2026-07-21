@@ -246,6 +246,10 @@ const CALCS = {
         const sum = fields.reduce((a, f) => a + (+f.area_fen || 0), 0);
         if (sum > 0) document.getElementById('f_area').value = sum;
       }
+      if (NZD.A._pack) {
+        document.getElementById('f_yieldKgPerFen').value = NZD.A.normalYieldKgFen;
+        document.getElementById('f_seedlingPrice').value = '';
+      }
       const saved = NZD.S.get('cost');
       let noteBits = [];
       if (fields.length) noteBits.push('面積已帶入你的田區合計');
@@ -262,8 +266,8 @@ const CALCS = {
     run(v) {
       const area = +v.area || 0, seed = +v.seedlingPrice || 0, fert = +v.fertPerFen || 0,
         pest = +v.pestPerFen || 0, rent = +v.rentPerFen || 0, labor = +v.laborPerFen || 0;
-      const y = +v.yieldKgPerFen || NZD.C.normalYieldKgFen, p = +v.pricePerKg || 50;
-      const seedlings = area * NZD.C.plantsPerFen * seed;
+      const y = +v.yieldKgPerFen || NZD.A.normalYieldKgFen, p = +v.pricePerKg || 50;
+      const seedlings = area * NZD.A.plantsPerFen * seed;
       const total = seedlings + (fert + pest + rent + labor) * area;
       const totalYield = Math.max(1, area * y);
       const breakeven = total / totalYield;
@@ -385,11 +389,11 @@ const CALCS = {
     run(v) {
       const ph = +v.ph, ec = v.ec === '' ? null : +v.ec;
       const cards = [];
-      if (ph < NZD.C.ph.lo) {
+      if (ph < NZD.A.ph.lo) {
         const lime = Math.min(200, Math.round((6.4 - ph) / 0.5 * 100 / 20) * 20);
         cards.push('偏酸（pH ' + ph + '）→ 苦土石灰每分地約 ' + lime + ' kg，整地時撒；一次最多 200kg，兩週後複測');
-      } else if (ph > NZD.C.ph.hi) cards.push('偏鹼（pH ' + ph + '）→ 不撒石灰！改施硫磺粉每分地 20~40kg 或多下有機質堆肥慢慢調');
-      else cards.push('pH ' + ph + ' 在理想區間 ' + NZD.C.ph.lo + '~' + NZD.C.ph.hi + ' ✓');
+      } else if (ph > NZD.A.ph.hi) cards.push('偏鹼（pH ' + ph + '）→ 不撒石灰！改施硫磺粉每分地 20~40kg 或多下有機質堆肥慢慢調');
+      else cards.push('pH ' + ph + ' 在理想區間 ' + NZD.A.ph.lo + '~' + NZD.A.ph.hi + ' ✓');
       if (ec != null) {
         if (ec > 2.0) cards.push('EC ' + ec + ' 太高→先大水淹灌洗鹽 1~2 次再定植，基肥減 3 成');
         else if (ec > 1.2) cards.push('EC ' + ec + ' 偏高→鹽分開始累積，減化肥、多有機質');
@@ -712,7 +716,7 @@ const CALCS = {
       const hw = NZD.harvestWindow(v.tdate, avg7);
       const days = Math.floor((Date.now() - new Date(v.tdate)) / 864e5);
       const toStart = Math.ceil((new Date(hw.start) - Date.now()) / 864e5);
-      const hot = avg7 >= NZD.C.hotHarvestAdvance.temp;
+      const hot = avg7 >= NZD.A.hotHarvestAdvance.temp;
       // 搶收判斷：已近窗（≥78天）且 3 日內有暴雨/強風警訊
       let rush = '';
       for (let i = 0; i < 3; i++) {
@@ -726,7 +730,7 @@ const CALCS = {
       if (toStart > 0) {
         head = '還沒到——大約 ' + toStart + ' 天後（' + hw.start.slice(5).replace('-', '/') + '）進採收窗。';
         det = '你在定植後第 ' + days + ' 天。預計採收窗 ' + hw.start.slice(5).replace('-', '/') + '～' + hw.end.slice(5).replace('-', '/')
-          + (hot ? '（近 7 日均溫 ' + avg7.toFixed(1) + '°C ≥ 27°C，已按提早 ' + NZD.C.hotHarvestAdvance.days + ' 天計）' : '')
+          + (hot ? '（近 7 日均溫 ' + avg7.toFixed(1) + '°C ≥ 27°C，已按提早 ' + NZD.A.hotHarvestAdvance.days + ' 天計）' : '')
           + '。這段時間顧好鉀鈣追肥與水分穩定。' + rush;
       } else if (new Date(hw.end) >= Date.now()) {
         head = '就是現在！你已在採收窗內（第 ' + days + ' 天）。';
@@ -777,7 +781,7 @@ const CALCS = {
     button: '檢查儲存條件 ›',
     run(v) {
       const t = +v.temp, rh = +v.rh, want = +v.days || 5;
-      const S = NZD.C.storage;
+      const S = NZD.A.storage;
       const issues = [];
       if (t < S.tempLo) issues.push('溫度太低（' + t + '°C）——低於 ' + S.tempLo + '°C 會寒害，果面凹陷水浸狀');
       if (t > S.tempHi) issues.push('溫度偏高（' + t + '°C）——加速後熟軟化');
@@ -818,7 +822,7 @@ const CALCS = {
       const manDays = Math.ceil(total / per);
       const perWeek = Math.ceil(manDays / weeks);
       const havePerWeek = ppl * 6; // 一週工作 6 天
-      const peak = NZD.C.laborPeak;
+      const peak = NZD.A.laborPeak;
       const bench = perWeek < peak.lo ? '低於常態高峰（' + peak.lo + '~' + peak.hi + ' 人天/週），輕鬆' :
         perWeek <= peak.hi ? '落在常態高峰區間（' + peak.lo + '~' + peak.hi + ' 人天/週）' : '超過常態高峰（' + peak.lo + '~' + peak.hi + ' 人天/週）——很趕';
       const gap = perWeek - havePerWeek;
@@ -852,11 +856,19 @@ const CALCS = {
       const p = NZD.phase(v.tdate);
       const area = +v.area || 1;
       if (p.days < 0) return { headline: '還沒定植（還有 ' + (-p.days) + ' 天），先準備基肥！', detail: '整地時施基肥：低氮高磷開根配方＋完熟堆肥。定植後回來看追肥怎麼下。' };
-      const plans = {
+      let plans = {
         seedling: { now: '苗期追肥：稀薄液肥為主（氮磷均衡），7~10 天一次，量少多餐', next: '約第 26 天進開花期——提前備好鉀鈣硼資材' },
         flower: { now: '開花期追肥：提高鉀、鈣、硼——每分地高鉀複合肥約 20~30kg 分 2 次，葉面補硼鈣 7~10 天一次', next: '約第 56 天進結果期——追肥改鉀鈣為主、控氮' },
         fruit: { now: '結果期追肥：鉀鈣為主分次下（每分地高鉀肥 15~25kg/次，2~3 週一次），控制氮免得裂果軟果', next: '採收前 2 週停止追肥，顧品質' },
       };
+      if (NZD.A._pack && NZD.A.fertPlans) {
+        const g = NZD.A.growthPhases;
+        plans = {
+          seedling: { now: NZD.A.fertPlans.seedling, next: '約第 ' + g[1].lo + ' 天進「' + g[1].name + '」' },
+          flower: { now: NZD.A.fertPlans.flower, next: '約第 ' + g[2].lo + ' 天進「' + g[2].name + '」' },
+          fruit: { now: NZD.A.fertPlans.fruit, next: '接近採收期注意停藥停肥時機' },
+        };
+      }
       const pl = plans[p.key];
       return {
         headline: '你現在第 ' + p.days + ' 天，是「' + p.name + '」——' + p.fert + '！',
@@ -870,7 +882,28 @@ const CALCS = {
       { key: 'sev', label: '嚴重程度', unit: '', def: '輕微（少數幾株）', options: ['輕微（少數幾株）', '中等（一小區）', '嚴重（整片蔓延）'] },
     ],
     button: '幫我判斷 ›',
+    prepare() {
+      // 有專屬參數包 → 症狀選單改用該作物的病蟲害表
+      if (NZD.A._pack && NZD.A.pestTable) {
+        const sel = document.getElementById('f_part');
+        sel.innerHTML = NZD.A.pestTable.map(p => '<option>' + p.symptom + '</option>').join('');
+        calcNote('📡 已載入「' + CROP.display + '」專屬病蟲害對照表（' + NZD.A.pestTable.length + ' 種常見狀況）');
+      }
+    },
     run(v) {
+      // 專屬表優先
+      if (NZD.A._pack && NZD.A.pestTable) {
+        const t = NZD.A.pestTable.find(p => p.symptom === v.part) || NZD.A.pestTable[0];
+        const sev = v.sev.startsWith('嚴重') ? 2 : v.sev.startsWith('中') ? 1 : 0;
+        const sevAdd = sev === 2 ? '已經蔓延——建議儘快找在地農會植保員或改良場現場看。'
+          : sev === 1 ? '一小區還壓得住，這 3 天每天巡。' : '早期處理最省錢，做完觀察 3~5 天。';
+        const rec = NZD.S.get('pest', []);
+        rec.unshift({ date: new Date().toISOString().slice(0, 10), part: v.part, sev, soilborne: !!t.soilborne });
+        NZD.S.set('pest', rec.slice(0, 100));
+        return { headline: '比較可能是：' + t.name + '。',
+          detail: '先做這件事：' + t.act + '。' + sevAdd + (t.soilborne ? ' ⚠️ 土傳型——已記錄，連作/輪作工具會算進風險。' : '')
+            + ' 用藥請洽農藥行並遵守停藥期。' };
+      }
       const table = {
         '葉子有斑點': { name: '早疫病/晚疫病或細菌性斑點', act: '先摘除病葉帶出田區銷毀；加強通風、避免傍晚澆水淋葉', soil: false },
         '葉子捲曲變形': { name: '病毒病（粉蝨傳播）或薊馬危害', act: '先掛黃色黏板抓粉蝨；病毒株無藥可治、確認後儘早拔除', soil: false },
@@ -938,7 +971,7 @@ const CALCS = {
       const rainToday = d.precipitation_sum[0], rainTmr = d.precipitation_sum[1];
       const tmax = d.temperature_2m_max[0];
       const m = v.moist === '' ? null : +v.moist;
-      const { lo, hi } = NZD.C.soilMoist;
+      const { lo, hi } = NZD.A.soilMoist;
       let head, act;
       if (m != null && m >= hi) { head = '今天不用澆，土還很濕（' + m + '%）！'; act = '濕度超過 ' + hi + '% 反而要注意排水通氣，午後巡一下有沒有積水。'; }
       else if (rainToday >= 10) { head = '今天老天爺會幫你澆（預報雨量 ' + rainToday + 'mm）！'; act = '不用人工灌溉；雨後記得檢查畦溝排水。'; }
@@ -963,15 +996,15 @@ const CALCS = {
     run(v) {
       const m = +v.moist, t = +v.temp, rh = +v.rh;
       const issues = [], tips = [];
-      if (m < 30) { issues.push('土壤太乾（' + m + '%）'); tips.push('儘快灌溉，目標 ' + NZD.C.soilMoist.lo + '~' + NZD.C.soilMoist.hi + '%'); }
-      else if (m < NZD.C.soilMoist.lo) { issues.push('土壤偏乾'); tips.push('今明安排澆水'); }
-      else if (m > NZD.C.soilMoist.hi) { issues.push('土壤偏濕（' + m + '%）'); tips.push('暫停灌溉、檢查排水'); }
-      if (t >= NZD.C.houseTemp) { issues.push('溫度過高（' + t + '°C）'); tips.push('立刻通風/遮陰，高溫會日灼與著果不良'); }
-      if (rh >= NZD.C.houseRH) { issues.push('濕度過高（' + rh + '%）'); tips.push('加強通風；持續 2 小時以上病害壓力大增'); }
+      if (m < 30) { issues.push('土壤太乾（' + m + '%）'); tips.push('儘快灌溉，目標 ' + NZD.A.soilMoist.lo + '~' + NZD.A.soilMoist.hi + '%'); }
+      else if (m < NZD.A.soilMoist.lo) { issues.push('土壤偏乾'); tips.push('今明安排澆水'); }
+      else if (m > NZD.A.soilMoist.hi) { issues.push('土壤偏濕（' + m + '%）'); tips.push('暫停灌溉、檢查排水'); }
+      if (t >= NZD.A.houseTemp) { issues.push('溫度過高（' + t + '°C）'); tips.push('立刻通風/遮陰，高溫會日灼與著果不良'); }
+      if (rh >= NZD.A.houseRH) { issues.push('濕度過高（' + rh + '%）'); tips.push('加強通風；持續 2 小時以上病害壓力大增'); }
       const rec = NZD.S.get('readings', []);
       rec.unshift({ date: new Date().toISOString(), moist: m, temp: t, rh: rh });
       NZD.S.set('readings', rec.slice(0, 60));
-      if (!issues.length) return { headline: '三個數值都在安全範圍，田況不錯！', detail: '土壤 ' + m + '%（目標 ' + NZD.C.soilMoist.lo + '~' + NZD.C.soilMoist.hi + '%）、溫度 ' + t + '°C（警戒 ' + NZD.C.houseTemp + '°C）、濕度 ' + rh + '%（警戒 ' + NZD.C.houseRH + '%）。已記錄，累積起來就能看趨勢。' };
+      if (!issues.length) return { headline: '三個數值都在安全範圍，田況不錯！', detail: '土壤 ' + m + '%（目標 ' + NZD.A.soilMoist.lo + '~' + NZD.A.soilMoist.hi + '%）、溫度 ' + t + '°C（警戒 ' + NZD.A.houseTemp + '°C）、濕度 ' + rh + '%（警戒 ' + NZD.A.houseRH + '%）。已記錄，累積起來就能看趨勢。' };
       return { headline: '注意：' + issues.join('、') + '！', detail: '建議動作：' + tips.join('；') + '。已記錄這筆讀值（近 60 筆保留在手機）。' };
     },
   },
@@ -1048,6 +1081,7 @@ const CALCS = {
       const fields = NZD.S.get('fields', []);
       const sum = fields.reduce((x, f) => x + (+f.area_fen || 0), 0);
       if (sum > 0) document.getElementById('f_area').value = sum;
+      if (NZD.A._pack) document.getElementById('f_base').value = (NZD.A.normalYieldKgFen / 1000).toFixed(1);
       const season = NZD.S.get('season');
       if (season && season.harvest_start) {
         const m = +season.harvest_start.slice(5, 7);
@@ -1148,7 +1182,9 @@ function openModal(idx) {
       + t.principles.map(p => '<div class="pitem">' + p + '</div>').join('') + '</div>';
   }
   if (t.extra) html += '<div class="extra">' + t.extra + '</div>';
-  if (t.calc && !CROP.isTomato) html += '<div class="extra">＊試算參數以牛蕃茄常態為預設，「' + CROP.display + '」專屬參數陸續補上。</div>';
+  if (t.calc && !CROP.isTomato) html += '<div class="extra">' + (NZD.A._pack
+    ? '＊已套用「' + CROP.display + '」專屬參數（通則整理 ' + NZD.A._pack.updated + '；' + NZD.A._pack.caveat.slice(0, 60) + '…）'
+    : '＊試算參數以牛蕃茄常態為預設，「' + CROP.display + '」專屬參數陸續補上。') + '</div>';
   if (!t.calc) html += '<span class="phase-badge">🔧 完整互動功能規劃中（目前提供原則建議）</span>';
 
   modal.innerHTML = html;
@@ -1235,6 +1271,12 @@ const CROP = {
   isTomato: rawCrop === '番茄' || rawCrop === '牛蕃茄',
 };
 
+NZD.applyParams(CROP.display).then(() => {
+  if (NZD.A._pack) {
+    const s = document.getElementById('subline');
+    s.textContent = CROP.display + '・' + CROP.county + '｜30 個小幫手（已載入專屬參數）';
+  }
+});
 document.getElementById('subline').textContent =
   CROP.display + '・' + CROP.county + '｜30 個小幫手（MVP）';
 document.title = '小農工具箱｜' + CROP.display + '・' + CROP.county + '｜農知島';
@@ -1278,7 +1320,7 @@ const CUSTOMS = {
         let rain = 0, days = 0;
         for (let k = i; k < Math.min(i + 7, d.time.length); k++) { rain += d.precipitation_sum[k]; days++; }
         rain = rain * 7 / days;
-        const T = NZD.C.sowTemp, R = NZD.C.sowRain7d;
+        const T = NZD.A.sowTemp, R = NZD.A.sowRain7d;
         const tScore = (avg >= T.idealLo && avg <= T.idealHi && d.temperature_2m_max[i] < T.hardHi) ? 2
           : (avg >= T.okLo && avg < T.idealLo) || (avg > T.idealHi && d.temperature_2m_max[i] <= T.hardHi) ? 1 : 0;
         const rScore = rain < R.ideal ? 2 : rain <= R.ok ? 1 : 0;

@@ -104,22 +104,43 @@ window.NZD = (function () {
     },
   };
 
-  /* ── 生育期/採收窗（單一實作）── */
+  /* ── 作用中參數 A：預設=牛蕃茄(C)，有專屬包就覆蓋 ── */
+  const A = Object.assign({}, C, { _pack: null });
+  async function applyParams(crop) {
+    // 還原預設
+    Object.keys(A).forEach(k => { if (k !== '_pack') delete A[k]; });
+    Object.assign(A, C); A._pack = null;
+    if (!crop || crop === '番茄' || crop === '牛蕃茄') return A;
+    try {
+      const j = await _cached('params', async () =>
+        (await (await fetch('toolbox-assets/crop-params.json')).json()));
+      const p = j.crops && (j.crops[crop] || j.crops[{'哈蜜瓜':'哈密瓜','水稻':'稻米','包種茶':'茶葉','文旦':'柚子','桃子':'水蜜桃'}[crop]]);
+      if (p) {
+        Object.assign(A, p);
+        // growthPhases 需要 key 欄位（pack 只有 name）
+        A.growthPhases = p.growthPhases.map((g, i) => ({ key: ['seedling', 'flower', 'fruit'][i], ...g }));
+        A._pack = { crop: p.crop, caveat: p.caveat, updated: j._updated || '2026-07' };
+      }
+    } catch (e) {}
+    return A;
+  }
+
+  /* ── 生育期/採收窗（單一實作，讀作用中參數）── */
   function phase(transplantDateISO, onDateISO) {
     if (!transplantDateISO) return null;
     const days = Math.floor((new Date(onDateISO || Date.now()) - new Date(transplantDateISO)) / 864e5);
     if (days < 0) return { days, name: '未定植', fert: null };
-    const p = C.growthPhases.find(g => days >= g.lo && days <= g.hi);
+    const p = A.growthPhases.find(g => days >= g.lo && days <= g.hi) || A.growthPhases[A.growthPhases.length - 1];
     return { days, key: p.key, name: p.name, fert: p.fert };
   }
   function harvestWindow(transplantDateISO, avgTemp) {
     if (!transplantDateISO) return null;
     const t = new Date(transplantDateISO);
-    let lo = C.daysToHarvest.lo, hi = C.daysToHarvest.hi;
-    if (avgTemp != null && avgTemp >= C.hotHarvestAdvance.temp) { lo -= C.hotHarvestAdvance.days; hi -= C.hotHarvestAdvance.days; }
+    let lo = A.daysToHarvest.lo, hi = A.daysToHarvest.hi;
+    if (avgTemp != null && avgTemp >= A.hotHarvestAdvance.temp) { lo -= A.hotHarvestAdvance.days; hi -= A.hotHarvestAdvance.days; }
     const d = n => { const x = new Date(t); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
     return { start: d(lo), end: d(hi) };
   }
 
-  return { C, S, D, phase, harvestWindow };
+  return { C, A, S, D, phase, harvestWindow, applyParams };
 })();
