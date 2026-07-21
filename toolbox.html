@@ -189,11 +189,11 @@ const TOOLS = [
   { stage: 1, icon: '🛡️', type: 'chat', name: '連作障礙預防', desc: '幫你評估連作風險，避免越種越差。', calc: 'chain',
     principles: ['低風險：連作 <2 季 且 病害 ≤1 次', '中風險：連作 2 季 或 病害 1~2 次', '高風險：連作 ≥3 季 或 病害 ≥2 次'] },
   // ── 採收保鮮 ──
-  { stage: 2, icon: '⏰', type: 'data', name: '採收時機預測', desc: '幫你抓最好採收時間，不怕採太早或放過熟。',
+  { stage: 2, icon: '⏰', type: 'data', name: '採收時機預測', desc: '幫你抓最好採收時間，不怕採太早或放過熟。', calc: 'harvest',
     principles: ['主窗口：約定植後 85~110 天', '高溫（≥27°C）時成熟會提早 5~7 天', '建議分批採收，先採轉色果與成熟度高果'] },
-  { stage: 2, icon: '🏅', type: 'chat', name: '產品分級建議', desc: '幫你把果實分 A、B、C 級，好貨賣好價。',
+  { stage: 2, icon: '🏅', type: 'chat', name: '產品分級建議', desc: '幫你把果實分 A、B、C 級，好貨賣好價。', calc: 'grade',
     principles: ['A級：果形完整、色澤均勻、無明顯外傷', 'B級：輕微瑕疵，不影響食用品質', 'C級：外觀或硬度不足，建議加工或促銷'] },
-  { stage: 2, icon: '❄️', type: 'chat', name: '保鮮／儲存建議', desc: '教你溫濕度怎麼設，番茄放更久不軟爛。',
+  { stage: 2, icon: '❄️', type: 'chat', name: '保鮮／儲存建議', desc: '教你溫濕度怎麼設，番茄放更久不軟爛。', calc: 'store',
     principles: ['建議 10~13°C、85~90%RH', '避免與高乙烯水果（香蕉、蘋果）同倉', '先分級再入庫，可降低交叉損耗'] },
   { stage: 2, icon: '📈', type: 'data', name: '產量預估', desc: '輸入面積和季節，幫你抓這季大概收多少。',
     principles: ['總產量 = 面積 × 基準值 × 季節基準倍率 × 季節係數', '春季常較佳、夏季常偏低（以氣候風險折算）'],
@@ -215,7 +215,7 @@ const TOOLS = [
   // ── 經營管理 ──
   { stage: 4, icon: '💰', type: 'auto', name: '財務損益分析', desc: '幫你算這一季賺不賺，收入成本毛利一次看。',
     principles: ['總收入 = 產量 × 售價 × 面積', '總成本沿用成本試算（種苗＋肥料＋人力）', '輸出毛利、毛利率與損平售價，判斷是否值得種'] },
-  { stage: 4, icon: '👥', type: 'auto', name: '人力排班', desc: '幫你排每週人力，採收最忙的時候不缺工。',
+  { stage: 4, icon: '👥', type: 'auto', name: '人力排班', desc: '幫你排每週人力，採收最忙的時候不缺工。', calc: 'labor',
     principles: ['採收日優先配足人力，避免過熟與損耗', '採收高峰期：20~28 人天/週（約每天 4~5 人）', '育苗/定植期：10~14 人天/週；連續高工時需安排輪休'] },
   { stage: 4, icon: '📊', type: 'data', name: '跨季績效比較', desc: '幫你比這季和上季，看有沒有種得更好。',
     principles: ['看產量是否提升', '看單位成本是否下降', '看平均售價是否提升'] },
@@ -311,6 +311,144 @@ const CALCS = {
       return {
         headline: '判斷結果：' + level + '（均溫 ' + t + '°C、雨量 ' + r + 'mm/7日）',
         detail: impact + ' ' + action + ' 門檻：理想 20~30°C 且 <60mm；16~20°C 或 60~120mm 需管理；<16°C、>32°C 或 >120mm 不建議。',
+      };
+    },
+  },
+  harvest: {
+    inputs: [
+      { key: 'tdate', label: '定植日期', unit: '', def: '', type: 'date' },
+    ],
+    button: '算採收窗 ›',
+    async prepare() {
+      const season = NZD.S.get('season');
+      if (season && season.transplant_date) {
+        document.getElementById('f_tdate').value = season.transplant_date;
+        calcNote('📡 已帶入季節檔定植日 ' + season.transplant_date);
+      }
+    },
+    async run(v) {
+      if (!v.tdate) return { headline: '先給我定植日期！', detail: '或先到「最佳播種時機」排整季時程，這裡就會自動帶入。' };
+      const d = await NZD.D.weather(CROP.county);
+      const avg7 = d.temperature_2m_max.slice(0, 7).map((x, i) => (x + d.temperature_2m_min[i]) / 2)
+        .reduce((a, b) => a + b, 0) / 7;
+      const hw = NZD.harvestWindow(v.tdate, avg7);
+      const days = Math.floor((Date.now() - new Date(v.tdate)) / 864e5);
+      const toStart = Math.ceil((new Date(hw.start) - Date.now()) / 864e5);
+      const hot = avg7 >= NZD.C.hotHarvestAdvance.temp;
+      // 搶收判斷：已近窗（≥78天）且 3 日內有暴雨/強風警訊
+      let rush = '';
+      for (let i = 0; i < 3; i++) {
+        const gust = (d.wind_gusts_10m_max || d.wind_speed_10m_max)[i];
+        if ((d.precipitation_sum[i] >= NZD.C.alert.rain1d || gust >= NZD.C.alert.windKmh) && days >= 78) {
+          rush = ' ⚠️ ' + d.time[i].slice(5).replace('-', '/') + ' 有暴雨/強風警訊——建議提前搶收轉色果與成熟度高的，別等！';
+          break;
+        }
+      }
+      let head, det;
+      if (toStart > 0) {
+        head = '還沒到——大約 ' + toStart + ' 天後（' + hw.start.slice(5).replace('-', '/') + '）進採收窗。';
+        det = '你在定植後第 ' + days + ' 天。預計採收窗 ' + hw.start.slice(5).replace('-', '/') + '～' + hw.end.slice(5).replace('-', '/')
+          + (hot ? '（近 7 日均溫 ' + avg7.toFixed(1) + '°C ≥ 27°C，已按提早 ' + NZD.C.hotHarvestAdvance.days + ' 天計）' : '')
+          + '。這段時間顧好鉀鈣追肥與水分穩定。' + rush;
+      } else if (new Date(hw.end) >= Date.now()) {
+        head = '就是現在！你已在採收窗內（第 ' + days + ' 天）。';
+        det = '建議分批採：先採轉色果與成熟度高的，過熟果影響整批價。窗到 ' + hw.end.slice(5).replace('-', '/') + ' 為止。'
+          + rush + ' 採完到「產品分級建議」分級，賣相好的走好通路。';
+      } else {
+        head = '採收窗已過（第 ' + days + ' 天）——樹上還有果就儘快收！';
+        det = '過熟果易裂易爛，收完評估這季紀錄，到「連作障礙預防」看下季怎麼排。';
+      }
+      NZD.S.set('harvest', { checked_at: new Date().toISOString().slice(0, 10), days, window: hw });
+      return { headline: head, detail: det };
+    },
+  },
+  grade: {
+    inputs: [
+      { key: 'look', label: '這批色澤', unit: '', def: '色澤均勻', options: ['色澤均勻', '色澤普通', '色澤不均'] },
+      { key: 'flaw', label: '瑕疵狀況', unit: '', def: '無明顯瑕疵', options: ['無明顯瑕疵', '輕微瑕疵', '明顯瑕疵/軟果'] },
+      { key: 'kg', label: '這批重量', unit: 'kg', def: '100' },
+    ],
+    button: '幫我分級 ›',
+    prepare() {
+      const logs = NZD.S.get('logs', []);
+      const today = Date.now();
+      const spray = logs.find(x => x.cat === '噴藥' && (today - new Date(x.date)) / 864e5 <= 14);
+      if (spray) calcNote('⚠️ 日誌記錄 ' + spray.date.slice(5).replace('-', '/') + ' 有噴藥——出貨前務必確認停藥期已過（問清楚藥劑天數）！');
+    },
+    run(v) {
+      const kg = +v.kg || 100;
+      const lookIdx = ['色澤均勻', '色澤普通', '色澤不均'].indexOf(v.look);
+      const flawIdx = ['無明顯瑕疵', '輕微瑕疵', '明顯瑕疵/軟果'].indexOf(v.flaw);
+      const q = lookIdx + flawIdx; // 0 最好 → 4 最差
+      const dist = q === 0 ? [70, 25, 5] : q === 1 ? [55, 35, 10] : q === 2 ? [35, 45, 20] : q === 3 ? [20, 45, 35] : [10, 40, 50];
+      const A = Math.round(kg * dist[0] / 100), B = Math.round(kg * dist[1] / 100), C = kg - A - B;
+      NZD.S.set('grades', { date: new Date().toISOString().slice(0, 10), kg, dist: { A, B, C } });
+      return {
+        headline: '這批 ' + kg + 'kg 建議分：A 級約 ' + A + 'kg、B 級 ' + B + 'kg、C 級 ' + C + 'kg。',
+        detail: 'A 級（果形完整色澤佳）走直銷/電商賣好價（定價工具係數 ×1.15）；B 級走批發正常出；C 級別硬賣——加工（醬/乾）或促銷出清，硬混進好貨會拉低整批價。'
+          + '分級標準：A 果形完整色澤均勻無外傷／B 輕微瑕疵不影響食用／C 外觀或硬度不足。接著到「定價策略建議」算各級賣多少。',
+      };
+    },
+  },
+  store: {
+    inputs: [
+      { key: 'temp', label: '儲存溫度', unit: '°C', def: '12' },
+      { key: 'rh', label: '儲存濕度', unit: '%', def: '87' },
+      { key: 'days', label: '預計存放', unit: '天', def: '5' },
+    ],
+    button: '檢查儲存條件 ›',
+    run(v) {
+      const t = +v.temp, rh = +v.rh, want = +v.days || 5;
+      const S = NZD.C.storage;
+      const issues = [];
+      if (t < S.tempLo) issues.push('溫度太低（' + t + '°C）——低於 ' + S.tempLo + '°C 會寒害，果面凹陷水浸狀');
+      if (t > S.tempHi) issues.push('溫度偏高（' + t + '°C）——加速後熟軟化');
+      if (rh < S.rhLo) issues.push('濕度不足（' + rh + '%）——果實失水皺縮');
+      if (rh > S.rhHi) issues.push('濕度過高（' + rh + '%）——易生黴');
+      let est = 10;
+      if (t > S.tempHi) est -= Math.min(6, (t - S.tempHi));
+      if (t < S.tempLo) est = 3;
+      if (rh < S.rhLo) est -= 2;
+      if (rh > S.rhHi) est -= 2;
+      est = Math.max(1, Math.round(est));
+      const ok = want <= est;
+      return {
+        headline: issues.length ? '條件要調：' + issues[0] + '！' : '條件不錯，這樣放大約可撐 ' + est + ' 天。',
+        detail: (issues.length ? '全部問題：' + issues.join('；') + '。理想條件 ' + S.tempLo + '~' + S.tempHi + '°C、' + S.rhLo + '~' + S.rhHi + '%RH。照目前條件估可放約 ' + est + ' 天'
+          : '理想區間 ' + S.tempLo + '~' + S.tempHi + '°C、' + S.rhLo + '~' + S.rhHi + '%RH 你都有做到')
+          + (ok ? '，你要放 ' + want + ' 天沒問題。' : '，但你想放 ' + want + ' 天——撐不到，建議提早出貨或調整條件。')
+          + ' 提醒：先分級再入庫；別跟香蕉蘋果同倉（乙烯催熟）。',
+      };
+    },
+  },
+  labor: {
+    inputs: [
+      { key: 'total', label: '預計採收總量', unit: 'kg', def: '3200' },
+      { key: 'perDay', label: '每人每天可採', unit: 'kg', def: '300' },
+      { key: 'people', label: '可用人數', unit: '人', def: '4' },
+      { key: 'weeks', label: '採收期', unit: '週', def: '4' },
+    ],
+    button: '排排看 ›',
+    prepare() {
+      const y = NZD.S.get('yield');
+      const cost = NZD.S.get('cost');
+      if (y && y.total_kg) { document.getElementById('f_total').value = y.total_kg; calcNote('📡 已帶入產量預估的 ' + y.total_kg.toLocaleString() + ' kg'); }
+      else if (cost && cost.expected_qty) { document.getElementById('f_total').value = cost.expected_qty; calcNote('📡 已帶入成本試算的預估產量 ' + cost.expected_qty.toLocaleString() + ' kg'); }
+    },
+    run(v) {
+      const total = +v.total || 0, per = +v.perDay || 300, ppl = +v.people || 1, weeks = Math.max(1, +v.weeks || 4);
+      const manDays = Math.ceil(total / per);
+      const perWeek = Math.ceil(manDays / weeks);
+      const havePerWeek = ppl * 6; // 一週工作 6 天
+      const peak = NZD.C.laborPeak;
+      const bench = perWeek < peak.lo ? '低於常態高峰（' + peak.lo + '~' + peak.hi + ' 人天/週），輕鬆' :
+        perWeek <= peak.hi ? '落在常態高峰區間（' + peak.lo + '~' + peak.hi + ' 人天/週）' : '超過常態高峰（' + peak.lo + '~' + peak.hi + ' 人天/週）——很趕';
+      const gap = perWeek - havePerWeek;
+      return {
+        headline: gap <= 0 ? '人力夠！每週需 ' + perWeek + ' 人天，你們 ' + ppl + ' 人做得完。'
+          : '缺工！每週需 ' + perWeek + ' 人天，你們只有 ' + havePerWeek + ' 人天——差 ' + gap + '。',
+        detail: '總量 ' + total.toLocaleString() + ' kg ÷ 每人日採 ' + per + ' kg ＝ 約 ' + manDays + ' 人天，分 ' + weeks + ' 週＝每週 ' + perWeek + ' 人天（約每天 ' + Math.ceil(perWeek / 6) + ' 人）。'
+          + bench + '。' + (gap > 0 ? '對策：找臨時工 ' + Math.ceil(gap / 6) + ' 人、拉長採收期、或分批採（先採轉色果）。' : '採收日優先配滿人，包裝分級排次高，連續高工時記得輪休。'),
       };
     },
   },
@@ -528,14 +666,30 @@ const CALCS = {
       { key: 'season', label: '季節', unit: '', def: '春季', options: ['春季', '夏季', '秋季', '冬季'] },
       { key: 'factor', label: '季節係數', unit: '倍率', def: '1' },
     ],
+    prepare() {
+      const fields = NZD.S.get('fields', []);
+      const sum = fields.reduce((x, f) => x + (+f.area_fen || 0), 0);
+      if (sum > 0) document.getElementById('f_area').value = sum;
+      const season = NZD.S.get('season');
+      if (season && season.harvest_start) {
+        const m = +season.harvest_start.slice(5, 7);
+        const sn = m >= 3 && m <= 5 ? '春季' : m >= 6 && m <= 8 ? '夏季' : m >= 9 && m <= 11 ? '秋季' : '冬季';
+        document.getElementById('f_season').value = sn;
+        calcNote('📡 已帶入田區合計' + (sum > 0 ? ' ' + sum + ' 分' : '') + '；採收落在 ' + m + ' 月＝' + sn + '（依你的季節檔）');
+      } else if (sum > 0) calcNote('📡 已帶入田區合計 ' + sum + ' 分');
+    },
     run(v) {
       const a = +v.area || 1, b = +v.base || 3.1, f = +v.factor || 1;
       const sb = v.season === '春季' ? 1.05 : v.season === '夏季' ? 0.85 : v.season === '秋季' ? 1.0 : 0.9;
       const ton = b * a * sb * f;
       const level = f >= 1.1 ? '偏佳年景' : f <= 0.9 ? '偏差年景' : '一般年景';
+      NZD.S.set('yield', { saved_at: new Date().toISOString().slice(0, 10), total_kg: Math.round(ton * 1000), area_fen: a });
+      const cost = NZD.S.get('cost');
+      const cmp = cost && cost.expected_qty ? ' 對照成本試算用的 ' + cost.expected_qty.toLocaleString() + ' kg——'
+        + (Math.abs(ton * 1000 - cost.expected_qty) / cost.expected_qty > 0.15 ? '差距超過 15%，建議回成本試算更新產量重算損平價。' : '兩邊差不多，一致。') : '';
       return {
         headline: '這一季預估總產量大約 ' + ton.toFixed(2) + ' 噸（' + level + '）！',
-        detail: '公式：面積 × 基準值 × 季節基準倍率 × 季節係數 = ' + a + ' × ' + b + ' × ' + sb + ' × ' + f + '。季節基準倍率：春 1.05、夏 0.85、秋 1.0、冬 0.9。常見區間（±10%）約 ' + (ton * 0.9).toFixed(2) + ' ~ ' + (ton * 1.1).toFixed(2) + ' 噸。',
+        detail: '公式：面積 × 基準值 × 季節基準倍率 × 季節係數 = ' + a + ' × ' + b + ' × ' + sb + ' × ' + f + '。季節基準倍率：春 1.05、夏 0.85、秋 1.0、冬 0.9。常見區間（±10%）約 ' + (ton * 0.9).toFixed(2) + ' ~ ' + (ton * 1.1).toFixed(2) + ' 噸。已存檔，人力排班會拿去算需要幾個人。' + cmp,
       };
     },
   },
