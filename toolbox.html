@@ -1234,7 +1234,7 @@ function openModal(idx) {
   }
 
   // 小抄：專屬包存在 → 依該作物參數動態生成；否則顯示牛蕃茄版
-  const dynP = (NZD.A._pack && DYN_PRINCIPLES[t.name]) ? DYN_PRINCIPLES[t.name]() : null;
+  const dynP = (NZD.A._pack && DYN_PRINCIPLES[t.origName || t.name]) ? DYN_PRINCIPLES[t.origName || t.name]() : null;
   const packNotes = (NZD.A._pack && NZD.A.notes) ? NZD.A.notes : null;
   if (dynP && dynP.length) {
     html += '<div class="ptitle">📌 「' + CROP.display + '」小抄（依專屬參數）</div><div class="plist">'
@@ -1353,6 +1353,102 @@ const CROP = {
   county: (qs.get('county') || '桃園市').trim(),
   isTomato: rawCrop === '番茄' || rawCrop === '牛蕃茄',
 };
+
+/* ── 產品型態用語皮膚 ────────────────────────────────────────────────
+ * 蜂蜜/黑豬肉/石門活魚 是非種植品項，「播種/採收/🌱」等種植詞彙會違和。
+ * 依品項覆蓋 階段名+emoji、工具名/說明/icon 與吉祥物開場白；
+ * 改名的工具保留 origName 供 DYN_PRINCIPLES 依原名回查動態小抄。 */
+const PRODUCT_SKIN = {
+  '蜂蜜': {
+    hello: '從蜂場到餐桌，都可以問我！',
+    stages: [['蜂場規劃','🐝'],['蜂群管理','🍯'],['採蜜保鮮','🫙'],['銷售市場','🛒'],['經營管理','📊']],
+    tools: {
+      variety:  { icon:'🐝', name:'蜂種與蜜源建議', desc:'幫你依季節和場址挑蜂種與主力蜜源方向。' },
+      rotate:   { icon:'🌼', name:'蜜源輪替規劃',   desc:'幫你排全年蜜源與轉場，避免蜜源空窗。' },
+      sow:      { name:'春繁啟動時機', desc:'看未來 16 天哪天適合啟動春繁，選定後幫你排整年蜂事。' },
+      cost:     { desc:'輸入蜂場規模和預算，幫你算成本和毛利。' },
+      soil:     { icon:'🗺️', name:'蜂場場址評估',   desc:'評估場址環境與周邊蜜源條件。' },
+      water:    { icon:'🍯', name:'飼餵補水排程',   desc:'幫你抓蜜源空窗期什麼時候要補餵。' },
+      fert:     { icon:'🐝', name:'蜂群管理計畫',   desc:'照年週期幫你排各期蜂群管理重點。' },
+      pest:     { name:'蜂病敵害辨識', desc:'照蜂群異狀一步步問答，判斷可能是什麼、先做什麼。' },
+      warn:     { desc:'壞天氣來之前先警報，提醒你顧好蜂場。' },
+      logs:     { desc:'兩下點選就記好今天蜂場做了什麼，全存在手機裡。' },
+      readings: { desc:'把蜂場量到的數值輸進來，馬上判斷要不要處理。' },
+      drone:    { name:'蜂場巡查支援', desc:'想空拍巡場或找代管服務？告訴你怎麼找、行情多少。' },
+      chain:    { name:'蜂群健康風險', desc:'幫你評估蟎害與病史風險，避免越養越弱。' },
+      harvest:  { name:'採蜜時機預測', desc:'幫你抓流蜜與封蓋進度，不怕搖太早水分高。' },
+      grade:    { desc:'幫你把蜂蜜分級（純度與含水率），好貨賣好價。' },
+      store:    { desc:'教你蜂蜜怎麼存不發酵，常溫陰涼放更久。' },
+      yield:    { name:'蜜量預估', desc:'輸入蜂箱數和季節，幫你抓這季大概收多少蜜。' },
+      labor:    { desc:'幫你排每週人力，採蜜最忙的時候不缺工。' },
+      copywrite:{ desc:'幫你寫貼文文案，把今年新採的蜜賣出去。' },
+    },
+  },
+  '黑豬肉': {
+    hello: '從牧場到餐桌，都可以問我！',
+    stages: [['牧場規劃','🐷'],['飼養管理','🥣'],['出欄保鮮','🥩'],['銷售市場','🛒'],['經營管理','📊']],
+    tools: {
+      variety:  { icon:'🐷', name:'品種與豬源建議', desc:'幫你依規模和市場挑品種與仔豬來源方向。' },
+      rotate:   { name:'批次進豬規劃', desc:'幫你排進豬批次與空舍消毒，避免疫病交叉。' },
+      sow:      { name:'進豬批次時機', desc:'看未來 16 天氣溫走勢，挑適合進豬的時機並排整批時程。' },
+      cost:     { desc:'輸入飼養頭數和預算，幫你算成本和毛利。' },
+      soil:     { icon:'🏠', name:'豬舍環境評估', desc:'評估通風、溫控與豬舍條件。' },
+      water:    { icon:'💧', name:'飲水降溫排程', desc:'幫你算高溫天怎麼降溫、飲水夠不夠。' },
+      fert:     { icon:'🥣', name:'飼料配方計畫', desc:'照豬齡幫你排飼料怎麼配、怎麼換。' },
+      pest:     { icon:'🩺', name:'豬病症狀辨識', desc:'照症狀一步步問答，判斷嚴不嚴重、要不要通報獸醫。' },
+      warn:     { desc:'壞天氣來之前先警報，提醒你顧好豬舍。' },
+      logs:     { desc:'兩下點選就記好今天牧場做了什麼，全存在手機裡。' },
+      readings: { desc:'把豬舍量到的數值輸進來，馬上判斷要不要處理。' },
+      drone:    { name:'牧場巡查支援', desc:'找環境監測或代巡服務？告訴你怎麼找、行情多少。' },
+      chain:    { name:'疫病風險評估', desc:'幫你評估生物安全與疫病風險。' },
+      harvest:  { name:'出欄時機預測', desc:'幫你抓最好出欄時間，不怕養過重或賣太早。' },
+      grade:    { icon:'🥩', name:'屠體分級建議', desc:'幫你了解屠體分級標準，好貨賣好價。' },
+      store:    { desc:'教你溫度怎麼設，豬肉冷藏冷凍存放不走味。' },
+      yield:    { name:'出欄量預估', desc:'輸入頭數和批次，幫你抓這批大概出多少。' },
+      labor:    { desc:'幫你排每週人力，出欄最忙的時候不缺工。' },
+      copywrite:{ desc:'幫你寫貼文文案，把自家黑豬肉賣出去。' },
+    },
+  },
+  '石門活魚': {
+    hello: '從魚塭到餐桌，都可以問我！',
+    stages: [['魚塭規劃','🐟'],['養殖管理','💧'],['收成保鮮','🧊'],['銷售市場','🛒'],['經營管理','📊']],
+    tools: {
+      variety:  { icon:'🐟', name:'魚種與苗源建議', desc:'幫你依水源和市場挑魚種與魚苗來源方向。' },
+      rotate:   { name:'混養搭配規劃', desc:'幫你排草魚鰱魚怎麼搭，水質好病也少。' },
+      sow:      { name:'放養時機', desc:'看未來 16 天水溫走勢，挑適合放養魚苗的時機。' },
+      cost:     { desc:'輸入放養規模和預算，幫你算成本和毛利。' },
+      soil:     { icon:'💧', name:'池水水質分析', desc:'評估水源、pH 與池底狀況。' },
+      water:    { icon:'🌀', name:'換水增氧排程', desc:'幫你抓什麼時候要換水開水車，避免缺氧。' },
+      fert:     { icon:'🥣', name:'投餵計畫', desc:'照魚齡幫你排投餵怎麼給、給多少。' },
+      pest:     { icon:'🩺', name:'魚病辨識', desc:'照池邊看到的異狀問答，判斷可能是什麼、先做什麼。' },
+      warn:     { desc:'壞天氣來之前先警報，颱風豪雨前提醒你顧好魚塭。' },
+      logs:     { desc:'兩下點選就記好今天魚塭做了什麼，全存在手機裡。' },
+      readings: { desc:'把水質量到的數值輸進來，馬上判斷要不要處理。' },
+      drone:    { name:'魚塭巡查支援', desc:'想空拍巡塭或找監測服務？告訴你怎麼找、行情多少。' },
+      chain:    { name:'池底老化評估', desc:'幫你評估清淤曬池時機，避免越養越差。' },
+      harvest:  { name:'收成時機預測', desc:'幫你抓最好收成規格與時間。' },
+      grade:    { name:'活魚分級建議', desc:'幫你把魚分規格，活力好體型齊賣好價。' },
+      store:    { icon:'🧊', name:'活魚運輸保鮮', desc:'教你活魚怎麼運、怎麼保活力到店。' },
+      yield:    { name:'收成量預估', desc:'輸入放養尾數，幫你抓這池大概收多少。' },
+      labor:    { desc:'幫你排每週人力，收成最忙的時候不缺工。' },
+      copywrite:{ desc:'幫你寫貼文文案，把現撈活魚賣出去。' },
+    },
+  },
+};
+const _skin = PRODUCT_SKIN[CROP.display];
+if (_skin) {
+  STAGES.forEach((s, i) => { s.name = _skin.stages[i][0]; s.icon = _skin.stages[i][1]; });
+  TOOLS.forEach(t => {
+    const o = _skin.tools[t.calc || t.custom];
+    if (!o) return;
+    t.origName = t.name;
+    if (o.name) t.name = o.name;
+    if (o.desc) t.desc = o.desc;
+    if (o.icon) t.icon = o.icon;
+  });
+  const b1 = document.querySelector('.b1');
+  if (b1) b1.textContent = _skin.hello;
+}
 
 NZD.applyParams(CROP.display).then(() => {
   if (NZD.A._pack) {
