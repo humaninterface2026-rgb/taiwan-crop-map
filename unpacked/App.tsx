@@ -376,7 +376,9 @@ const PriceOverlay = ({cropName, variety, market}) => {
     const sparkVals = recent.map(d => Math.round(d.price));
     const sparkDates = recent.map(d => {
       const parts = String(d.date || '').split(/[./-]/).map(n => parseInt(n, 10));
-      return parts.length >= 3 ? `${parts[1]}/${parts[2]}` : '';
+      if (parts.length < 3) return '';
+      // 年資料（蜂蜜）標年份，日資料標 月/日
+      return m.annual ? `${parts[0] - 1911}年` : `${parts[1]}/${parts[2]}`;
     });
     const price = sparkVals[sparkVals.length - 1];
     const prevPrice = sparkVals[sparkVals.length - 2] || price;
@@ -445,13 +447,16 @@ const PriceOverlay = ({cropName, variety, market}) => {
       fontFamily:"'Noto Sans TC',sans-serif",
     }}>
       <div style={{fontSize:14,fontWeight:900,color:'#3b6826',marginBottom:4,letterSpacing:1}}>
-        今日價格 <span style={{fontWeight:500,color:'#9a9a9a',fontSize:10}}>(每公斤)</span>
+        {(PRICE_META[cropName] && PRICE_META[cropName].title) || '今日價格'}{' '}
+        <span style={{fontWeight:500,color:'#9a9a9a',fontSize:10}}>
+          {(PRICE_META[cropName] && PRICE_META[cropName].unit) || '(每公斤)'}
+        </span>
       </div>
       <div style={{fontSize:34,fontWeight:900,color:'#3aaa5e',lineHeight:1.1,marginBottom:2}}>
         <span style={{fontSize:16}}>$</span>{price}
       </div>
       <div style={{fontSize:10,color:chgPct>=0?'#e05050':'#3aaa5e',marginBottom:4}}>
-        較昨日 {chgPct>=0?'▲':'▼'} {Math.abs(chgPct)}%
+        {(PRICE_META[cropName] && PRICE_META[cropName].chgLabel) || '較昨日'} {chgPct>=0?'▲':'▼'} {Math.abs(chgPct)}%
       </div>
       <div style={{flex:1, position:'relative', minHeight:0, marginTop:6}}>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
@@ -531,16 +536,21 @@ const ScaledOverlay = ({x, y, w, h, children}) => (
  *   crop = key into TAOYUAN_CROPS / NONGZHIDAO_MAP (price data)
  *   label = short display name shown under the character on the card */
 const TAOYUAN_CROP_LIST = [
-  { label:'茶葉',   crop:'茶葉'      },
-  { label:'水蜜桃', crop:'水蜜桃'    },
-  { label:'綠竹筍', crop:'綠竹筍'    },
-  { label:'包心白', crop:'包心白'    },
-  { label:'稻米',   crop:'稻米'      },
-  { label:'柚子',   crop:'柚子'      },
-  { label:'甘藍',   crop:'甘藍-初秋' },
-  { label:'牛蕃茄', crop:'牛蕃茄'    },
-  { label:'粉蔥',   crop:'青蔥-粉蔥' },
-  { label:'哈密瓜', crop:'哈密瓜'    },
+  // 260624 新版 14 品項（與桃園鄉鎮地圖一致）；label 取短名放得進 109px 卡
+  { label:'水蜜桃',   crop:'水蜜桃'       },
+  { label:'稻米',     crop:'稻米'         },
+  { label:'茭白筍',   crop:'茭白筍'       },
+  { label:'甘藍',     crop:'甘藍-初秋'    },
+  { label:'柚子',     crop:'柚子'         },
+  { label:'有機蔬菜', crop:'有機水耕蔬菜' },
+  { label:'蜂蜜',     crop:'蜂蜜'         },
+  { label:'黑豬肉',   crop:'黑豬肉'       },
+  { label:'韭菜',     crop:'韭菜'         },
+  { label:'竹筍',     crop:'竹筍'         },
+  { label:'桃映紅茶', crop:'桃映紅茶'     },
+  { label:'美人茶',   crop:'東方美人茶'   },
+  { label:'石門活魚', crop:'石門活魚'     },
+  { label:'香菇',     crop:'香菇'         },
 ];
 // 5 slot positions on the baked strip (design coords). Cards are 109×135
 // at y=757; left edges 768, 885, 1002, 1119, 1236 (gap=8 from Figma 51:4980).
@@ -590,6 +600,18 @@ const CROP_NOTES = {
   '西瓜':       ['溫暖乾燥日照充足', '排水良好的砂質壤土', '結果期適度控水增甜', '防治蔓枯病與粉蝨'],
   '大西瓜':     ['溫暖乾燥日照充足', '排水良好的砂質壤土', '結果期適度控水增甜', '防治蔓枯病與粉蝨'],
   '釋迦':       ['熱帶亞熱帶氣候', '排水良好的微酸性壤土', '結果期需充足水分', '防治粉介殼蟲與果實蠅'],
+  // 260624 新版桃園鄉鎮品項 — 非種植類（蜂蜜/黑豬肉/石門活魚）與加工茶
+  // 改放產品小知識，避免 fallback 到番茄種植建議造成內容錯亂。
+  '蜂蜜':       ['蜜源以龍眼荔枝花為主', '採蜜期集中在春季花期', '蜂場需遠離農藥噴灑區', '花期多雨會影響蜜量'],
+  '黑豬肉':     ['黑豬飼養期約一年以上', '飼料配方與通風是關鍵', '低溫屠宰運送保新鮮', '認明產地標章更安心'],
+  '石門活魚':   ['石門水庫活魚現撈直送', '以草魚鰱魚為主要魚種', '活魚料理沿石門周邊聚集', '假日用餐建議先訂位'],
+  '香菇':       ['溫濕度控制是栽培關鍵', '段木或太空包皆可栽培', '出菇期需高濕度環境', '採收後低溫保存風味佳'],
+  '韭菜':       ['耐寒喜冷涼全年可收', '富含有機質的壤土最佳', '割收後追肥促進再生', '注意韭蛆與銹病防治'],
+  '茭白筍':     ['水田栽培需常保水位', '春秋兩季為主要產期', '筍殼帶土保存較耐放', '防治福壽螺與葉枯病'],
+  '竹筍':       ['喜歡半遮蔭的濕潤環境', '深層肥沃砂質壤土最佳', '春雨後筍冒出最旺盛', '注意竹螟與筍夜蛾'],
+  '有機水耕蔬菜': ['溫室水耕不受天候影響', '養液配方決定生長品質', '無農藥殘留安心即食', '注意水溫與藻類滋生'],
+  '桃映紅茶':   ['小葉種紅茶滋味甘醇', '春冬兩季茶菁品質最佳', '發酵與烘焙工序是關鍵', '沖泡水溫約90度最適'],
+  '東方美人茶': ['需小綠葉蟬著涎的茶菁', '夏茶製成風味最獨特', '不噴農藥才能吸引葉蟬', '重發酵帶蜂蜜熟果香'],
 };
 // 4 baked note-rect positions in design coords (Figma 51:4955/4957/4959/4960
 // inside notes panel at absolute x=1179 y=381). Rect size 193×40 each,
@@ -664,27 +686,99 @@ const COUNTY_CHAR_MAP = {
 };
 
 /* ── 桃園鄉鎮 polygon 資料（從 桃園地圖.ai 抽出，design canvas 1601×2000）─────
- * 13 個鄉鎮 polygon — hover 時 polygon 變色 + 顯示作物名稱方框。
- * 角色已印在底圖 taoyuan_detail.png 上，故不需另外的角色 SVG。
+ * 13 個鄉鎮 polygon — hover 時 polygon 變色；點擊把該區 crop 帶進 hero。
+ * 底圖 taoyuan_detail.png 是乾淨底圖（無角色）；角色+名稱釦由
+ * TAOYUAN_CHARS（下方）常駐渲染，畫風/配置依 260624 新版設計稿。
+ * 一區可有多個角色（龜山/龍潭/大溪/復興 各 2）；polygon 的 crop 是點整區
+ * 時的主作物，點個別角色則帶該角色的作物。
  */
 const TAOYUAN_TOWNSHIPS = [
-  { id:'1_10', crop:'綠竹筍',     cx:831.710, cy:908.150, cw:373.900, ch:337.240, viewBox:'0 0 373.896 337.24',  d:'M373.896 161.245C356.599 182.604 338.599 203.479 321.505 224.068C289.193 262.979 251.443 299.188 202.302 315.125C174.318 324.203 145.177 328.901 115.979 331.964C108.344 332.76 35.5104 333.677 33.8385 337.24C34.4583 335.875 70.3646 255.406 56.8021 201.547C43.1198 147.24 0 64.3594 0 64.3594C9.54167 62.4688 17.3125 46.875 23.5313 25.7188C29.9115 24.651 123.214 9.21875 207.266 0C220.411 19.1615 234.333 38.4948 240.177 60.0833C248.417 90.4948 241.927 128.26 265.677 148.984C287.708 168.224 321.156 159.854 350.406 159.411C356.182 159.328 361.927 159.641 367.625 160.328C369.729 160.583 371.818 160.88 373.896 161.245Z'},
-  { id:'1_12', crop:'稻米',        cx:539.030, cy:943.360, cw:352.540, ch:302.030, viewBox:'0 0 352.541 302.026', d:'M326.521 302.026C274.995 253.75 185.526 260.214 120.969 224.51C67.7031 195.057 36.7917 140.307 3.0625 88.1979C2.04688 86.6198 1.02083 85.0573 0 83.4896C35.5104 64.3073 81.1823 33.9219 92.2188 0C92.2188 0 261.813 35.2448 292.682 29.1458C292.682 29.1458 335.802 112.026 349.484 166.333C363.042 220.193 327.141 300.661 326.521 302.026Z'},
-  { id:'1_14', crop:'包心白',      cx:855.240, cy:720.540, cw:185.420, ch:213.330, viewBox:'0 0 185.422 213.328', d:'M180.177 182.365C181.349 184.104 182.536 185.854 183.734 187.599V187.609C99.6823 196.828 6.38021 212.26 0 213.328C15.1406 161.828 21.1302 77.3646 21.1302 77.3646C26.5781 43.6354 30.1406 34.1615 23.0052 0C23.0052 0 98.4688 27.1094 182.375 10C184.141 16.2708 185.411 22.5885 185.422 28.9948C185.505 57.9635 160.344 81.2656 155.672 109.854C151.344 136.38 164.62 159.37 180.177 182.365Z'},
-  { id:'1_16', crop:'茶葉',        cx:256.730, cy:720.650, cw:382.820, ch:306.200, viewBox:'0 0 382.819 306.203', d:'M374.521 222.714C363.484 256.635 317.813 287.021 282.302 306.203C259.688 271.609 235.479 238.542 202.25 215.281C163.193 187.958 115.307 176.896 72.1719 156.604C44.3125 143.49 16.974 124.021 0 99.0729C55.9948 72.776 112.177 46.375 172.771 32.6667C212.505 23.6927 251.781 12.2917 290.922 0.984375C290.922 0.984375 290.896 0.645833 290.854 0C290.854 0 334.568 1.29688 374.521 13.4375C374.521 13.4375 393.193 165.333 374.521 222.714Z'},
-  { id:'1_18', crop:'綠竹筍',     cx:808.180, cy:479.420, cw:294.840, ch:256.780, viewBox:'0 0 294.844 256.778', d:'M294.844 161.432C288.073 162.307 281.302 163.214 274.771 164.333C248.526 168.823 225.927 176.828 220.479 201.25C216.917 217.224 224.094 232.901 228.802 248.885C229.021 249.63 229.234 250.37 229.438 251.115C145.531 268.224 70.0677 241.115 70.0677 241.115C63.3854 209.151 30.1823 158.87 0 121.266C0 121.266 49.9375 34.2552 138.865 0C170.839 33.6042 210.75 56.5833 243.198 88.7083C264.49 109.797 280.854 134.932 294.844 161.432Z'},
+  { id:'1_10', crop:'竹筍', cx:831.710, cy:908.150, cw:373.900, ch:337.240, viewBox:'0 0 373.896 337.24',  d:'M373.896 161.245C356.599 182.604 338.599 203.479 321.505 224.068C289.193 262.979 251.443 299.188 202.302 315.125C174.318 324.203 145.177 328.901 115.979 331.964C108.344 332.76 35.5104 333.677 33.8385 337.24C34.4583 335.875 70.3646 255.406 56.8021 201.547C43.1198 147.24 0 64.3594 0 64.3594C9.54167 62.4688 17.3125 46.875 23.5313 25.7188C29.9115 24.651 123.214 9.21875 207.266 0C220.411 19.1615 234.333 38.4948 240.177 60.0833C248.417 90.4948 241.927 128.26 265.677 148.984C287.708 168.224 321.156 159.854 350.406 159.411C356.182 159.328 361.927 159.641 367.625 160.328C369.729 160.583 371.818 160.88 373.896 161.245Z'},
+  { id:'1_12', crop:'桃映紅茶',    cx:539.030, cy:943.360, cw:352.540, ch:302.030, viewBox:'0 0 352.541 302.026', d:'M326.521 302.026C274.995 253.75 185.526 260.214 120.969 224.51C67.7031 195.057 36.7917 140.307 3.0625 88.1979C2.04688 86.6198 1.02083 85.0573 0 83.4896C35.5104 64.3073 81.1823 33.9219 92.2188 0C92.2188 0 261.813 35.2448 292.682 29.1458C292.682 29.1458 335.802 112.026 349.484 166.333C363.042 220.193 327.141 300.661 326.521 302.026Z'},
+  { id:'1_14', crop:'有機水耕蔬菜', cx:855.240, cy:720.540, cw:185.420, ch:213.330, viewBox:'0 0 185.422 213.328', d:'M180.177 182.365C181.349 184.104 182.536 185.854 183.734 187.599V187.609C99.6823 196.828 6.38021 212.26 0 213.328C15.1406 161.828 21.1302 77.3646 21.1302 77.3646C26.5781 43.6354 30.1406 34.1615 23.0052 0C23.0052 0 98.4688 27.1094 182.375 10C184.141 16.2708 185.411 22.5885 185.422 28.9948C185.505 57.9635 160.344 81.2656 155.672 109.854C151.344 136.38 164.62 159.37 180.177 182.365Z'},
+  { id:'1_16', crop:'黑豬肉',      cx:256.730, cy:720.650, cw:382.820, ch:306.200, viewBox:'0 0 382.819 306.203', d:'M374.521 222.714C363.484 256.635 317.813 287.021 282.302 306.203C259.688 271.609 235.479 238.542 202.25 215.281C163.193 187.958 115.307 176.896 72.1719 156.604C44.3125 143.49 16.974 124.021 0 99.0729C55.9948 72.776 112.177 46.375 172.771 32.6667C212.505 23.6927 251.781 12.2917 290.922 0.984375C290.922 0.984375 290.896 0.645833 290.854 0C290.854 0 334.568 1.29688 374.521 13.4375C374.521 13.4375 393.193 165.333 374.521 222.714Z'},
+  { id:'1_18', crop:'竹筍',       cx:808.180, cy:479.420, cw:294.840, ch:256.780, viewBox:'0 0 294.844 256.778', d:'M294.844 161.432C288.073 162.307 281.302 163.214 274.771 164.333C248.526 168.823 225.927 176.828 220.479 201.25C216.917 217.224 224.094 232.901 228.802 248.885C229.021 249.63 229.234 250.37 229.438 251.115C145.531 268.224 70.0677 241.115 70.0677 241.115C63.3854 209.151 30.1823 158.87 0 121.266C0 121.266 49.9375 34.2552 138.865 0C170.839 33.6042 210.75 56.5833 243.198 88.7083C264.49 109.797 280.854 134.932 294.844 161.432Z'},
   { id:'1_20', crop:'柚子',        cx:947.050, cy:328.310, cw:274.970, ch:312.550, viewBox:'0 0 274.971 312.547', d:'M274.891 198.495C273.203 246.302 241.214 293.74 194.958 305.948C182.995 309.104 169.458 310.792 155.979 312.547C141.99 286.047 125.625 260.911 104.333 239.823C71.8854 207.698 31.974 184.719 0 151.115C70.6458 123.896 68.5365 44.9531 95.0365 0C117.865 11.9792 141.479 23.1771 163.891 35.9583C182.547 46.6042 200.37 58.3542 216.214 72.5625C251.802 104.495 276.573 150.693 274.891 198.495Z'},
   { id:'1_22', crop:'稻米',        cx:497.160, cy:220.290, cw:311.950, ch:324.630, viewBox:'0 0 311.949 324.63',  d:'M309.74 143.974C298.193 184.76 266.5 286.76 254.693 324.63C239.865 316.13 222.958 311.505 206.594 306.594C182.188 299.266 157.521 292.818 132.656 287.26C99.9896 279.948 67.474 276.411 34.2708 272.635C27.1354 233.776 13.1042 192.411 0 158.974C87.8229 96.1406 181.563 42.3385 281.099 1.22396C282.094 0.807292 283.094 0.401041 284.094 0C300.042 47.625 318.365 113.531 309.74 143.974Z'},
   { id:'1_24', crop:'甘藍-初秋',   cx:751.850, cy:191.230, cw:290.230, ch:409.460, viewBox:'0 0 290.229 409.459', d:'M290.229 137.079C263.729 182.037 265.839 260.98 195.193 288.194C106.266 322.449 56.3281 409.459 56.3281 409.459C44.0938 394.199 32.3542 381.032 23.0833 372.006C19.9844 368.985 16.8125 366.011 13.5313 363.194C9.29688 359.537 4.75 356.423 0 353.699C11.8073 315.824 43.5 213.824 55.0469 173.037C63.6719 142.6 45.349 76.6884 29.401 29.0582C47.3177 21.6936 65.4219 14.7457 83.7188 8.24047C98.3958 3.02172 113.969 -1.98349 129.297 0.792553C160.76 6.50089 176.776 40.4488 196.229 65.829C220.583 97.5998 254.448 118.298 290.229 137.079Z'},
-  { id:'1_26', crop:'青蔥-粉蔥',   cx:276.510, cy:379.270, cw:271.070, ch:341.380, viewBox:'0 0 271.073 341.38',  d:'M271.073 341.38C186.406 313.224 69.8229 236.292 0 186.99C1.28125 185.724 2.5625 184.453 3.84896 183.198C70.7813 117.547 142.276 56.2656 218.25 1.71354C219.047 1.13542 219.854 0.567708 220.651 0C233.755 33.4375 247.786 74.8021 254.922 113.661C257.255 126.286 258.849 138.646 259.453 150.385C263.854 235.927 270.344 330.776 271.073 341.38Z'},
-  { id:'1_28', crop:'哈密瓜',      cx:165.660, cy:566.260, cw:381.990, ch:253.460, viewBox:'0 0 381.99 253.464',  d:'M381.99 155.375C342.849 166.682 303.573 178.083 263.839 187.057C203.245 200.766 147.063 227.167 91.0681 253.464C90.0473 251.969 88.9952 250.484 87.9119 249.036C75.3389 232.161 58.6775 218.625 38.99 211.109C18.1046 203.151 0.104562 179.984 0.00039533 156.281C-0.01523 151.344 0.432687 146.51 1.28165 141.776C6.8129 111.026 29.3702 84.4219 51.3077 61.0365C70.7244 40.3281 90.5837 19.9531 110.849 0C180.672 49.3021 297.261 126.234 381.922 154.391C381.964 155.036 381.99 155.375 381.99 155.375Z'},
-  { id:'1_30', crop:'牛蕃茄',      cx:531.430, cy:492.930, cw:350.810, ch:322.370, viewBox:'0 0 350.809 322.372', d:'M344.943 304.974L344.927 304.99C344.188 305.5 320.224 321.906 277.682 322.37C234.469 322.839 99.8177 241.156 99.8177 241.156C59.8646 229.016 16.151 227.719 16.151 227.719C15.4219 217.115 8.93229 122.266 4.53125 36.724C3.92708 24.9844 2.33333 12.625 0 0C33.2031 3.77604 65.7188 7.3125 98.3854 14.625C123.25 20.1823 147.917 26.6302 172.323 33.9583C193.938 40.4479 216.484 46.4375 233.953 61.4948C237.234 64.3177 240.406 67.2813 243.505 70.3073C252.776 79.3333 264.516 92.5 276.75 107.76C306.932 145.365 340.141 195.651 346.818 227.609C353.953 261.776 350.391 271.245 344.943 304.974Z'},
-  { id:'1_32', crop:'稻米',        cx:631.250, cy:734.080, cw:245.130, ch:239.130, viewBox:'0 0 245.125 239.131', d:'M245.125 63.8177C245.125 63.8177 239.135 148.281 223.995 199.781C217.776 220.938 210.005 236.531 200.464 238.422C169.594 244.521 0 209.276 0 209.276C18.6719 151.896 0 0 0 0C0 0 134.651 81.6823 177.865 81.2135C220.406 80.75 244.37 64.3438 245.109 63.8333L245.125 63.8177Z'},
+  { id:'1_26', crop:'有機水耕蔬菜', cx:276.510, cy:379.270, cw:271.070, ch:341.380, viewBox:'0 0 271.073 341.38',  d:'M271.073 341.38C186.406 313.224 69.8229 236.292 0 186.99C1.28125 185.724 2.5625 184.453 3.84896 183.198C70.7813 117.547 142.276 56.2656 218.25 1.71354C219.047 1.13542 219.854 0.567708 220.651 0C233.755 33.4375 247.786 74.8021 254.922 113.661C257.255 126.286 258.849 138.646 259.453 150.385C263.854 235.927 270.344 330.776 271.073 341.38Z'},
+  { id:'1_28', crop:'蜂蜜',        cx:165.660, cy:566.260, cw:381.990, ch:253.460, viewBox:'0 0 381.99 253.464',  d:'M381.99 155.375C342.849 166.682 303.573 178.083 263.839 187.057C203.245 200.766 147.063 227.167 91.0681 253.464C90.0473 251.969 88.9952 250.484 87.9119 249.036C75.3389 232.161 58.6775 218.625 38.99 211.109C18.1046 203.151 0.104562 179.984 0.00039533 156.281C-0.01523 151.344 0.432687 146.51 1.28165 141.776C6.8129 111.026 29.3702 84.4219 51.3077 61.0365C70.7244 40.3281 90.5837 19.9531 110.849 0C180.672 49.3021 297.261 126.234 381.922 154.391C381.964 155.036 381.99 155.375 381.99 155.375Z'},
+  { id:'1_30', crop:'稻米',        cx:531.430, cy:492.930, cw:350.810, ch:322.370, viewBox:'0 0 350.809 322.372', d:'M344.943 304.974L344.927 304.99C344.188 305.5 320.224 321.906 277.682 322.37C234.469 322.839 99.8177 241.156 99.8177 241.156C59.8646 229.016 16.151 227.719 16.151 227.719C15.4219 217.115 8.93229 122.266 4.53125 36.724C3.92708 24.9844 2.33333 12.625 0 0C33.2031 3.77604 65.7188 7.3125 98.3854 14.625C123.25 20.1823 147.917 26.6302 172.323 33.9583C193.938 40.4479 216.484 46.4375 233.953 61.4948C237.234 64.3177 240.406 67.2813 243.505 70.3073C252.776 79.3333 264.516 92.5 276.75 107.76C306.932 145.365 340.141 195.651 346.818 227.609C353.953 261.776 350.391 271.245 344.943 304.974Z'},
+  { id:'1_32', crop:'韭菜',        cx:631.250, cy:734.080, cw:245.130, ch:239.130, viewBox:'0 0 245.125 239.131', d:'M245.125 63.8177C245.125 63.8177 239.135 148.281 223.995 199.781C217.776 220.938 210.005 236.531 200.464 238.422C169.594 244.521 0 209.276 0 209.276C18.6719 151.896 0 0 0 0C0 0 134.651 81.6823 177.865 81.2135C220.406 80.75 244.37 64.3438 245.109 63.8333L245.125 63.8177Z'},
   { id:'1_34', crop:'水蜜桃',      cx:865.550, cy:1069.390,cw:570.250, ch:739.470, viewBox:'0 0 570.249 739.468', d:'M570.193 514.688C567.281 619.172 475.75 717.396 375.26 736.281C328.833 745.01 274.62 736.797 245.911 699.276C215.469 659.458 224.094 602.953 209.615 554.974C184.005 470.057 89.8854 421.578 58.4063 338.656C39.9896 290.125 44.2292 232.474 13.25 190.823C9.1875 185.37 4.76042 180.458 0.015625 176.005H0V175.995C1.67188 172.432 74.5052 171.516 82.1406 170.719C111.339 167.656 140.479 162.958 168.464 153.88C217.604 137.943 255.354 101.734 287.667 62.8229C304.76 42.2292 322.76 21.3594 340.057 0C392.526 8.89063 439.385 49.276 453.635 100.896C463.229 135.677 459.073 172.526 460.057 208.589C461.661 267.255 477.703 325.339 505.635 376.891C533.87 429.052 571.906 453.552 570.193 514.688Z'},
 ];
 
 // 桃園鄉鎮 design canvas size (與 polygon coords 同 1601×2000)
 const TAOYUAN_W = 1601, TAOYUAN_H = 2000;
+
+/* ── 桃園鄉鎮常駐角色（260624 新版設計稿）───────────────────────────────
+ * 17 個角色常駐顯示在地圖上（畫在 polygon overlay 同一層 SVG 裡）。
+ * x,y = 角色「腳底」在 1601×2000 canvas 上的定位點；h = 顯示高度；
+ * w = 顯示框寬（預設 200，寬型角色如豬/魚要加寬）。crop 對應
+ * window.TAOYUAN_CROPS 的角色圖 + 點擊時帶進 hero 的作物名。
+ * town = 所屬鄉鎮 polygon id（hover 角色時該區跟著變色）。 */
+const TAOYUAN_CHARS = [
+  // w = 角色圖實際長寬比 × h + 6px 緩衝 — SVG <image> 的命中區是整個定位框
+  // （含透明像素），框若比藝術寬會攔截到鄰區的 hover/click，故必須貼實寬。
+  { k:'organic1', crop:'有機水耕蔬菜', town:'1_26', x:400,  y:500,  h:150, w:108 },
+  { k:'rice1',    crop:'稻米',         town:'1_22', x:610,  y:360,  h:165, w:96  },
+  { k:'wbamboo',  crop:'茭白筍',       town:'1_22', x:735,  y:365,  h:160, w:96  },
+  { k:'cabbage',  crop:'甘藍-初秋',    town:'1_24', x:915,  y:350,  h:150, w:145 },
+  { k:'pomelo',   crop:'柚子',         town:'1_20', x:1140, y:480,  h:150, w:127 },
+  { k:'honey',    crop:'蜂蜜',         town:'1_28', x:330,  y:700,  h:145, w:134 },
+  { k:'rice2',    crop:'稻米',         town:'1_30', x:670,  y:625,  h:165, w:96  },
+  { k:'bamboo1',  crop:'竹筍',         town:'1_18', x:950,  y:610,  h:150, w:88  },
+  { k:'chive',    crop:'韭菜',         town:'1_32', x:745,  y:850,  h:165, w:79  },
+  { k:'organic2', crop:'有機水耕蔬菜', town:'1_14', x:938,  y:830,  h:150, w:108 },
+  { k:'pork',     crop:'黑豬肉',       town:'1_16', x:500,  y:895,  h:130, w:190 },
+  { k:'redtea',   crop:'桃映紅茶',     town:'1_12', x:630,  y:1040, h:140, w:107 },
+  { k:'beauty',   crop:'東方美人茶',   town:'1_12', x:780,  y:1090, h:140, w:107 },
+  { k:'bamboo2',  crop:'竹筍',         town:'1_10', x:1060, y:1010, h:150, w:88  },
+  { k:'fish',     crop:'石門活魚',     town:'1_10', x:975,  y:1170, h:125, w:189 },
+  { k:'peach',    crop:'水蜜桃',       town:'1_34', x:1130, y:1420, h:160, w:124 },
+  { k:'mushroom', crop:'香菇',         town:'1_34', x:1245, y:1650, h:150, w:119 },
+];
+
+/* 常駐角色 + 名稱釦渲染層 — 在 1601×2000 SVG 座標系內使用。
+ * Page 的桃園 detail overlay 與 TaoyuanDetail 頁共用。 */
+const TaoyuanCharsLayer = ({onCropSelect, onHoverTown}) => {
+  const cropChars = (typeof window !== 'undefined' && window.TAOYUAN_CROPS) || {};
+  return (
+    <g>
+      {TAOYUAN_CHARS.map((c) => {
+        const src = cropChars[c.crop];
+        const w = c.w || 200;
+        // 名稱釦字級依字數階梯縮小（比照設計稿比例），長名不撐版、不壓鄰居
+        const fs = c.crop.length >= 6 ? 21 : c.crop.length >= 4 ? 24 : 28;
+        const labelW = c.crop.length * fs + 40, labelH = 50;
+        return (
+          <g key={c.k}
+             style={{cursor:'pointer'}}
+             onMouseEnter={onHoverTown ? () => onHoverTown(c.town) : undefined}
+             onMouseLeave={onHoverTown ? () => onHoverTown(null) : undefined}
+             onClick={onCropSelect ? () => onCropSelect(c.crop) : undefined}>
+            {src && (
+              <image href={src}
+                     x={c.x - w/2} y={c.y - c.h}
+                     width={w} height={c.h}
+                     preserveAspectRatio="xMidYMax meet"/>
+            )}
+            <g transform={`translate(${c.x - labelW/2}, ${c.y + 12})`}>
+              <rect width={labelW} height={labelH} rx={labelH/2}
+                    fill="#fffdf6" stroke="#c9a887" strokeWidth={2.5}/>
+              <text x={labelW/2} y={labelH/2 + 1}
+                    textAnchor="middle" dominantBaseline="middle"
+                    fill="#8d6e55" fontSize={fs} fontWeight={700}
+                    fontFamily="'Noto Sans TC', 'Noto Sans CJK TC', sans-serif">
+                {c.crop}
+              </text>
+            </g>
+          </g>
+        );
+      })}
+    </g>
+  );
+};
 
 // design polygon 沒拆出的縣市 — 用 fixed hotspot（design canvas 1440×2996 座標）
 // 新竹市在新竹縣中間、嘉義市在嘉義縣中間（憑地理估的位置）
@@ -967,41 +1061,9 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
                 />
               </svg>
             ))}
-            {/* hover 時顯示：作物角色 SVG (window.TAOYUAN_CROPS) + 作物名 badge
-                角色置於 polygon 中心上方、badge 緊跟角色下方（與主地圖 county hover 同 layout） */}
-            {hovered && (() => {
-              const t = TAOYUAN_TOWNSHIPS.find(x => x.id === hovered);
-              if (!t) return null;
-              const cx = t.cx + t.cw/2;
-              const cy = t.cy + t.ch/2;
-              const cropChars = (typeof window !== 'undefined' && window.TAOYUAN_CROPS) || {};
-              const charSrc = cropChars[t.crop];
-              const charSize = 280;
-              const labelW = 180, labelH = 56;
-              const labelY = cy + charSize*0.15 + 6;
-              return (
-                <g style={{pointerEvents:'none'}}>
-                  {charSrc && (
-                    <image href={charSrc}
-                           x={cx - charSize/2}
-                           y={cy - charSize*0.85}
-                           width={charSize}
-                           height={charSize}
-                           preserveAspectRatio="xMidYMid meet"/>
-                  )}
-                  <g transform={`translate(${cx - labelW/2}, ${labelY})`}>
-                    <rect width={labelW} height={labelH} rx={labelH/2}
-                          fill="#fbf6e9" stroke="#d1c4af" strokeWidth={2.5}/>
-                    <text x={labelW/2} y={labelH/2 + 1}
-                          textAnchor="middle" dominantBaseline="middle"
-                          fill="#9b897c" fontSize={30} fontWeight={500}
-                          fontFamily="'Noto Sans TC', 'Noto Sans CJK TC', sans-serif">
-                      {t.crop}
-                    </text>
-                  </g>
-                </g>
-              );
-            })()}
+            {/* 常駐角色 + 名稱釦（260624 新版設計稿）— hover 角色時所屬鄉鎮
+                polygon 跟著變色；點角色把該作物帶進 hero（同 polygon click）。 */}
+            <TaoyuanCharsLayer onCropSelect={onCropSelect} onHoverTown={setHovered}/>
           </svg>
         </div>
       )}
@@ -1337,12 +1399,19 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
           Measured from ori.png: 番茄 glyph spans design y=141..167; centred
           between 桃園市 (ends y=126) and bubble top (y=186). */}
       <ScaledOverlay x={1015} y={135} w={300} h={42}>
-        <div style={{
-          fontSize:30, fontWeight:900, color:'#3b6826',
-          letterSpacing:1.5, lineHeight:'42px', fontFamily:"'Noto Sans TC',sans-serif",
-        }}>
-          {effectiveCrop || region.cropApi}
-        </div>
+        {(() => {
+          const heroCrop = effectiveCrop || region.cropApi;
+          // 長作物名階梯縮字，避免壓到右側「換作物」下拉
+          const fs = heroCrop.length >= 6 ? 24 : heroCrop.length >= 5 ? 27 : 30;
+          return (
+            <div style={{
+              fontSize:fs, fontWeight:900, color:'#3b6826',
+              letterSpacing:1.2, lineHeight:'42px', fontFamily:"'Noto Sans TC',sans-serif",
+            }}>
+              {heroCrop}
+            </div>
+          );
+        })()}
       </ScaledOverlay>
 
       {/* (3b) B案: 換作物下拉 — 貼在作物名右側的小 pill */}
@@ -1374,7 +1443,12 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
           whiteSpace:'nowrap',
         }}>
           <div>哈囉！我是來自{region.name.replace(/[市縣]$/, '')}的{effectiveCrop || region.cropApi}！</div>
-          <div>這裡陽光充足，很適合我生長，</div>
+          <div>{({
+            '蜂蜜':     '這裡花源豐富，釀出好蜂蜜，',
+            '黑豬肉':   '這裡飼養環境好，肉質特別讚，',
+            '石門活魚': '石門水庫活水養出好魚，',
+            '香菇':     '這裡溫濕度剛好，很適合出菇，',
+          })[effectiveCrop || region.cropApi] || '這裡陽光充足，很適合我生長，'}</div>
           <div>快來看看今天的天氣和市場資訊吧！</div>
         </div>
       </ScaledOverlay>
@@ -1622,6 +1696,7 @@ const NONGZHIDAO_MAP = {
   '西瓜-大西瓜':  'fruit_T1',
   // 14 county crops backfilled 2026-05-22 (batch via scripts/backfill_amis.py)
   '綠竹筍':       'code_SH2',  // 台北
+  '竹筍':         'code_SH2',  // 桃園鄉鎮新版標示（同綠竹筍行情）
   '山藥':         'code_SU2',  // 基隆 (白薯蕷)
   '甜柿':         'fruit_Z0',  // 新竹縣 (柿子)
   '草莓':         'fruit_45',  // 苗栗
@@ -1645,6 +1720,7 @@ const NONGZHIDAO_MAP = {
   '甘藍-初秋':    'code_LA1',
   '包心白':       'code_LC1',  // 桃園楊梅 (包白 cultivar)
   '包心白菜':     'code_LC1',
+  '有機水耕蔬菜': 'code_LC1',  // 260624 新版：套包心白行情當參考價
   '水蜜桃':       'fruit_Y1',  // 桃園復興拉拉山
   '桃子':         'fruit_Y1',
   '柚子':         'fruit_H1',  // 桃園大溪文旦
@@ -1664,6 +1740,11 @@ const WHOLESALE_NO_DATA = new Set([
   // taoyuan township slots — same reason as 新北包種茶 / 新竹市水稻
   '茶葉',
   '稻米',
+  // 260624 新版桃園鄉鎮品項 — 茶品牌不走批發拍賣（比照包種茶）。
+  // 蜂蜜/黑豬肉/石門活魚 各接專屬行情來源（見 _fetchCropMarket 上方）；
+  // 有機水耕蔬菜 套包心白行情（NONGZHIDAO_MAP code_LC1）當參考價。
+  '桃映紅茶',
+  '東方美人茶',
 ]);
 
 // MOA returns dates as either "115/05/21" or "115.05.21" — accept both separators.
@@ -1737,6 +1818,135 @@ async function _fetchFromMOA(cropName) {
   };
 }
 
+/* ── 特殊品項行情來源（260624 新版桃園品項）─────────────────────────────
+ * 黑豬肉  → 畜產品交易行情（毛豬規格豬拍賣均價，頭數加權）
+ * 石門活魚 → 漁產品批發行情（草魚，交易量加權）— 石門活魚主力魚種
+ * 兩者皆為 data.moa.gov.tw OpenData（CORS 開放），只能按日查
+ * (TransDate=ROC緊湊格式)，故平行抓近 28 天組成日線。
+ * 蜂蜜    → 無批發拍賣市場；採農業統計（蜂蜜產值÷產量）的年均產地價，
+ *           104–114 年靜態資料（agrstat.moa.gov.tw 動態查詢，2026-07 擷取）。 */
+const _ANIMAL_TRANS_URL  = 'https://data.moa.gov.tw/Service/OpenData/FromM/AnimalTransData.aspx';
+const _AQUATIC_TRANS_URL = 'https://data.moa.gov.tw/Service/OpenData/FromM/AquaticTransData.aspx';
+const _HONEY_ANNUAL = [  // [民國年, 元/公斤] = 產值(千元)×1000 ÷ 產量(公斤)
+  [104, 148], [105, 211], [106, 300], [107, 262], [108, 200], [109, 161],
+  [110, 227], [111, 221], [112, 239], [113, 198], [114, 324],
+];
+// 價格卡標籤覆蓋 — 誠實標示資料實際口徑
+const PRICE_META = {
+  // periods: 趨勢圖只顯示對資料視窗誠實的檔位（豬/魚只有近月日線、蜂蜜只有年資料）
+  // volUnit: 交易量單位（黑豬肉是頭數不是公斤）；noVolume: 不畫量柱
+  // hideRetail/hideAdvice: 口徑不適用 批發×2 零售試算 / 短期買賣建議
+  // noCompare: 單一資料來源，無跨市場比較
+  '蜂蜜':     { title:'年均產地價', unit:'(每公斤·年資料)', chgLabel:'較前一年', annual:true,
+                src:'農業統計 蜂蜜產值/產量', panelSrc:'農業統計·年資料', latestLabel:'最新年均',
+                periods:[['yearly','每年']], noVolume:true, hideRetail:true, hideAdvice:true, noCompare:true },
+  '黑豬肉':   { title:'今日毛豬拍賣', unit:'(每公斤·活豬)', src:'畜產品交易行情 規格豬',
+                panelSrc:'畜產拍賣·活豬', volUnit:'頭',
+                periods:[['daily','每日'],['weekly','每週']], hideRetail:true, noCompare:true },
+  '石門活魚': { title:'今日草魚批發', unit:'(每公斤)', src:'漁產品批發行情 草魚',
+                panelSrc:'漁產批發·草魚',
+                periods:[['daily','每日'],['weekly','每週']], noCompare:true },
+  '有機水耕蔬菜': { title:'今日包心白批發', unit:'(每公斤·參考)', src:'AMIS 包心白行情', panelSrc:'AMIS·包心白參考' },
+};
+const _rocCompact = (d) =>
+  `${d.getFullYear() - 1911}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+async function _fetchTransDaily(url, mapDay) {
+  const now = new Date();
+  const days = Array.from({length: 28}, (_, i) => new Date(now.getTime() - i*86400000));
+  const rows = await Promise.all(days.map(async (d) => {
+    try {
+      const r = await fetch(`${url}?TransDate=${_rocCompact(d)}`);
+      if (!r.ok) return null;
+      const arr = await r.json();
+      if (!Array.isArray(arr) || !arr.length) return null;   // 休市日
+      return mapDay(arr);
+    } catch (e) { return null; }
+  }));
+  const daily = rows.filter(Boolean).sort((a, b) => (a.date < b.date ? -1 : 1));
+  if (!daily.length) return null;
+  const j = { daily };
+  j.weekly  = _aggregateDaily(daily, r => _isoYearWeek(r.date));
+  j.monthly = _aggregateDaily(daily, r => r.date.slice(0, 7));
+  j.yearly  = _aggregateDaily(daily, r => r.date.slice(0, 4));
+  const last = daily[daily.length - 1];
+  j.latest_price = { date: last.date, price: last.price };
+  return j;
+}
+const _isoFromRocCompact = (s) => {
+  s = String(s);
+  const roc = parseInt(s.slice(0, s.length - 4), 10);
+  return `${roc + 1911}-${s.slice(-4, -2)}-${s.slice(-2)}`;
+};
+const _fetchPigMarket = () => _fetchTransDaily(_ANIMAL_TRANS_URL, (arr) => {
+  let wSum = 0, n = 0;
+  for (const r of arr) {
+    const p = r['規格豬-平均價格'], c = r['規格豬-頭數'];
+    if (p > 0 && c > 0) { wSum += p * c; n += c; }
+  }
+  if (!n) return null;
+  return { date: _isoFromRocCompact(arr[0]['交易日期']), price: Math.round(wSum / n * 10) / 10, volume: n };
+});
+// 漁產 API 不支援 TransDate 按日查，但支援 StartDate/EndDate（ROC 緊湊格式）
+// 範圍查詢 — 一次抓 14 天再前端按日加權（草魚非每日每市場都有成交）。
+async function _fetchFishMarket() {
+  const now = new Date();
+  const from = new Date(now.getTime() - 13 * 86400000);
+  try {
+    // OpenData 端偶發回空 body — 最多重試 2 次（間隔 2s）
+    let arr = null;
+    for (let attempt = 0; attempt < 3 && !arr; attempt++) {
+      if (attempt) await new Promise(res => setTimeout(res, 2000));
+      try {
+        const r = await fetch(`${_AQUATIC_TRANS_URL}?StartDate=${_rocCompact(from)}&EndDate=${_rocCompact(now)}`);
+        if (!r.ok) continue;
+        const parsed = await r.json();
+        if (Array.isArray(parsed) && parsed.length) arr = parsed;
+      } catch (e) { /* retry */ }
+    }
+    if (!arr) return null;
+    const byDay = new Map();
+    for (const row of (Array.isArray(arr) ? arr : [])) {
+      if (row['魚貨名稱'] !== '草魚') continue;
+      const p = row['平均價'], q = row['交易量'];
+      if (!(p > 0 && q > 0)) continue;
+      const k = String(row['交易日期']);
+      const acc = byDay.get(k) || { w: 0, v: 0 };
+      acc.w += p * q; acc.v += q;
+      byDay.set(k, acc);
+    }
+    const daily = [...byDay.entries()]
+      .map(([k, a]) => ({ date: _isoFromRocCompact(k), price: Math.round(a.w / a.v * 10) / 10, volume: Math.round(a.v) }))
+      .sort((a, b) => (a.date < b.date ? -1 : 1));
+    if (!daily.length) return null;
+    const j = { daily };
+    j.weekly  = _aggregateDaily(daily, r2 => _isoYearWeek(r2.date));
+    j.monthly = _aggregateDaily(daily, r2 => r2.date.slice(0, 7));
+    j.yearly  = _aggregateDaily(daily, r2 => r2.date.slice(0, 4));
+    const last = daily[daily.length - 1];
+    j.latest_price = { date: last.date, price: last.price };
+    return j;
+  } catch (e) { console.warn('[fish-market] failed:', e && e.message); return null; }
+}
+function _honeyMarket() {
+  // volume:1 = 等權年均 — _aggregateDaily 用量加權，缺 volume 會全部歸零
+  const daily = _HONEY_ANNUAL.map(([roc, price]) => ({ date: `${roc + 1911}-01-01`, price, volume: 1 }));
+  const j = { daily, annual: true };
+  j.weekly = j.monthly = j.yearly = _aggregateDaily(daily, r => r.date.slice(0, 4));
+  const last = daily[daily.length - 1];
+  j.latest_price = { date: last.date, price: last.price };
+  return Promise.resolve(j);
+}
+
+// 特殊來源 10 分鐘 memo（成功結果才記；失敗回 null 下次 mount 會重試）
+const _transMemo = new Map();   // key → {at, v}
+async function _memoTrans(key, fn) {
+  const hit = _transMemo.get(key);
+  if (hit && Date.now() - hit.at < 600000) return hit.v;
+  const v = await fn();
+  if (v != null) _transMemo.set(key, { at: Date.now(), v });
+  return v;
+}
+
 const _cropMarketCache     = new Map();   // cropName → data
 const _cropMarketListeners = new Map();   // cropName → Set<setter>
 const _cropMarketInflight  = new Map();   // cropName → Promise (in-flight fetch)
@@ -1745,6 +1955,12 @@ async function _fetchCropMarket(cropName) {
   // Sentinel used by wholesale cards when WHOLESALE_NO_DATA.has(cropName).
   // The hook still runs (Rules of Hooks) but we skip both fetches.
   if (cropName === '__nodata__') return null;
+  // 特殊品項 → 專屬行情來源（畜產拍賣/漁產批發/農業統計年均）
+  // 10 分鐘 TTL memo：useCropMarket 每次 mount 都會重抓，黑豬肉一次是
+  // 28 個平行請求，不加 memo 會把 OpenData 端打到限流。
+  if (cropName === '黑豬肉') return _memoTrans('pig', _fetchPigMarket);
+  if (cropName === '石門活魚') return _memoTrans('fish', _fetchFishMarket);
+  if (cropName === '蜂蜜') return _honeyMarket();
   const code = NONGZHIDAO_MAP[cropName];
   if (code) {
     try {
@@ -1796,6 +2012,9 @@ const useCropMarket = (cropName) => {
       setData(tm);
     } else if (_cropMarketCache.has(cropName)) {
       setData(_cropMarketCache.get(cropName));
+    } else {
+      // 換作物且無快取 → 先清空，避免前一作物的數字掛在新作物的卡上
+      setData(null);
     }
     if (!_cropMarketListeners.has(cropName)) _cropMarketListeners.set(cropName, new Set());
     _cropMarketListeners.get(cropName).add(setData);
@@ -1803,8 +2022,11 @@ const useCropMarket = (cropName) => {
       _cropMarketInflight.set(cropName,
         _fetchCropMarket(cropName)
           .then(d => {
-            _cropMarketCache.set(cropName, d);
+            // 失敗(null) 不覆蓋已有的好資料 — 特殊來源限流時保住畫面
+            const prev = _cropMarketCache.get(cropName);
             _cropMarketInflight.delete(cropName);
+            if (d == null && prev != null) return;
+            _cropMarketCache.set(cropName, d);
             const ls = _cropMarketListeners.get(cropName);
             if (ls) for (const fn of ls) fn(d);
           })
@@ -1872,6 +2094,13 @@ const TRADE_COA_MAP = {
   // taoyuan township 稻米/茶葉 reuse existing files for 水稻/包種茶
   '稻米':         '101xx01',
   '茶葉':         '109xxxx',
+  // 260624 新版品項 backfilled 2026-07-30（豬=201##01 活畜禽及肉類-豬、
+  // 蜂蜜=207#### 養蜂業產品類；石門活魚刻意不掛——海關統計無淡水養殖魚
+  // 專項（草魚/鰱魚為內銷型），掛整類魚會誤導）
+  '黑豬肉':       '201xx01',
+  '蜂蜜':         '207xxxx',
+  '桃映紅茶':     '109xxxx',   // 茶類出口比照茶葉 aggregate
+  '東方美人茶':   '109xxxx',
   // 宜蘭 青蔥-粉蔥 intentionally omitted — MOA's 103##03 conflates 洋蔥+蔥;
   // showing 洋蔥 numbers under a 青蔥 label would be misleading, so the trade
   // card renders a placeholder for 宜蘭 instead.
@@ -2018,6 +2247,7 @@ const PricePanelCard = ({cropName}) => {
                 : { label:'觀望', bg:'#f3d27a', fg:'#7a5418' };
 
   const fmt = v => (v == null ? '—' : v.toLocaleString('zh-TW', {maximumFractionDigits:2}));
+  const _pmeta = PRICE_META[cropName] || {};
 
   // Position over the design's 價格面板 slot. Figma node 39-1506:
   //   character card (Group 23):  x=34,  y=87, w=292, h=287 → bottom 374
@@ -2042,39 +2272,57 @@ const PricePanelCard = ({cropName}) => {
       display:'flex', flexDirection:'column', gap:12,
       fontFamily:"'Noto Sans TC',sans-serif",
     }}>
-      {/* Sub-card: 價格面板 (AMIS) */}
+      {/* Sub-card: 價格面板 — 來源依 PRICE_META 標示（AMIS/畜產拍賣/農業統計…） */}
       <div style={{flex:1, background:'#fff5e8', borderRadius:10, padding:'10px 12px', boxShadow:'0 1px 0 #f0e0c8', display:'flex', flexDirection:'column', justifyContent:'space-evenly'}}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline'}}>
-          <div style={{fontSize:15, fontWeight:900, color:'#a85a16', letterSpacing:1}}>價格面板 (AMIS)</div>
-          <div style={{fontSize:9, color:'#a89070'}}>{latestDate ? latestDate.replace(/-/g,'/') : ''}</div>
+          <div style={{fontSize:15, fontWeight:900, color:'#a85a16', letterSpacing:1}}>價格面板 ({_pmeta.panelSrc || 'AMIS'})</div>
+          <div style={{fontSize:9, color:'#a89070'}}>{latestDate ? (_pmeta.annual ? latestDate.slice(0,4) + '年' : latestDate.replace(/-/g,'/')) : ''}</div>
         </div>
         <div style={{marginTop:4, display:'flex', alignItems:'baseline', gap:10}}>
-          <div style={{fontSize:12, color:'#7a5418', fontWeight:700}}>最新均價</div>
+          <div style={{fontSize:12, color:'#7a5418', fontWeight:700}}>{_pmeta.latestLabel || '最新均價'}</div>
           <div style={{fontSize:14, fontWeight:900, color:'#5a3a18'}}>${fmt(latest)} / 公斤</div>
           <div style={{fontSize:11, color:'#a89070'}}>(${fmt(taikinPrice)} / 台斤)</div>
         </div>
       </div>
-      {/* Sub-card: 試算預估零售價 */}
+      {/* Sub-card: 試算預估零售價 — 年資料/活豬口徑不適用試算 */}
       <div style={{flex:1, background:'#fff5e8', borderRadius:10, padding:'10px 12px', boxShadow:'0 1px 0 #f0e0c8', display:'flex', flexDirection:'column', justifyContent:'space-evenly'}}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline'}}>
           <div style={{fontSize:15, fontWeight:900, color:'#a85a16', letterSpacing:1}}>試算預估零售價</div>
-          <div style={{fontSize:9, color:'#a89070'}}>(口徑A: 批發 × 2)</div>
+          {!_pmeta.hideRetail && <div style={{fontSize:9, color:'#a89070'}}>(口徑A: 批發 × 2)</div>}
         </div>
-        <div style={{marginTop:4, display:'flex', alignItems:'baseline', gap:14}}>
-          <div style={{fontSize:14, fontWeight:900, color:'#5a3a18'}}>${retailKg ?? '—'} / 公斤</div>
-          <div style={{fontSize:9, color:'#c8a070'}}>|</div>
-          <div style={{fontSize:14, fontWeight:900, color:'#5a3a18'}}>${retailTaikin ?? '—'} / 台斤</div>
-        </div>
+        {_pmeta.hideRetail ? (
+          <div style={{marginTop:4, fontSize:11, color:'#a89070'}}>
+            {_pmeta.annual ? '年均產地價非批發口徑，不做零售試算' : '活豬拍賣價與零售豬肉口徑不同，不做試算'}
+          </div>
+        ) : (
+          <div style={{marginTop:4, display:'flex', alignItems:'baseline', gap:14}}>
+            <div style={{fontSize:14, fontWeight:900, color:'#5a3a18'}}>${retailKg ?? '—'} / 公斤</div>
+            <div style={{fontSize:9, color:'#c8a070'}}>|</div>
+            <div style={{fontSize:14, fontWeight:900, color:'#5a3a18'}}>${retailTaikin ?? '—'} / 台斤</div>
+          </div>
+        )}
       </div>
-      {/* Sub-card: 近期交易指標 */}
+      {/* Sub-card: 近期交易指標 — 年資料改顯示年增率，不給短期買賣建議 */}
       <div style={{flex:1, background:'#fff5e8', borderRadius:10, padding:'10px 12px', boxShadow:'0 1px 0 #f0e0c8', display:'flex', flexDirection:'column', justifyContent:'space-evenly'}}>
-        <div style={{fontSize:15, fontWeight:900, color:'#a85a16', letterSpacing:1, marginBottom:6}}>近期交易指標</div>
-        <div style={{display:'flex', gap:14, fontSize:12, color:'#7a5418', alignItems:'center', flexWrap:'wrap'}}>
-          <div>購買建議</div>
-          <span style={{padding:'3px 10px', borderRadius:10, background:buyTag.bg, color:buyTag.fg, fontWeight:700}}>{buyTag.label}</span>
-          <div>賣出建議</div>
-          <span style={{padding:'3px 10px', borderRadius:10, background:sellTag.bg, color:sellTag.fg, fontWeight:700}}>{sellTag.label}</span>
+        <div style={{fontSize:15, fontWeight:900, color:'#a85a16', letterSpacing:1, marginBottom:6}}>
+          {_pmeta.hideAdvice ? '年度變化' : '近期交易指標'}
         </div>
+        {_pmeta.hideAdvice ? (
+          <div style={{display:'flex', gap:10, fontSize:12, color:'#7a5418', alignItems:'center'}}>
+            <div>較前一年</div>
+            <span style={{padding:'3px 10px', borderRadius:10, background: (chgPct ?? 0) >= 0 ? '#f6c6a0' : '#a5dba6', color:'#5a3a18', fontWeight:700}}>
+              {(chgPct ?? 0) >= 0 ? '▲' : '▼'} {Math.abs(chgPct ?? 0)}%
+            </span>
+            <div style={{fontSize:10, color:'#a89070'}}>(年資料不適用短期買賣建議)</div>
+          </div>
+        ) : (
+          <div style={{display:'flex', gap:14, fontSize:12, color:'#7a5418', alignItems:'center', flexWrap:'wrap'}}>
+            <div>購買建議</div>
+            <span style={{padding:'3px 10px', borderRadius:10, background:buyTag.bg, color:buyTag.fg, fontWeight:700}}>{buyTag.label}</span>
+            <div>賣出建議</div>
+            <span style={{padding:'3px 10px', borderRadius:10, background:sellTag.bg, color:sellTag.fg, fontWeight:700}}>{sellTag.label}</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2089,28 +2337,44 @@ const TrendChartCard = ({cropName}) => {
   const canvasRef = React.useRef(null);
   const chartRef  = React.useRef(null);
 
+  // 特殊品項只顯示對資料視窗誠實的檔位（PRICE_META.periods）；
+  // 換作物時若當前檔位不在該作物的檔位表，退回第一個。
+  const meta = PRICE_META[cropName] || {};
+  const periodOpts = meta.periods || [['weekly','每週'],['monthly','每月'],['year52','一年'],['yearly','每年']];
+  const effPeriod = periodOpts.some(p => p[0] === period) ? period : periodOpts[0][0];
+
   React.useEffect(() => {
     if (!m || !chartReady || !window.Chart || !canvasRef.current) return;
     // '一年' = last 52 weeks of weekly series; '每週' = full weekly series
     let entries, priceLabel;
-    if (period === 'weekly')      { entries = m.weekly;  priceLabel = '每週均價 (NTD/公斤)'; }
-    else if (period === 'monthly'){ entries = m.monthly; priceLabel = '每月均價 (NTD/公斤)'; }
-    else if (period === 'year52') { entries = m.weekly.slice(-52); priceLabel = '每週均價 (NTD/公斤)'; }
+    if (effPeriod === 'daily')        { entries = (m.daily || []).map(d => ({ key: d.date.slice(5), price: d.price, volume: d.volume })); priceLabel = '每日均價 (NTD/公斤)'; }
+    else if (effPeriod === 'weekly')  { entries = m.weekly;  priceLabel = '每週均價 (NTD/公斤)'; }
+    else if (effPeriod === 'monthly'){ entries = m.monthly; priceLabel = '每月均價 (NTD/公斤)'; }
+    else if (effPeriod === 'year52') { entries = m.weekly.slice(-52); priceLabel = '每週均價 (NTD/公斤)'; }
     else                          { entries = m.yearly;  priceLabel = '每年均價 (NTD/公斤)'; }
     const labels = entries.map(e => e.key || e.date);
     const prices = entries.map(e => e.price);
     const volumes = entries.map(e => e.volume);
+    const volLabel = `交易量 (${meta.volUnit || 'KG'})`;
 
     if (chartRef.current) chartRef.current.destroy();
+    const datasets = [];
+    if (!meta.noVolume) {
+      datasets.push({ label: volLabel, data: volumes, backgroundColor:'rgba(168,213,176,0.55)', borderColor:'rgba(168,213,176,1)', borderWidth:0, yAxisID:'y2', order:2 });
+    }
+    datasets.push({ label: priceLabel, data: prices, type:'line', borderColor:'#3578d4', backgroundColor:'#3578d4', tension:0.25, pointRadius: effPeriod==='weekly' ? 1.5 : 3, pointHoverRadius:6, borderWidth:2, yAxisID:'y1', order:1 });
+    const scales = {
+      x: { ticks:{font:{size:10}, color:'#666', maxRotation:60, autoSkip:true,
+                   maxTicksLimit: effPeriod==='weekly' ? 14 : effPeriod==='monthly' ? 12 : effPeriod==='yearly' ? 11 : 14},
+           grid:{display:false} },
+      y1:{ position:'left',  title:{display:true,text:'價格 (NTD/公斤)',font:{size:10},color:'#666'}, ticks:{font:{size:10},color:'#666'}, grid:{color:'rgba(0,0,0,0.05)'} },
+    };
+    if (!meta.noVolume) {
+      scales.y2 = { position:'right', title:{display:true,text:volLabel,font:{size:10},color:'#666'}, ticks:{font:{size:10},color:'#666',callback:v=>v>=1e6?(v/1e6).toFixed(0)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v}, grid:{drawOnChartArea:false} };
+    }
     chartRef.current = new window.Chart(canvasRef.current, {
       type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          { label:'交易量 (KG)', data: volumes, backgroundColor:'rgba(168,213,176,0.55)', borderColor:'rgba(168,213,176,1)', borderWidth:0, yAxisID:'y2', order:2 },
-          { label: priceLabel, data: prices, type:'line', borderColor:'#3578d4', backgroundColor:'#3578d4', tension:0.25, pointRadius: period==='weekly' ? 1.5 : 3, pointHoverRadius:6, borderWidth:2, yAxisID:'y1', order:1 },
-        ],
-      },
+      data: { labels, datasets },
       options: {
         responsive:true, maintainAspectRatio:false,
         interaction:{ mode:'index', intersect:false },
@@ -2118,17 +2382,11 @@ const TrendChartCard = ({cropName}) => {
           legend:{ position:'top', labels:{ font:{size:11}, boxWidth:14, color:'#3a4a6a' } },
           tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${ctx.raw?.toLocaleString('zh-TW') ?? '—'}` } },
         },
-        scales: {
-          x: { ticks:{font:{size:10}, color:'#666', maxRotation:60, autoSkip:true,
-                       maxTicksLimit: period==='weekly' ? 14 : period==='monthly' ? 12 : period==='yearly' ? 11 : 12},
-               grid:{display:false} },
-          y1:{ position:'left',  title:{display:true,text:'價格 (NTD/公斤)',font:{size:10},color:'#666'}, ticks:{font:{size:10},color:'#666'}, grid:{color:'rgba(0,0,0,0.05)'} },
-          y2:{ position:'right', title:{display:true,text:'交易量 (KG)',font:{size:10},color:'#666'}, ticks:{font:{size:10},color:'#666',callback:v=>v>=1e6?(v/1e6).toFixed(0)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v}, grid:{drawOnChartArea:false} },
-        },
+        scales,
       },
     });
     return () => { if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; } };
-  }, [m, period, chartReady]);
+  }, [m, effPeriod, chartReady, cropName]);
 
   if (noData) {
     return (
@@ -2165,12 +2423,12 @@ const TrendChartCard = ({cropName}) => {
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
         <div style={{fontSize:17, fontWeight:900, color:'#5a7028', letterSpacing:1.5}}>批發市場行情趨勢圖</div>
         <div style={{display:'flex', gap:6}}>
-          {[['weekly','每週'],['monthly','每月'],['year52','一年'],['yearly','每年']].map(([k, label]) => (
+          {periodOpts.map(([k, label]) => (
             <button key={k} onClick={()=>setPeriod(k)} style={{
               fontSize:11, padding:'3px 12px',
-              border:'1px solid '+(period===k?'#7a8c2a':'#d8dcc0'),
-              background: period===k ? '#bcc865' : '#fefef0',
-              color: period===k ? '#3d4a10' : '#7a8c2a',
+              border:'1px solid '+(effPeriod===k?'#7a8c2a':'#d8dcc0'),
+              background: effPeriod===k ? '#bcc865' : '#fefef0',
+              color: effPeriod===k ? '#3d4a10' : '#7a8c2a',
               borderRadius:14, cursor:'pointer',
               fontFamily:'inherit', fontWeight:700,
             }}>{label}</button>
@@ -2217,7 +2475,8 @@ const VolumeBarsCard = ({cropName}) => {
     return () => { if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; } };
   }, [m, chartReady]);
 
-  if (noData) {
+  const noCompare = !!(cropName && PRICE_META[cropName] && PRICE_META[cropName].noCompare);
+  if (noData || noCompare) {
     return (
       <div style={{
         position:'absolute',
@@ -2229,7 +2488,11 @@ const VolumeBarsCard = ({cropName}) => {
         fontFamily:"'Noto Sans TC',sans-serif",
       }}>
         <div style={{fontSize:17, fontWeight:900, color:'#256b78', letterSpacing:1.5}}>批發市場成交量比較 · {cropName}</div>
-        <_WholesaleNoDataMsg/>
+        {noData ? <_WholesaleNoDataMsg/> : (
+          <div style={{flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'#888', fontSize:12}}>
+            此品項為單一資料來源，無跨市場比較
+          </div>
+        )}
       </div>
     );
   }
@@ -2262,7 +2525,8 @@ const VolumeBarsCard = ({cropName}) => {
 
 /* ── CARD 4: 批發市場價格比較 ───────────────────────────────────────────── */
 const PriceBarsCard = ({cropName}) => {
-  const noData = !!(cropName && WHOLESALE_NO_DATA.has(cropName));
+  const noData = !!(cropName && (WHOLESALE_NO_DATA.has(cropName) ||
+                    (PRICE_META[cropName] && PRICE_META[cropName].noCompare)));
   const m = useCropMarket(noData ? '__nodata__' : (cropName || '番茄'));
   const chartReady = useChart();
   const canvasRef = React.useRef(null);
@@ -2305,7 +2569,11 @@ const PriceBarsCard = ({cropName}) => {
         fontFamily:"'Noto Sans TC',sans-serif",
       }}>
         <div style={{fontSize:17, fontWeight:900, color:'#a8581a', letterSpacing:1.5}}>批發市場價格比較 · {cropName}</div>
-        <_WholesaleNoDataMsg/>
+        {WHOLESALE_NO_DATA.has(cropName) ? <_WholesaleNoDataMsg/> : (
+          <div style={{flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'#888', fontSize:12}}>
+            此品項為單一資料來源，無跨市場比較
+          </div>
+        )}
       </div>
     );
   }
@@ -2576,7 +2844,7 @@ const ExportTrendChart = ({cropName} = {}) => {
         }}>
           {loading
             ? '外銷資料載入中…'
-            : <>本作物之外銷貿易資料尚未建檔<br/><span style={{fontSize:11,color:'#aaa'}}>(MOA 海關 COA 碼資料源待人工核對作物對應 + 跑 backfill)</span></>}
+            : <>此品項目前沒有外銷貿易統計資料<br/><span style={{fontSize:11,color:'#aaa'}}>(海關出口統計未單獨列出此品項)</span></>}
         </div>
       </div>
     );
@@ -2666,6 +2934,7 @@ const TaoyuanDetail = ({onBack, onCropSelect}) => {
   // AI 渲染的圖原始 size 是 2403×3000（design 1201.5×1500）
   // 圖內已有「← 回上一頁」label，shape 大約在 design coord (62-176, 30-72) 範圍
   // 用透明 click area 覆蓋該位置觸發 onBack
+  usePageDataReady();  // TAOYUAN_CROPS 載入後重渲染常駐角色
   const W = 1201, H = 1500;  // design canvas
   return (
     <div style={{
@@ -2687,21 +2956,29 @@ const TaoyuanDetail = ({onBack, onCropSelect}) => {
           userSelect:'none', pointerEvents:'none',
         }}
       />
-      {/* 「← 回上一頁」click hotspot — 對應 design 上的 button 位置 */}
+      {/* 「← 回上一頁」click hotspot — 與 Page overlay 同 master 座標
+          (45.61, 60.4, 252.94×53.58)；本 canvas 即 master 1201.1 單位。 */}
       <div
         onClick={onBack}
         title="回上一頁"
         style={{
           position:'absolute',
-          left: `${50/W*100}%`,
-          top:  `${25/H*100}%`,
-          width: `${130/W*100}%`,
-          height:`${45/H*100}%`,
+          left: `${45.61/W*100}%`,
+          top:  `${60.4/H*100}%`,
+          width: `${252.94/W*100}%`,
+          height:`${53.58/H*100}%`,
           cursor:'pointer',
           zIndex: 5,
         }}
       />
-      {/* TODO Phase 2: 13 個鄉鎮 polygon overlay + hover 角色 SVG */}
+      {/* 常駐角色 + 名稱釦（260624 新版設計稿）— canvas 比例同 1601×2000 */}
+      <svg
+        viewBox={`0 0 ${TAOYUAN_W} ${TAOYUAN_H}`}
+        preserveAspectRatio="none"
+        style={{position:'absolute', inset:0, width:'100%', height:'100%', zIndex:4}}
+      >
+        <TaoyuanCharsLayer onCropSelect={onCropSelect}/>
+      </svg>
     </div>
   );
 };
@@ -2763,14 +3040,16 @@ const CharacterCard = ({county, cropOverride}) => {
         pointerEvents:'none',
       }} dangerouslySetInnerHTML={{__html: _GRASS_SVG}}/>
 
-      {/* Character SVG — design (91.64, 159), 172.72×190.57 → card-relative origin */}
+      {/* Character SVG — design (91.64, 159), 172.72×190.57 → card-relative origin.
+          objectPosition bottom：寬型角色（黑豬肉/石門活魚）在直式框裡若垂直置中
+          會浮在半空，貼底才會站在草地上。 */}
       {charSrc && (
         <img src={charSrc} alt={region.name}
           style={{
             position:'absolute',
             left: 57.64, top: 72,
             width: 172.72, height: 190.57,
-            objectFit:'contain',
+            objectFit:'contain', objectPosition:'center bottom',
             pointerEvents:'none',
           }}/>
       )}
@@ -2791,13 +3070,16 @@ const CharacterCard = ({county, cropOverride}) => {
         lineHeight: '22px',
       }}>{region.name}</div>
 
-      {/* Crop name (large) — design (49, 135) → card-relative (15, 48). Replaces baked "番茄" text */}
+      {/* Crop name (large) — design (49, 135) → card-relative (15, 48). Replaces baked "番茄" text.
+          長名（東方美人茶/有機水耕蔬菜…）階梯縮字＋整行上移，讓字完全離開
+          角色圖頂端（茶杯嫩芽/菜葉）不互卡。 */}
       <div style={{
         position:'absolute',
-        left: 15, top: 48,
-        fontSize: 30, fontWeight: 900,
-        color: '#3b6826', letterSpacing: 2,
-        lineHeight: '40px',
+        left: 15, top: cropName === '石門活魚' ? 58 : cropName.length >= 4 ? 40 : 48,
+        fontSize: cropName.length >= 6 ? 20 : cropName.length >= 5 ? 24 : cropName.length >= 4 ? 27 : 30,
+        fontWeight: 900,
+        color: '#3b6826', letterSpacing: cropName.length >= 5 ? 1 : 2,
+        lineHeight: cropName.length >= 4 ? '28px' : '40px',
       }}>{cropName}</div>
 
       {/* Heart icon — design (287, 102) → card-relative (253, 15) */}

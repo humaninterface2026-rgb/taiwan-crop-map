@@ -66,7 +66,7 @@ window.NZD = (function () {
   };
   const CODE_MAP = {
     '番茄': 'code_FJ3', '牛蕃茄': 'code_FJ3', '水蜜桃': 'fruit_Y1', '桃子': 'fruit_Y1', '甜柿': 'fruit_Z0',
-    '綠竹筍': 'code_SH2', '哈密瓜': 'fruit_W1', '哈蜜瓜': 'fruit_W1', '包心白': 'code_LC1', '包心白菜': 'code_LC1',
+    '綠竹筍': 'code_SH2', '竹筍': 'code_SH2', '哈密瓜': 'fruit_W1', '哈蜜瓜': 'fruit_W1', '包心白': 'code_LC1', '包心白菜': 'code_LC1', '有機水耕蔬菜': 'code_LC1',
     '甘藍': 'code_LA1', '甘藍-初秋': 'code_LA1', '青蔥': 'code_SE2', '青蔥-北蔥': 'code_SE2', '青蔥-粉蔥': 'code_SE6',
     '大蒜': 'code_SG1', '大蒜-硬梗': 'code_SG1', '洋蔥': 'code_SD1', '山藥': 'code_SU2',
     '文旦': 'fruit_H1', '柚子': 'fruit_H1', '梨': 'fruit_O10', '梨-寶島甘露梨': 'fruit_O10',
@@ -85,7 +85,8 @@ window.NZD = (function () {
     countyCoords: c => COUNTY_COORDS[c] || COUNTY_COORDS['桃園市'],
     countyList: () => Object.keys(COUNTY_COORDS),
     cropList: () => ['番茄', '水蜜桃', '甜柿', '綠竹筍', '哈密瓜', '包心白', '甘藍-初秋', '青蔥-粉蔥',
-      '青蔥', '大蒜', '洋蔥', '山藥', '文旦', '梨', '西瓜', '芒果', '芭樂', '草莓', '葡萄', '釋迦', '香蕉', '鳳梨', '稻米', '茶葉'],
+      '青蔥', '大蒜', '洋蔥', '山藥', '文旦', '梨', '西瓜', '芒果', '芭樂', '草莓', '葡萄', '釋迦', '香蕉', '鳳梨', '稻米', '茶葉',
+      '茭白筍', '韭菜', '香菇', '蜂蜜', '黑豬肉', '石門活魚', '桃映紅茶', '東方美人茶', '有機水耕蔬菜'],
     code: crop => CODE_MAP[crop] || null,
     async weather(county) {
       const [lat, lon] = D.countyCoords(county);
@@ -114,7 +115,7 @@ window.NZD = (function () {
     try {
       const j = await _cached('params', async () =>
         (await (await fetch('toolbox-assets/crop-params.json')).json()));
-      const p = j.crops && (j.crops[crop] || j.crops[{'哈蜜瓜':'哈密瓜','水稻':'稻米','包種茶':'茶葉','文旦':'柚子','桃子':'水蜜桃','大西瓜':'西瓜','西瓜-大西瓜':'西瓜','梨-寶島甘露梨':'梨','青蔥-北蔥':'青蔥','大蒜-硬梗':'大蒜','包心白菜':'包心白'}[crop]]);
+      const p = j.crops && (j.crops[crop] || j.crops[{'哈蜜瓜':'哈密瓜','水稻':'稻米','包種茶':'茶葉','文旦':'柚子','桃子':'水蜜桃','大西瓜':'西瓜','西瓜-大西瓜':'西瓜','梨-寶島甘露梨':'梨','青蔥-北蔥':'青蔥','大蒜-硬梗':'大蒜','包心白菜':'包心白','竹筍':'綠竹筍','桃映紅茶':'茶葉','東方美人茶':'茶葉','有機水耕蔬菜':'包心白'}[crop]]);
       if (p) {
         Object.assign(A, p);
         // growthPhases 需要 key 欄位（pack 只有 name）

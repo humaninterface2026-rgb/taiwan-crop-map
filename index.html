@@ -3671,7 +3671,8 @@ const PriceOverlay = ({ cropName, variety, market }) => {
     const sparkVals2 = recent.map((d) => Math.round(d.price));
     const sparkDates2 = recent.map((d) => {
       const parts = String(d.date || "").split(/[./-]/).map((n) => parseInt(n, 10));
-      return parts.length >= 3 ? `${parts[1]}/${parts[2]}` : "";
+      if (parts.length < 3) return "";
+      return m.annual ? `${parts[0] - 1911}\u5E74` : `${parts[1]}/${parts[2]}`;
     });
     const price2 = sparkVals2[sparkVals2.length - 1];
     const prevPrice = sparkVals2[sparkVals2.length - 2] || price2;
@@ -3730,7 +3731,7 @@ const PriceOverlay = ({ cropName, variety, market }) => {
     overflow: "hidden",
     boxSizing: "border-box",
     fontFamily: "'Noto Sans TC',sans-serif"
-  } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#3b6826", marginBottom: 4, letterSpacing: 1 } }, "\u4ECA\u65E5\u50F9\u683C ", /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 500, color: "#9a9a9a", fontSize: 10 } }, "(\u6BCF\u516C\u65A4)")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 34, fontWeight: 900, color: "#3aaa5e", lineHeight: 1.1, marginBottom: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, "$"), price), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: chgPct >= 0 ? "#e05050" : "#3aaa5e", marginBottom: 4 } }, "\u8F03\u6628\u65E5 ", chgPct >= 0 ? "\u25B2" : "\u25BC", " ", Math.abs(chgPct), "%"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, position: "relative", minHeight: 0, marginTop: 6 } }, /* @__PURE__ */ React.createElement("svg", { viewBox: "0 0 100 100", preserveAspectRatio: "none", style: { position: "absolute", inset: 0, width: "100%", height: "100%" } }, /* @__PURE__ */ React.createElement(
+  } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#3b6826", marginBottom: 4, letterSpacing: 1 } }, PRICE_META[cropName] && PRICE_META[cropName].title || "\u4ECA\u65E5\u50F9\u683C", " ", /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 500, color: "#9a9a9a", fontSize: 10 } }, PRICE_META[cropName] && PRICE_META[cropName].unit || "(\u6BCF\u516C\u65A4)")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 34, fontWeight: 900, color: "#3aaa5e", lineHeight: 1.1, marginBottom: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, "$"), price), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: chgPct >= 0 ? "#e05050" : "#3aaa5e", marginBottom: 4 } }, PRICE_META[cropName] && PRICE_META[cropName].chgLabel || "\u8F03\u6628\u65E5", " ", chgPct >= 0 ? "\u25B2" : "\u25BC", " ", Math.abs(chgPct), "%"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, position: "relative", minHeight: 0, marginTop: 6 } }, /* @__PURE__ */ React.createElement("svg", { viewBox: "0 0 100 100", preserveAspectRatio: "none", style: { position: "absolute", inset: 0, width: "100%", height: "100%" } }, /* @__PURE__ */ React.createElement(
     "polyline",
     {
       points: pts,
@@ -3800,16 +3801,21 @@ const ScaledOverlay = ({ x, y, w, h, children }) => /* @__PURE__ */ React.create
   transform: "scale(calc(100cqw / 1440px))"
 } }, children));
 const TAOYUAN_CROP_LIST = [
-  { label: "\u8336\u8449", crop: "\u8336\u8449" },
+  // 260624 新版 14 品項（與桃園鄉鎮地圖一致）；label 取短名放得進 109px 卡
   { label: "\u6C34\u871C\u6843", crop: "\u6C34\u871C\u6843" },
-  { label: "\u7DA0\u7AF9\u7B4D", crop: "\u7DA0\u7AF9\u7B4D" },
-  { label: "\u5305\u5FC3\u767D", crop: "\u5305\u5FC3\u767D" },
   { label: "\u7A3B\u7C73", crop: "\u7A3B\u7C73" },
-  { label: "\u67DA\u5B50", crop: "\u67DA\u5B50" },
+  { label: "\u832D\u767D\u7B4D", crop: "\u832D\u767D\u7B4D" },
   { label: "\u7518\u85CD", crop: "\u7518\u85CD-\u521D\u79CB" },
-  { label: "\u725B\u8543\u8304", crop: "\u725B\u8543\u8304" },
-  { label: "\u7C89\u8525", crop: "\u9752\u8525-\u7C89\u8525" },
-  { label: "\u54C8\u5BC6\u74DC", crop: "\u54C8\u5BC6\u74DC" }
+  { label: "\u67DA\u5B50", crop: "\u67DA\u5B50" },
+  { label: "\u6709\u6A5F\u852C\u83DC", crop: "\u6709\u6A5F\u6C34\u8015\u852C\u83DC" },
+  { label: "\u8702\u871C", crop: "\u8702\u871C" },
+  { label: "\u9ED1\u8C6C\u8089", crop: "\u9ED1\u8C6C\u8089" },
+  { label: "\u97ED\u83DC", crop: "\u97ED\u83DC" },
+  { label: "\u7AF9\u7B4D", crop: "\u7AF9\u7B4D" },
+  { label: "\u6843\u6620\u7D05\u8336", crop: "\u6843\u6620\u7D05\u8336" },
+  { label: "\u7F8E\u4EBA\u8336", crop: "\u6771\u65B9\u7F8E\u4EBA\u8336" },
+  { label: "\u77F3\u9580\u6D3B\u9B5A", crop: "\u77F3\u9580\u6D3B\u9B5A" },
+  { label: "\u9999\u83C7", crop: "\u9999\u83C7" }
 ];
 const STRIP_SLOTS = [
   { x: 768 },
@@ -3848,7 +3854,19 @@ const CROP_NOTES = {
   "\u6D0B\u8525": ["\u51B7\u6DBC\u6C23\u5019 15-20\u2103 \u70BA\u4F73", "\u6392\u6C34\u826F\u597D\u7684\u7802\u8CEA\u58E4\u571F", "\u9C57\u8396\u81A8\u5927\u671F\u63A7\u6C34", "\u9632\u6CBB\u858A\u99AC\u8207\u8EDF\u8150\u75C5"],
   "\u897F\u74DC": ["\u6EAB\u6696\u4E7E\u71E5\u65E5\u7167\u5145\u8DB3", "\u6392\u6C34\u826F\u597D\u7684\u7802\u8CEA\u58E4\u571F", "\u7D50\u679C\u671F\u9069\u5EA6\u63A7\u6C34\u589E\u751C", "\u9632\u6CBB\u8513\u67AF\u75C5\u8207\u7C89\u8768"],
   "\u5927\u897F\u74DC": ["\u6EAB\u6696\u4E7E\u71E5\u65E5\u7167\u5145\u8DB3", "\u6392\u6C34\u826F\u597D\u7684\u7802\u8CEA\u58E4\u571F", "\u7D50\u679C\u671F\u9069\u5EA6\u63A7\u6C34\u589E\u751C", "\u9632\u6CBB\u8513\u67AF\u75C5\u8207\u7C89\u8768"],
-  "\u91CB\u8FE6": ["\u71B1\u5E36\u4E9E\u71B1\u5E36\u6C23\u5019", "\u6392\u6C34\u826F\u597D\u7684\u5FAE\u9178\u6027\u58E4\u571F", "\u7D50\u679C\u671F\u9700\u5145\u8DB3\u6C34\u5206", "\u9632\u6CBB\u7C89\u4ECB\u6BBC\u87F2\u8207\u679C\u5BE6\u8805"]
+  "\u91CB\u8FE6": ["\u71B1\u5E36\u4E9E\u71B1\u5E36\u6C23\u5019", "\u6392\u6C34\u826F\u597D\u7684\u5FAE\u9178\u6027\u58E4\u571F", "\u7D50\u679C\u671F\u9700\u5145\u8DB3\u6C34\u5206", "\u9632\u6CBB\u7C89\u4ECB\u6BBC\u87F2\u8207\u679C\u5BE6\u8805"],
+  // 260624 新版桃園鄉鎮品項 — 非種植類（蜂蜜/黑豬肉/石門活魚）與加工茶
+  // 改放產品小知識，避免 fallback 到番茄種植建議造成內容錯亂。
+  "\u8702\u871C": ["\u871C\u6E90\u4EE5\u9F8D\u773C\u8354\u679D\u82B1\u70BA\u4E3B", "\u63A1\u871C\u671F\u96C6\u4E2D\u5728\u6625\u5B63\u82B1\u671F", "\u8702\u5834\u9700\u9060\u96E2\u8FB2\u85E5\u5674\u7051\u5340", "\u82B1\u671F\u591A\u96E8\u6703\u5F71\u97FF\u871C\u91CF"],
+  "\u9ED1\u8C6C\u8089": ["\u9ED1\u8C6C\u98FC\u990A\u671F\u7D04\u4E00\u5E74\u4EE5\u4E0A", "\u98FC\u6599\u914D\u65B9\u8207\u901A\u98A8\u662F\u95DC\u9375", "\u4F4E\u6EAB\u5C60\u5BB0\u904B\u9001\u4FDD\u65B0\u9BAE", "\u8A8D\u660E\u7522\u5730\u6A19\u7AE0\u66F4\u5B89\u5FC3"],
+  "\u77F3\u9580\u6D3B\u9B5A": ["\u77F3\u9580\u6C34\u5EAB\u6D3B\u9B5A\u73FE\u6488\u76F4\u9001", "\u4EE5\u8349\u9B5A\u9C31\u9B5A\u70BA\u4E3B\u8981\u9B5A\u7A2E", "\u6D3B\u9B5A\u6599\u7406\u6CBF\u77F3\u9580\u5468\u908A\u805A\u96C6", "\u5047\u65E5\u7528\u9910\u5EFA\u8B70\u5148\u8A02\u4F4D"],
+  "\u9999\u83C7": ["\u6EAB\u6FD5\u5EA6\u63A7\u5236\u662F\u683D\u57F9\u95DC\u9375", "\u6BB5\u6728\u6216\u592A\u7A7A\u5305\u7686\u53EF\u683D\u57F9", "\u51FA\u83C7\u671F\u9700\u9AD8\u6FD5\u5EA6\u74B0\u5883", "\u63A1\u6536\u5F8C\u4F4E\u6EAB\u4FDD\u5B58\u98A8\u5473\u4F73"],
+  "\u97ED\u83DC": ["\u8010\u5BD2\u559C\u51B7\u6DBC\u5168\u5E74\u53EF\u6536", "\u5BCC\u542B\u6709\u6A5F\u8CEA\u7684\u58E4\u571F\u6700\u4F73", "\u5272\u6536\u5F8C\u8FFD\u80A5\u4FC3\u9032\u518D\u751F", "\u6CE8\u610F\u97ED\u86C6\u8207\u92B9\u75C5\u9632\u6CBB"],
+  "\u832D\u767D\u7B4D": ["\u6C34\u7530\u683D\u57F9\u9700\u5E38\u4FDD\u6C34\u4F4D", "\u6625\u79CB\u5169\u5B63\u70BA\u4E3B\u8981\u7522\u671F", "\u7B4D\u6BBC\u5E36\u571F\u4FDD\u5B58\u8F03\u8010\u653E", "\u9632\u6CBB\u798F\u58FD\u87BA\u8207\u8449\u67AF\u75C5"],
+  "\u7AF9\u7B4D": ["\u559C\u6B61\u534A\u906E\u852D\u7684\u6FD5\u6F64\u74B0\u5883", "\u6DF1\u5C64\u80A5\u6C83\u7802\u8CEA\u58E4\u571F\u6700\u4F73", "\u6625\u96E8\u5F8C\u7B4D\u5192\u51FA\u6700\u65FA\u76DB", "\u6CE8\u610F\u7AF9\u879F\u8207\u7B4D\u591C\u86FE"],
+  "\u6709\u6A5F\u6C34\u8015\u852C\u83DC": ["\u6EAB\u5BA4\u6C34\u8015\u4E0D\u53D7\u5929\u5019\u5F71\u97FF", "\u990A\u6DB2\u914D\u65B9\u6C7A\u5B9A\u751F\u9577\u54C1\u8CEA", "\u7121\u8FB2\u85E5\u6B98\u7559\u5B89\u5FC3\u5373\u98DF", "\u6CE8\u610F\u6C34\u6EAB\u8207\u85FB\u985E\u6ECB\u751F"],
+  "\u6843\u6620\u7D05\u8336": ["\u5C0F\u8449\u7A2E\u7D05\u8336\u6ECB\u5473\u7518\u9187", "\u6625\u51AC\u5169\u5B63\u8336\u83C1\u54C1\u8CEA\u6700\u4F73", "\u767C\u9175\u8207\u70D8\u7119\u5DE5\u5E8F\u662F\u95DC\u9375", "\u6C96\u6CE1\u6C34\u6EAB\u7D0490\u5EA6\u6700\u9069"],
+  "\u6771\u65B9\u7F8E\u4EBA\u8336": ["\u9700\u5C0F\u7DA0\u8449\u87EC\u8457\u6D8E\u7684\u8336\u83C1", "\u590F\u8336\u88FD\u6210\u98A8\u5473\u6700\u7368\u7279", "\u4E0D\u5674\u8FB2\u85E5\u624D\u80FD\u5438\u5F15\u8449\u87EC", "\u91CD\u767C\u9175\u5E36\u8702\u871C\u719F\u679C\u9999"]
 };
 const NOTE_RECT_X = 1196;
 const NOTE_RECT_W = 193;
@@ -3914,21 +3932,96 @@ const COUNTY_CHAR_MAP = {
   // q 基隆市
 };
 const TAOYUAN_TOWNSHIPS = [
-  { id: "1_10", crop: "\u7DA0\u7AF9\u7B4D", cx: 831.71, cy: 908.15, cw: 373.9, ch: 337.24, viewBox: "0 0 373.896 337.24", d: "M373.896 161.245C356.599 182.604 338.599 203.479 321.505 224.068C289.193 262.979 251.443 299.188 202.302 315.125C174.318 324.203 145.177 328.901 115.979 331.964C108.344 332.76 35.5104 333.677 33.8385 337.24C34.4583 335.875 70.3646 255.406 56.8021 201.547C43.1198 147.24 0 64.3594 0 64.3594C9.54167 62.4688 17.3125 46.875 23.5313 25.7188C29.9115 24.651 123.214 9.21875 207.266 0C220.411 19.1615 234.333 38.4948 240.177 60.0833C248.417 90.4948 241.927 128.26 265.677 148.984C287.708 168.224 321.156 159.854 350.406 159.411C356.182 159.328 361.927 159.641 367.625 160.328C369.729 160.583 371.818 160.88 373.896 161.245Z" },
-  { id: "1_12", crop: "\u7A3B\u7C73", cx: 539.03, cy: 943.36, cw: 352.54, ch: 302.03, viewBox: "0 0 352.541 302.026", d: "M326.521 302.026C274.995 253.75 185.526 260.214 120.969 224.51C67.7031 195.057 36.7917 140.307 3.0625 88.1979C2.04688 86.6198 1.02083 85.0573 0 83.4896C35.5104 64.3073 81.1823 33.9219 92.2188 0C92.2188 0 261.813 35.2448 292.682 29.1458C292.682 29.1458 335.802 112.026 349.484 166.333C363.042 220.193 327.141 300.661 326.521 302.026Z" },
-  { id: "1_14", crop: "\u5305\u5FC3\u767D", cx: 855.24, cy: 720.54, cw: 185.42, ch: 213.33, viewBox: "0 0 185.422 213.328", d: "M180.177 182.365C181.349 184.104 182.536 185.854 183.734 187.599V187.609C99.6823 196.828 6.38021 212.26 0 213.328C15.1406 161.828 21.1302 77.3646 21.1302 77.3646C26.5781 43.6354 30.1406 34.1615 23.0052 0C23.0052 0 98.4688 27.1094 182.375 10C184.141 16.2708 185.411 22.5885 185.422 28.9948C185.505 57.9635 160.344 81.2656 155.672 109.854C151.344 136.38 164.62 159.37 180.177 182.365Z" },
-  { id: "1_16", crop: "\u8336\u8449", cx: 256.73, cy: 720.65, cw: 382.82, ch: 306.2, viewBox: "0 0 382.819 306.203", d: "M374.521 222.714C363.484 256.635 317.813 287.021 282.302 306.203C259.688 271.609 235.479 238.542 202.25 215.281C163.193 187.958 115.307 176.896 72.1719 156.604C44.3125 143.49 16.974 124.021 0 99.0729C55.9948 72.776 112.177 46.375 172.771 32.6667C212.505 23.6927 251.781 12.2917 290.922 0.984375C290.922 0.984375 290.896 0.645833 290.854 0C290.854 0 334.568 1.29688 374.521 13.4375C374.521 13.4375 393.193 165.333 374.521 222.714Z" },
-  { id: "1_18", crop: "\u7DA0\u7AF9\u7B4D", cx: 808.18, cy: 479.42, cw: 294.84, ch: 256.78, viewBox: "0 0 294.844 256.778", d: "M294.844 161.432C288.073 162.307 281.302 163.214 274.771 164.333C248.526 168.823 225.927 176.828 220.479 201.25C216.917 217.224 224.094 232.901 228.802 248.885C229.021 249.63 229.234 250.37 229.438 251.115C145.531 268.224 70.0677 241.115 70.0677 241.115C63.3854 209.151 30.1823 158.87 0 121.266C0 121.266 49.9375 34.2552 138.865 0C170.839 33.6042 210.75 56.5833 243.198 88.7083C264.49 109.797 280.854 134.932 294.844 161.432Z" },
+  { id: "1_10", crop: "\u7AF9\u7B4D", cx: 831.71, cy: 908.15, cw: 373.9, ch: 337.24, viewBox: "0 0 373.896 337.24", d: "M373.896 161.245C356.599 182.604 338.599 203.479 321.505 224.068C289.193 262.979 251.443 299.188 202.302 315.125C174.318 324.203 145.177 328.901 115.979 331.964C108.344 332.76 35.5104 333.677 33.8385 337.24C34.4583 335.875 70.3646 255.406 56.8021 201.547C43.1198 147.24 0 64.3594 0 64.3594C9.54167 62.4688 17.3125 46.875 23.5313 25.7188C29.9115 24.651 123.214 9.21875 207.266 0C220.411 19.1615 234.333 38.4948 240.177 60.0833C248.417 90.4948 241.927 128.26 265.677 148.984C287.708 168.224 321.156 159.854 350.406 159.411C356.182 159.328 361.927 159.641 367.625 160.328C369.729 160.583 371.818 160.88 373.896 161.245Z" },
+  { id: "1_12", crop: "\u6843\u6620\u7D05\u8336", cx: 539.03, cy: 943.36, cw: 352.54, ch: 302.03, viewBox: "0 0 352.541 302.026", d: "M326.521 302.026C274.995 253.75 185.526 260.214 120.969 224.51C67.7031 195.057 36.7917 140.307 3.0625 88.1979C2.04688 86.6198 1.02083 85.0573 0 83.4896C35.5104 64.3073 81.1823 33.9219 92.2188 0C92.2188 0 261.813 35.2448 292.682 29.1458C292.682 29.1458 335.802 112.026 349.484 166.333C363.042 220.193 327.141 300.661 326.521 302.026Z" },
+  { id: "1_14", crop: "\u6709\u6A5F\u6C34\u8015\u852C\u83DC", cx: 855.24, cy: 720.54, cw: 185.42, ch: 213.33, viewBox: "0 0 185.422 213.328", d: "M180.177 182.365C181.349 184.104 182.536 185.854 183.734 187.599V187.609C99.6823 196.828 6.38021 212.26 0 213.328C15.1406 161.828 21.1302 77.3646 21.1302 77.3646C26.5781 43.6354 30.1406 34.1615 23.0052 0C23.0052 0 98.4688 27.1094 182.375 10C184.141 16.2708 185.411 22.5885 185.422 28.9948C185.505 57.9635 160.344 81.2656 155.672 109.854C151.344 136.38 164.62 159.37 180.177 182.365Z" },
+  { id: "1_16", crop: "\u9ED1\u8C6C\u8089", cx: 256.73, cy: 720.65, cw: 382.82, ch: 306.2, viewBox: "0 0 382.819 306.203", d: "M374.521 222.714C363.484 256.635 317.813 287.021 282.302 306.203C259.688 271.609 235.479 238.542 202.25 215.281C163.193 187.958 115.307 176.896 72.1719 156.604C44.3125 143.49 16.974 124.021 0 99.0729C55.9948 72.776 112.177 46.375 172.771 32.6667C212.505 23.6927 251.781 12.2917 290.922 0.984375C290.922 0.984375 290.896 0.645833 290.854 0C290.854 0 334.568 1.29688 374.521 13.4375C374.521 13.4375 393.193 165.333 374.521 222.714Z" },
+  { id: "1_18", crop: "\u7AF9\u7B4D", cx: 808.18, cy: 479.42, cw: 294.84, ch: 256.78, viewBox: "0 0 294.844 256.778", d: "M294.844 161.432C288.073 162.307 281.302 163.214 274.771 164.333C248.526 168.823 225.927 176.828 220.479 201.25C216.917 217.224 224.094 232.901 228.802 248.885C229.021 249.63 229.234 250.37 229.438 251.115C145.531 268.224 70.0677 241.115 70.0677 241.115C63.3854 209.151 30.1823 158.87 0 121.266C0 121.266 49.9375 34.2552 138.865 0C170.839 33.6042 210.75 56.5833 243.198 88.7083C264.49 109.797 280.854 134.932 294.844 161.432Z" },
   { id: "1_20", crop: "\u67DA\u5B50", cx: 947.05, cy: 328.31, cw: 274.97, ch: 312.55, viewBox: "0 0 274.971 312.547", d: "M274.891 198.495C273.203 246.302 241.214 293.74 194.958 305.948C182.995 309.104 169.458 310.792 155.979 312.547C141.99 286.047 125.625 260.911 104.333 239.823C71.8854 207.698 31.974 184.719 0 151.115C70.6458 123.896 68.5365 44.9531 95.0365 0C117.865 11.9792 141.479 23.1771 163.891 35.9583C182.547 46.6042 200.37 58.3542 216.214 72.5625C251.802 104.495 276.573 150.693 274.891 198.495Z" },
   { id: "1_22", crop: "\u7A3B\u7C73", cx: 497.16, cy: 220.29, cw: 311.95, ch: 324.63, viewBox: "0 0 311.949 324.63", d: "M309.74 143.974C298.193 184.76 266.5 286.76 254.693 324.63C239.865 316.13 222.958 311.505 206.594 306.594C182.188 299.266 157.521 292.818 132.656 287.26C99.9896 279.948 67.474 276.411 34.2708 272.635C27.1354 233.776 13.1042 192.411 0 158.974C87.8229 96.1406 181.563 42.3385 281.099 1.22396C282.094 0.807292 283.094 0.401041 284.094 0C300.042 47.625 318.365 113.531 309.74 143.974Z" },
   { id: "1_24", crop: "\u7518\u85CD-\u521D\u79CB", cx: 751.85, cy: 191.23, cw: 290.23, ch: 409.46, viewBox: "0 0 290.229 409.459", d: "M290.229 137.079C263.729 182.037 265.839 260.98 195.193 288.194C106.266 322.449 56.3281 409.459 56.3281 409.459C44.0938 394.199 32.3542 381.032 23.0833 372.006C19.9844 368.985 16.8125 366.011 13.5313 363.194C9.29688 359.537 4.75 356.423 0 353.699C11.8073 315.824 43.5 213.824 55.0469 173.037C63.6719 142.6 45.349 76.6884 29.401 29.0582C47.3177 21.6936 65.4219 14.7457 83.7188 8.24047C98.3958 3.02172 113.969 -1.98349 129.297 0.792553C160.76 6.50089 176.776 40.4488 196.229 65.829C220.583 97.5998 254.448 118.298 290.229 137.079Z" },
-  { id: "1_26", crop: "\u9752\u8525-\u7C89\u8525", cx: 276.51, cy: 379.27, cw: 271.07, ch: 341.38, viewBox: "0 0 271.073 341.38", d: "M271.073 341.38C186.406 313.224 69.8229 236.292 0 186.99C1.28125 185.724 2.5625 184.453 3.84896 183.198C70.7813 117.547 142.276 56.2656 218.25 1.71354C219.047 1.13542 219.854 0.567708 220.651 0C233.755 33.4375 247.786 74.8021 254.922 113.661C257.255 126.286 258.849 138.646 259.453 150.385C263.854 235.927 270.344 330.776 271.073 341.38Z" },
-  { id: "1_28", crop: "\u54C8\u5BC6\u74DC", cx: 165.66, cy: 566.26, cw: 381.99, ch: 253.46, viewBox: "0 0 381.99 253.464", d: "M381.99 155.375C342.849 166.682 303.573 178.083 263.839 187.057C203.245 200.766 147.063 227.167 91.0681 253.464C90.0473 251.969 88.9952 250.484 87.9119 249.036C75.3389 232.161 58.6775 218.625 38.99 211.109C18.1046 203.151 0.104562 179.984 0.00039533 156.281C-0.01523 151.344 0.432687 146.51 1.28165 141.776C6.8129 111.026 29.3702 84.4219 51.3077 61.0365C70.7244 40.3281 90.5837 19.9531 110.849 0C180.672 49.3021 297.261 126.234 381.922 154.391C381.964 155.036 381.99 155.375 381.99 155.375Z" },
-  { id: "1_30", crop: "\u725B\u8543\u8304", cx: 531.43, cy: 492.93, cw: 350.81, ch: 322.37, viewBox: "0 0 350.809 322.372", d: "M344.943 304.974L344.927 304.99C344.188 305.5 320.224 321.906 277.682 322.37C234.469 322.839 99.8177 241.156 99.8177 241.156C59.8646 229.016 16.151 227.719 16.151 227.719C15.4219 217.115 8.93229 122.266 4.53125 36.724C3.92708 24.9844 2.33333 12.625 0 0C33.2031 3.77604 65.7188 7.3125 98.3854 14.625C123.25 20.1823 147.917 26.6302 172.323 33.9583C193.938 40.4479 216.484 46.4375 233.953 61.4948C237.234 64.3177 240.406 67.2813 243.505 70.3073C252.776 79.3333 264.516 92.5 276.75 107.76C306.932 145.365 340.141 195.651 346.818 227.609C353.953 261.776 350.391 271.245 344.943 304.974Z" },
-  { id: "1_32", crop: "\u7A3B\u7C73", cx: 631.25, cy: 734.08, cw: 245.13, ch: 239.13, viewBox: "0 0 245.125 239.131", d: "M245.125 63.8177C245.125 63.8177 239.135 148.281 223.995 199.781C217.776 220.938 210.005 236.531 200.464 238.422C169.594 244.521 0 209.276 0 209.276C18.6719 151.896 0 0 0 0C0 0 134.651 81.6823 177.865 81.2135C220.406 80.75 244.37 64.3438 245.109 63.8333L245.125 63.8177Z" },
+  { id: "1_26", crop: "\u6709\u6A5F\u6C34\u8015\u852C\u83DC", cx: 276.51, cy: 379.27, cw: 271.07, ch: 341.38, viewBox: "0 0 271.073 341.38", d: "M271.073 341.38C186.406 313.224 69.8229 236.292 0 186.99C1.28125 185.724 2.5625 184.453 3.84896 183.198C70.7813 117.547 142.276 56.2656 218.25 1.71354C219.047 1.13542 219.854 0.567708 220.651 0C233.755 33.4375 247.786 74.8021 254.922 113.661C257.255 126.286 258.849 138.646 259.453 150.385C263.854 235.927 270.344 330.776 271.073 341.38Z" },
+  { id: "1_28", crop: "\u8702\u871C", cx: 165.66, cy: 566.26, cw: 381.99, ch: 253.46, viewBox: "0 0 381.99 253.464", d: "M381.99 155.375C342.849 166.682 303.573 178.083 263.839 187.057C203.245 200.766 147.063 227.167 91.0681 253.464C90.0473 251.969 88.9952 250.484 87.9119 249.036C75.3389 232.161 58.6775 218.625 38.99 211.109C18.1046 203.151 0.104562 179.984 0.00039533 156.281C-0.01523 151.344 0.432687 146.51 1.28165 141.776C6.8129 111.026 29.3702 84.4219 51.3077 61.0365C70.7244 40.3281 90.5837 19.9531 110.849 0C180.672 49.3021 297.261 126.234 381.922 154.391C381.964 155.036 381.99 155.375 381.99 155.375Z" },
+  { id: "1_30", crop: "\u7A3B\u7C73", cx: 531.43, cy: 492.93, cw: 350.81, ch: 322.37, viewBox: "0 0 350.809 322.372", d: "M344.943 304.974L344.927 304.99C344.188 305.5 320.224 321.906 277.682 322.37C234.469 322.839 99.8177 241.156 99.8177 241.156C59.8646 229.016 16.151 227.719 16.151 227.719C15.4219 217.115 8.93229 122.266 4.53125 36.724C3.92708 24.9844 2.33333 12.625 0 0C33.2031 3.77604 65.7188 7.3125 98.3854 14.625C123.25 20.1823 147.917 26.6302 172.323 33.9583C193.938 40.4479 216.484 46.4375 233.953 61.4948C237.234 64.3177 240.406 67.2813 243.505 70.3073C252.776 79.3333 264.516 92.5 276.75 107.76C306.932 145.365 340.141 195.651 346.818 227.609C353.953 261.776 350.391 271.245 344.943 304.974Z" },
+  { id: "1_32", crop: "\u97ED\u83DC", cx: 631.25, cy: 734.08, cw: 245.13, ch: 239.13, viewBox: "0 0 245.125 239.131", d: "M245.125 63.8177C245.125 63.8177 239.135 148.281 223.995 199.781C217.776 220.938 210.005 236.531 200.464 238.422C169.594 244.521 0 209.276 0 209.276C18.6719 151.896 0 0 0 0C0 0 134.651 81.6823 177.865 81.2135C220.406 80.75 244.37 64.3438 245.109 63.8333L245.125 63.8177Z" },
   { id: "1_34", crop: "\u6C34\u871C\u6843", cx: 865.55, cy: 1069.39, cw: 570.25, ch: 739.47, viewBox: "0 0 570.249 739.468", d: "M570.193 514.688C567.281 619.172 475.75 717.396 375.26 736.281C328.833 745.01 274.62 736.797 245.911 699.276C215.469 659.458 224.094 602.953 209.615 554.974C184.005 470.057 89.8854 421.578 58.4063 338.656C39.9896 290.125 44.2292 232.474 13.25 190.823C9.1875 185.37 4.76042 180.458 0.015625 176.005H0V175.995C1.67188 172.432 74.5052 171.516 82.1406 170.719C111.339 167.656 140.479 162.958 168.464 153.88C217.604 137.943 255.354 101.734 287.667 62.8229C304.76 42.2292 322.76 21.3594 340.057 0C392.526 8.89063 439.385 49.276 453.635 100.896C463.229 135.677 459.073 172.526 460.057 208.589C461.661 267.255 477.703 325.339 505.635 376.891C533.87 429.052 571.906 453.552 570.193 514.688Z" }
 ];
 const TAOYUAN_W = 1601, TAOYUAN_H = 2e3;
+const TAOYUAN_CHARS = [
+  // w = 角色圖實際長寬比 × h + 6px 緩衝 — SVG <image> 的命中區是整個定位框
+  // （含透明像素），框若比藝術寬會攔截到鄰區的 hover/click，故必須貼實寬。
+  { k: "organic1", crop: "\u6709\u6A5F\u6C34\u8015\u852C\u83DC", town: "1_26", x: 400, y: 500, h: 150, w: 108 },
+  { k: "rice1", crop: "\u7A3B\u7C73", town: "1_22", x: 610, y: 360, h: 165, w: 96 },
+  { k: "wbamboo", crop: "\u832D\u767D\u7B4D", town: "1_22", x: 735, y: 365, h: 160, w: 96 },
+  { k: "cabbage", crop: "\u7518\u85CD-\u521D\u79CB", town: "1_24", x: 915, y: 350, h: 150, w: 145 },
+  { k: "pomelo", crop: "\u67DA\u5B50", town: "1_20", x: 1140, y: 480, h: 150, w: 127 },
+  { k: "honey", crop: "\u8702\u871C", town: "1_28", x: 330, y: 700, h: 145, w: 134 },
+  { k: "rice2", crop: "\u7A3B\u7C73", town: "1_30", x: 670, y: 625, h: 165, w: 96 },
+  { k: "bamboo1", crop: "\u7AF9\u7B4D", town: "1_18", x: 950, y: 610, h: 150, w: 88 },
+  { k: "chive", crop: "\u97ED\u83DC", town: "1_32", x: 745, y: 850, h: 165, w: 79 },
+  { k: "organic2", crop: "\u6709\u6A5F\u6C34\u8015\u852C\u83DC", town: "1_14", x: 938, y: 830, h: 150, w: 108 },
+  { k: "pork", crop: "\u9ED1\u8C6C\u8089", town: "1_16", x: 500, y: 895, h: 130, w: 190 },
+  { k: "redtea", crop: "\u6843\u6620\u7D05\u8336", town: "1_12", x: 630, y: 1040, h: 140, w: 107 },
+  { k: "beauty", crop: "\u6771\u65B9\u7F8E\u4EBA\u8336", town: "1_12", x: 780, y: 1090, h: 140, w: 107 },
+  { k: "bamboo2", crop: "\u7AF9\u7B4D", town: "1_10", x: 1060, y: 1010, h: 150, w: 88 },
+  { k: "fish", crop: "\u77F3\u9580\u6D3B\u9B5A", town: "1_10", x: 975, y: 1170, h: 125, w: 189 },
+  { k: "peach", crop: "\u6C34\u871C\u6843", town: "1_34", x: 1130, y: 1420, h: 160, w: 124 },
+  { k: "mushroom", crop: "\u9999\u83C7", town: "1_34", x: 1245, y: 1650, h: 150, w: 119 }
+];
+const TaoyuanCharsLayer = ({ onCropSelect, onHoverTown }) => {
+  const cropChars = typeof window !== "undefined" && window.TAOYUAN_CROPS || {};
+  return /* @__PURE__ */ React.createElement("g", null, TAOYUAN_CHARS.map((c) => {
+    const src = cropChars[c.crop];
+    const w = c.w || 200;
+    const fs = c.crop.length >= 6 ? 21 : c.crop.length >= 4 ? 24 : 28;
+    const labelW = c.crop.length * fs + 40, labelH = 50;
+    return /* @__PURE__ */ React.createElement(
+      "g",
+      {
+        key: c.k,
+        style: { cursor: "pointer" },
+        onMouseEnter: onHoverTown ? () => onHoverTown(c.town) : void 0,
+        onMouseLeave: onHoverTown ? () => onHoverTown(null) : void 0,
+        onClick: onCropSelect ? () => onCropSelect(c.crop) : void 0
+      },
+      src && /* @__PURE__ */ React.createElement(
+        "image",
+        {
+          href: src,
+          x: c.x - w / 2,
+          y: c.y - c.h,
+          width: w,
+          height: c.h,
+          preserveAspectRatio: "xMidYMax meet"
+        }
+      ),
+      /* @__PURE__ */ React.createElement("g", { transform: `translate(${c.x - labelW / 2}, ${c.y + 12})` }, /* @__PURE__ */ React.createElement(
+        "rect",
+        {
+          width: labelW,
+          height: labelH,
+          rx: labelH / 2,
+          fill: "#fffdf6",
+          stroke: "#c9a887",
+          strokeWidth: 2.5
+        }
+      ), /* @__PURE__ */ React.createElement(
+        "text",
+        {
+          x: labelW / 2,
+          y: labelH / 2 + 1,
+          textAnchor: "middle",
+          dominantBaseline: "middle",
+          fill: "#8d6e55",
+          fontSize: fs,
+          fontWeight: 700,
+          fontFamily: "'Noto Sans TC', 'Noto Sans CJK TC', sans-serif"
+        },
+        c.crop
+      ))
+    );
+  }));
+};
 const EXTRA_CITY_HOTSPOTS = [
   { id: "extra_hsinchu_city", cx: 477, cy: 278, r: 22 },
   // 在 n_hsinchu_county 區內
@@ -4214,51 +4307,7 @@ const Page = ({ selected, cropOverride, onSelect, onCropSelect, onCountyCropChan
         }
       )
     )),
-    hovered && (() => {
-      const t = TAOYUAN_TOWNSHIPS.find((x) => x.id === hovered);
-      if (!t) return null;
-      const cx = t.cx + t.cw / 2;
-      const cy = t.cy + t.ch / 2;
-      const cropChars = typeof window !== "undefined" && window.TAOYUAN_CROPS || {};
-      const charSrc = cropChars[t.crop];
-      const charSize = 280;
-      const labelW = 180, labelH = 56;
-      const labelY = cy + charSize * 0.15 + 6;
-      return /* @__PURE__ */ React.createElement("g", { style: { pointerEvents: "none" } }, charSrc && /* @__PURE__ */ React.createElement(
-        "image",
-        {
-          href: charSrc,
-          x: cx - charSize / 2,
-          y: cy - charSize * 0.85,
-          width: charSize,
-          height: charSize,
-          preserveAspectRatio: "xMidYMid meet"
-        }
-      ), /* @__PURE__ */ React.createElement("g", { transform: `translate(${cx - labelW / 2}, ${labelY})` }, /* @__PURE__ */ React.createElement(
-        "rect",
-        {
-          width: labelW,
-          height: labelH,
-          rx: labelH / 2,
-          fill: "#fbf6e9",
-          stroke: "#d1c4af",
-          strokeWidth: 2.5
-        }
-      ), /* @__PURE__ */ React.createElement(
-        "text",
-        {
-          x: labelW / 2,
-          y: labelH / 2 + 1,
-          textAnchor: "middle",
-          dominantBaseline: "middle",
-          fill: "#9b897c",
-          fontSize: 30,
-          fontWeight: 500,
-          fontFamily: "'Noto Sans TC', 'Noto Sans CJK TC', sans-serif"
-        },
-        t.crop
-      )));
-    })()
+    /* @__PURE__ */ React.createElement(TaoyuanCharsLayer, { onCropSelect, onHoverTown: setHovered })
   )), leftMapView === "main" && /* @__PURE__ */ React.createElement(
     "svg",
     {
@@ -4577,14 +4626,18 @@ const Page = ({ selected, cropOverride, onSelect, onCropSelect, onCountyCropChan
     letterSpacing: 1.2,
     lineHeight: "32px",
     fontFamily: "'Noto Sans TC',sans-serif"
-  } }, region.name)), /* @__PURE__ */ React.createElement(ScaledOverlay, { x: 1015, y: 135, w: 300, h: 42 }, /* @__PURE__ */ React.createElement("div", { style: {
-    fontSize: 30,
-    fontWeight: 900,
-    color: "#3b6826",
-    letterSpacing: 1.5,
-    lineHeight: "42px",
-    fontFamily: "'Noto Sans TC',sans-serif"
-  } }, effectiveCrop || region.cropApi)), /* @__PURE__ */ React.createElement(ScaledOverlay, { x: 1180, y: 140, w: 150, h: 34 }, /* @__PURE__ */ React.createElement(
+  } }, region.name)), /* @__PURE__ */ React.createElement(ScaledOverlay, { x: 1015, y: 135, w: 300, h: 42 }, (() => {
+    const heroCrop = effectiveCrop || region.cropApi;
+    const fs = heroCrop.length >= 6 ? 24 : heroCrop.length >= 5 ? 27 : 30;
+    return /* @__PURE__ */ React.createElement("div", { style: {
+      fontSize: fs,
+      fontWeight: 900,
+      color: "#3b6826",
+      letterSpacing: 1.2,
+      lineHeight: "42px",
+      fontFamily: "'Noto Sans TC',sans-serif"
+    } }, heroCrop);
+  })()), /* @__PURE__ */ React.createElement(ScaledOverlay, { x: 1180, y: 140, w: 150, h: 34 }, /* @__PURE__ */ React.createElement(
     "select",
     {
       value: SWITCHABLE_CROPS.includes(effectiveCrop || region.cropApi) ? effectiveCrop || region.cropApi : "",
@@ -4614,7 +4667,12 @@ const Page = ({ selected, cropOverride, onSelect, onCropSelect, onCountyCropChan
     lineHeight: "26px",
     fontFamily: "'Noto Sans TC',sans-serif",
     whiteSpace: "nowrap"
-  } }, /* @__PURE__ */ React.createElement("div", null, "\u54C8\u56C9\uFF01\u6211\u662F\u4F86\u81EA", region.name.replace(/[市縣]$/, ""), "\u7684", effectiveCrop || region.cropApi, "\uFF01"), /* @__PURE__ */ React.createElement("div", null, "\u9019\u88E1\u967D\u5149\u5145\u8DB3\uFF0C\u5F88\u9069\u5408\u6211\u751F\u9577\uFF0C"), /* @__PURE__ */ React.createElement("div", null, "\u5FEB\u4F86\u770B\u770B\u4ECA\u5929\u7684\u5929\u6C23\u548C\u5E02\u5834\u8CC7\u8A0A\u5427\uFF01"))), /* @__PURE__ */ React.createElement(
+  } }, /* @__PURE__ */ React.createElement("div", null, "\u54C8\u56C9\uFF01\u6211\u662F\u4F86\u81EA", region.name.replace(/[市縣]$/, ""), "\u7684", effectiveCrop || region.cropApi, "\uFF01"), /* @__PURE__ */ React.createElement("div", null, {
+    "\u8702\u871C": "\u9019\u88E1\u82B1\u6E90\u8C50\u5BCC\uFF0C\u91C0\u51FA\u597D\u8702\u871C\uFF0C",
+    "\u9ED1\u8C6C\u8089": "\u9019\u88E1\u98FC\u990A\u74B0\u5883\u597D\uFF0C\u8089\u8CEA\u7279\u5225\u8B9A\uFF0C",
+    "\u77F3\u9580\u6D3B\u9B5A": "\u77F3\u9580\u6C34\u5EAB\u6D3B\u6C34\u990A\u51FA\u597D\u9B5A\uFF0C",
+    "\u9999\u83C7": "\u9019\u88E1\u6EAB\u6FD5\u5EA6\u525B\u597D\uFF0C\u5F88\u9069\u5408\u51FA\u83C7\uFF0C"
+  }[effectiveCrop || region.cropApi] || "\u9019\u88E1\u967D\u5149\u5145\u8DB3\uFF0C\u5F88\u9069\u5408\u6211\u751F\u9577\uFF0C"), /* @__PURE__ */ React.createElement("div", null, "\u5FEB\u4F86\u770B\u770B\u4ECA\u5929\u7684\u5929\u6C23\u548C\u5E02\u5834\u8CC7\u8A0A\u5427\uFF01"))), /* @__PURE__ */ React.createElement(
     "div",
     {
       onClick: () => {
@@ -4798,6 +4856,8 @@ const NONGZHIDAO_MAP = {
   // 14 county crops backfilled 2026-05-22 (batch via scripts/backfill_amis.py)
   "\u7DA0\u7AF9\u7B4D": "code_SH2",
   // 台北
+  "\u7AF9\u7B4D": "code_SH2",
+  // 桃園鄉鎮新版標示（同綠竹筍行情）
   "\u5C71\u85E5": "code_SU2",
   // 基隆 (白薯蕷)
   "\u751C\u67FF": "fruit_Z0",
@@ -4841,6 +4901,8 @@ const NONGZHIDAO_MAP = {
   "\u5305\u5FC3\u767D": "code_LC1",
   // 桃園楊梅 (包白 cultivar)
   "\u5305\u5FC3\u767D\u83DC": "code_LC1",
+  "\u6709\u6A5F\u6C34\u8015\u852C\u83DC": "code_LC1",
+  // 260624 新版：套包心白行情當參考價
   "\u6C34\u871C\u6843": "fruit_Y1",
   // 桃園復興拉拉山
   "\u6843\u5B50": "fruit_Y1",
@@ -4855,7 +4917,12 @@ const WHOLESALE_NO_DATA = /* @__PURE__ */ new Set([
   "\u6C34\u7A3B",
   // taoyuan township slots — same reason as 新北包種茶 / 新竹市水稻
   "\u8336\u8449",
-  "\u7A3B\u7C73"
+  "\u7A3B\u7C73",
+  // 260624 新版桃園鄉鎮品項 — 茶品牌不走批發拍賣（比照包種茶）。
+  // 蜂蜜/黑豬肉/石門活魚 各接專屬行情來源（見 _fetchCropMarket 上方）；
+  // 有機水耕蔬菜 套包心白行情（NONGZHIDAO_MAP code_LC1）當參考價。
+  "\u6843\u6620\u7D05\u8336",
+  "\u6771\u65B9\u7F8E\u4EBA\u8336"
 ]);
 const _rocToISO = (roc) => {
   const m = String(roc || "").match(/^(\d+)[\/.](\d+)[\/.](\d+)$/);
@@ -4910,11 +4977,168 @@ async function _fetchFromMOA(cropName) {
     market_compare: { month: latestMonth, markets_volume, markets_price }
   };
 }
+const _ANIMAL_TRANS_URL = "https://data.moa.gov.tw/Service/OpenData/FromM/AnimalTransData.aspx";
+const _AQUATIC_TRANS_URL = "https://data.moa.gov.tw/Service/OpenData/FromM/AquaticTransData.aspx";
+const _HONEY_ANNUAL = [
+  // [民國年, 元/公斤] = 產值(千元)×1000 ÷ 產量(公斤)
+  [104, 148],
+  [105, 211],
+  [106, 300],
+  [107, 262],
+  [108, 200],
+  [109, 161],
+  [110, 227],
+  [111, 221],
+  [112, 239],
+  [113, 198],
+  [114, 324]
+];
+const PRICE_META = {
+  // periods: 趨勢圖只顯示對資料視窗誠實的檔位（豬/魚只有近月日線、蜂蜜只有年資料）
+  // volUnit: 交易量單位（黑豬肉是頭數不是公斤）；noVolume: 不畫量柱
+  // hideRetail/hideAdvice: 口徑不適用 批發×2 零售試算 / 短期買賣建議
+  // noCompare: 單一資料來源，無跨市場比較
+  "\u8702\u871C": {
+    title: "\u5E74\u5747\u7522\u5730\u50F9",
+    unit: "(\u6BCF\u516C\u65A4\xB7\u5E74\u8CC7\u6599)",
+    chgLabel: "\u8F03\u524D\u4E00\u5E74",
+    annual: true,
+    src: "\u8FB2\u696D\u7D71\u8A08 \u8702\u871C\u7522\u503C/\u7522\u91CF",
+    panelSrc: "\u8FB2\u696D\u7D71\u8A08\xB7\u5E74\u8CC7\u6599",
+    latestLabel: "\u6700\u65B0\u5E74\u5747",
+    periods: [["yearly", "\u6BCF\u5E74"]],
+    noVolume: true,
+    hideRetail: true,
+    hideAdvice: true,
+    noCompare: true
+  },
+  "\u9ED1\u8C6C\u8089": {
+    title: "\u4ECA\u65E5\u6BDB\u8C6C\u62CD\u8CE3",
+    unit: "(\u6BCF\u516C\u65A4\xB7\u6D3B\u8C6C)",
+    src: "\u755C\u7522\u54C1\u4EA4\u6613\u884C\u60C5 \u898F\u683C\u8C6C",
+    panelSrc: "\u755C\u7522\u62CD\u8CE3\xB7\u6D3B\u8C6C",
+    volUnit: "\u982D",
+    periods: [["daily", "\u6BCF\u65E5"], ["weekly", "\u6BCF\u9031"]],
+    hideRetail: true,
+    noCompare: true
+  },
+  "\u77F3\u9580\u6D3B\u9B5A": {
+    title: "\u4ECA\u65E5\u8349\u9B5A\u6279\u767C",
+    unit: "(\u6BCF\u516C\u65A4)",
+    src: "\u6F01\u7522\u54C1\u6279\u767C\u884C\u60C5 \u8349\u9B5A",
+    panelSrc: "\u6F01\u7522\u6279\u767C\xB7\u8349\u9B5A",
+    periods: [["daily", "\u6BCF\u65E5"], ["weekly", "\u6BCF\u9031"]],
+    noCompare: true
+  },
+  "\u6709\u6A5F\u6C34\u8015\u852C\u83DC": { title: "\u4ECA\u65E5\u5305\u5FC3\u767D\u6279\u767C", unit: "(\u6BCF\u516C\u65A4\xB7\u53C3\u8003)", src: "AMIS \u5305\u5FC3\u767D\u884C\u60C5", panelSrc: "AMIS\xB7\u5305\u5FC3\u767D\u53C3\u8003" }
+};
+const _rocCompact = (d) => `${d.getFullYear() - 1911}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+async function _fetchTransDaily(url, mapDay) {
+  const now = /* @__PURE__ */ new Date();
+  const days = Array.from({ length: 28 }, (_, i) => new Date(now.getTime() - i * 864e5));
+  const rows = await Promise.all(days.map(async (d) => {
+    try {
+      const r = await fetch(`${url}?TransDate=${_rocCompact(d)}`);
+      if (!r.ok) return null;
+      const arr = await r.json();
+      if (!Array.isArray(arr) || !arr.length) return null;
+      return mapDay(arr);
+    } catch (e) {
+      return null;
+    }
+  }));
+  const daily = rows.filter(Boolean).sort((a, b) => a.date < b.date ? -1 : 1);
+  if (!daily.length) return null;
+  const j = { daily };
+  j.weekly = _aggregateDaily(daily, (r) => _isoYearWeek(r.date));
+  j.monthly = _aggregateDaily(daily, (r) => r.date.slice(0, 7));
+  j.yearly = _aggregateDaily(daily, (r) => r.date.slice(0, 4));
+  const last = daily[daily.length - 1];
+  j.latest_price = { date: last.date, price: last.price };
+  return j;
+}
+const _isoFromRocCompact = (s) => {
+  s = String(s);
+  const roc = parseInt(s.slice(0, s.length - 4), 10);
+  return `${roc + 1911}-${s.slice(-4, -2)}-${s.slice(-2)}`;
+};
+const _fetchPigMarket = () => _fetchTransDaily(_ANIMAL_TRANS_URL, (arr) => {
+  let wSum = 0, n = 0;
+  for (const r of arr) {
+    const p = r["\u898F\u683C\u8C6C-\u5E73\u5747\u50F9\u683C"], c = r["\u898F\u683C\u8C6C-\u982D\u6578"];
+    if (p > 0 && c > 0) {
+      wSum += p * c;
+      n += c;
+    }
+  }
+  if (!n) return null;
+  return { date: _isoFromRocCompact(arr[0]["\u4EA4\u6613\u65E5\u671F"]), price: Math.round(wSum / n * 10) / 10, volume: n };
+});
+async function _fetchFishMarket() {
+  const now = /* @__PURE__ */ new Date();
+  const from = new Date(now.getTime() - 13 * 864e5);
+  try {
+    let arr = null;
+    for (let attempt = 0; attempt < 3 && !arr; attempt++) {
+      if (attempt) await new Promise((res) => setTimeout(res, 2e3));
+      try {
+        const r = await fetch(`${_AQUATIC_TRANS_URL}?StartDate=${_rocCompact(from)}&EndDate=${_rocCompact(now)}`);
+        if (!r.ok) continue;
+        const parsed = await r.json();
+        if (Array.isArray(parsed) && parsed.length) arr = parsed;
+      } catch (e) {
+      }
+    }
+    if (!arr) return null;
+    const byDay = /* @__PURE__ */ new Map();
+    for (const row of Array.isArray(arr) ? arr : []) {
+      if (row["\u9B5A\u8CA8\u540D\u7A31"] !== "\u8349\u9B5A") continue;
+      const p = row["\u5E73\u5747\u50F9"], q = row["\u4EA4\u6613\u91CF"];
+      if (!(p > 0 && q > 0)) continue;
+      const k = String(row["\u4EA4\u6613\u65E5\u671F"]);
+      const acc = byDay.get(k) || { w: 0, v: 0 };
+      acc.w += p * q;
+      acc.v += q;
+      byDay.set(k, acc);
+    }
+    const daily = [...byDay.entries()].map(([k, a]) => ({ date: _isoFromRocCompact(k), price: Math.round(a.w / a.v * 10) / 10, volume: Math.round(a.v) })).sort((a, b) => a.date < b.date ? -1 : 1);
+    if (!daily.length) return null;
+    const j = { daily };
+    j.weekly = _aggregateDaily(daily, (r2) => _isoYearWeek(r2.date));
+    j.monthly = _aggregateDaily(daily, (r2) => r2.date.slice(0, 7));
+    j.yearly = _aggregateDaily(daily, (r2) => r2.date.slice(0, 4));
+    const last = daily[daily.length - 1];
+    j.latest_price = { date: last.date, price: last.price };
+    return j;
+  } catch (e) {
+    console.warn("[fish-market] failed:", e && e.message);
+    return null;
+  }
+}
+function _honeyMarket() {
+  const daily = _HONEY_ANNUAL.map(([roc, price]) => ({ date: `${roc + 1911}-01-01`, price, volume: 1 }));
+  const j = { daily, annual: true };
+  j.weekly = j.monthly = j.yearly = _aggregateDaily(daily, (r) => r.date.slice(0, 4));
+  const last = daily[daily.length - 1];
+  j.latest_price = { date: last.date, price: last.price };
+  return Promise.resolve(j);
+}
+const _transMemo = /* @__PURE__ */ new Map();
+async function _memoTrans(key, fn) {
+  const hit = _transMemo.get(key);
+  if (hit && Date.now() - hit.at < 6e5) return hit.v;
+  const v = await fn();
+  if (v != null) _transMemo.set(key, { at: Date.now(), v });
+  return v;
+}
 const _cropMarketCache = /* @__PURE__ */ new Map();
 const _cropMarketListeners = /* @__PURE__ */ new Map();
 const _cropMarketInflight = /* @__PURE__ */ new Map();
 async function _fetchCropMarket(cropName) {
   if (cropName === "__nodata__") return null;
+  if (cropName === "\u9ED1\u8C6C\u8089") return _memoTrans("pig", _fetchPigMarket);
+  if (cropName === "\u77F3\u9580\u6D3B\u9B5A") return _memoTrans("fish", _fetchFishMarket);
+  if (cropName === "\u8702\u871C") return _honeyMarket();
   const code = NONGZHIDAO_MAP[cropName];
   if (code) {
     try {
@@ -4961,6 +5185,8 @@ const useCropMarket = (cropName) => {
       setData(tm);
     } else if (_cropMarketCache.has(cropName)) {
       setData(_cropMarketCache.get(cropName));
+    } else {
+      setData(null);
     }
     if (!_cropMarketListeners.has(cropName)) _cropMarketListeners.set(cropName, /* @__PURE__ */ new Set());
     _cropMarketListeners.get(cropName).add(setData);
@@ -4968,8 +5194,10 @@ const useCropMarket = (cropName) => {
       _cropMarketInflight.set(
         cropName,
         _fetchCropMarket(cropName).then((d) => {
-          _cropMarketCache.set(cropName, d);
+          const prev = _cropMarketCache.get(cropName);
           _cropMarketInflight.delete(cropName);
+          if (d == null && prev != null) return;
+          _cropMarketCache.set(cropName, d);
           const ls = _cropMarketListeners.get(cropName);
           if (ls) for (const fn of ls) fn(d);
         }).catch((err) => {
@@ -5043,7 +5271,15 @@ const TRADE_COA_MAP = {
   "\u54C8\u5BC6\u74DC": "0807191000",
   // taoyuan township 稻米/茶葉 reuse existing files for 水稻/包種茶
   "\u7A3B\u7C73": "101xx01",
-  "\u8336\u8449": "109xxxx"
+  "\u8336\u8449": "109xxxx",
+  // 260624 新版品項 backfilled 2026-07-30（豬=201##01 活畜禽及肉類-豬、
+  // 蜂蜜=207#### 養蜂業產品類；石門活魚刻意不掛——海關統計無淡水養殖魚
+  // 專項（草魚/鰱魚為內銷型），掛整類魚會誤導）
+  "\u9ED1\u8C6C\u8089": "201xx01",
+  "\u8702\u871C": "207xxxx",
+  "\u6843\u6620\u7D05\u8336": "109xxxx",
+  // 茶類出口比照茶葉 aggregate
+  "\u6771\u65B9\u7F8E\u4EBA\u8336": "109xxxx"
   // 宜蘭 青蔥-粉蔥 intentionally omitted — MOA's 103##03 conflates 洋蔥+蔥;
   // showing 洋蔥 numbers under a 青蔥 label would be misleading, so the trade
   // card renders a placeholder for 宜蘭 instead.
@@ -5169,6 +5405,7 @@ const PricePanelCard = ({ cropName }) => {
   const buyTag = chgPct != null && chgPct < 0 ? { label: "\u63A8\u85A6\u8CFC\u8CB7", bg: "#a5dba6", fg: "#2c5d2e" } : chgPct != null && chgPct > 10 ? { label: "\u9AD8\u9EDE\u89C0\u671B", bg: "#f3d27a", fg: "#7a5418" } : { label: "\u50F9\u683C\u5E73\u7A69", bg: "#f3d27a", fg: "#7a5418" };
   const sellTag = chgPct != null && chgPct > 5 ? { label: "\u9AD8\u50F9\u6642\u6A5F", bg: "#a5dba6", fg: "#2c5d2e" } : chgPct != null && chgPct < -5 ? { label: "\u8F03\u5F31\u50F9\u683C", bg: "#f6a99a", fg: "#7a261a" } : { label: "\u89C0\u671B", bg: "#f3d27a", fg: "#7a5418" };
   const fmt = (v) => v == null ? "\u2014" : v.toLocaleString("zh-TW", { maximumFractionDigits: 2 });
+  const _pmeta = PRICE_META[cropName] || {};
   return /* @__PURE__ */ React.createElement("div", { style: {
     position: "absolute",
     left: `${337 / 1440 * 100}%`,
@@ -5184,7 +5421,7 @@ const PricePanelCard = ({ cropName }) => {
     flexDirection: "column",
     gap: 12,
     fontFamily: "'Noto Sans TC',sans-serif"
-  } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff5e8", borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 0 #f0e0c8", display: "flex", flexDirection: "column", justifyContent: "space-evenly" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 900, color: "#a85a16", letterSpacing: 1 } }, "\u50F9\u683C\u9762\u677F (AMIS)"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#a89070" } }, latestDate ? latestDate.replace(/-/g, "/") : "")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, display: "flex", alignItems: "baseline", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#7a5418", fontWeight: 700 } }, "\u6700\u65B0\u5747\u50F9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#5a3a18" } }, "$", fmt(latest), " / \u516C\u65A4"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#a89070" } }, "($", fmt(taikinPrice), " / \u53F0\u65A4)"))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff5e8", borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 0 #f0e0c8", display: "flex", flexDirection: "column", justifyContent: "space-evenly" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 900, color: "#a85a16", letterSpacing: 1 } }, "\u8A66\u7B97\u9810\u4F30\u96F6\u552E\u50F9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#a89070" } }, "(\u53E3\u5F91A: \u6279\u767C \xD7 2)")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, display: "flex", alignItems: "baseline", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#5a3a18" } }, "$", retailKg ?? "\u2014", " / \u516C\u65A4"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#c8a070" } }, "|"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#5a3a18" } }, "$", retailTaikin ?? "\u2014", " / \u53F0\u65A4"))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff5e8", borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 0 #f0e0c8", display: "flex", flexDirection: "column", justifyContent: "space-evenly" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 900, color: "#a85a16", letterSpacing: 1, marginBottom: 6 } }, "\u8FD1\u671F\u4EA4\u6613\u6307\u6A19"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 14, fontSize: 12, color: "#7a5418", alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", null, "\u8CFC\u8CB7\u5EFA\u8B70"), /* @__PURE__ */ React.createElement("span", { style: { padding: "3px 10px", borderRadius: 10, background: buyTag.bg, color: buyTag.fg, fontWeight: 700 } }, buyTag.label), /* @__PURE__ */ React.createElement("div", null, "\u8CE3\u51FA\u5EFA\u8B70"), /* @__PURE__ */ React.createElement("span", { style: { padding: "3px 10px", borderRadius: 10, background: sellTag.bg, color: sellTag.fg, fontWeight: 700 } }, sellTag.label))));
+  } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff5e8", borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 0 #f0e0c8", display: "flex", flexDirection: "column", justifyContent: "space-evenly" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 900, color: "#a85a16", letterSpacing: 1 } }, "\u50F9\u683C\u9762\u677F (", _pmeta.panelSrc || "AMIS", ")"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#a89070" } }, latestDate ? _pmeta.annual ? latestDate.slice(0, 4) + "\u5E74" : latestDate.replace(/-/g, "/") : "")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, display: "flex", alignItems: "baseline", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#7a5418", fontWeight: 700 } }, _pmeta.latestLabel || "\u6700\u65B0\u5747\u50F9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#5a3a18" } }, "$", fmt(latest), " / \u516C\u65A4"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#a89070" } }, "($", fmt(taikinPrice), " / \u53F0\u65A4)"))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff5e8", borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 0 #f0e0c8", display: "flex", flexDirection: "column", justifyContent: "space-evenly" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 900, color: "#a85a16", letterSpacing: 1 } }, "\u8A66\u7B97\u9810\u4F30\u96F6\u552E\u50F9"), !_pmeta.hideRetail && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#a89070" } }, "(\u53E3\u5F91A: \u6279\u767C \xD7 2)")), _pmeta.hideRetail ? /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, fontSize: 11, color: "#a89070" } }, _pmeta.annual ? "\u5E74\u5747\u7522\u5730\u50F9\u975E\u6279\u767C\u53E3\u5F91\uFF0C\u4E0D\u505A\u96F6\u552E\u8A66\u7B97" : "\u6D3B\u8C6C\u62CD\u8CE3\u50F9\u8207\u96F6\u552E\u8C6C\u8089\u53E3\u5F91\u4E0D\u540C\uFF0C\u4E0D\u505A\u8A66\u7B97") : /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, display: "flex", alignItems: "baseline", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#5a3a18" } }, "$", retailKg ?? "\u2014", " / \u516C\u65A4"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#c8a070" } }, "|"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#5a3a18" } }, "$", retailTaikin ?? "\u2014", " / \u53F0\u65A4"))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff5e8", borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 0 #f0e0c8", display: "flex", flexDirection: "column", justifyContent: "space-evenly" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 900, color: "#a85a16", letterSpacing: 1, marginBottom: 6 } }, _pmeta.hideAdvice ? "\u5E74\u5EA6\u8B8A\u5316" : "\u8FD1\u671F\u4EA4\u6613\u6307\u6A19"), _pmeta.hideAdvice ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, fontSize: 12, color: "#7a5418", alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", null, "\u8F03\u524D\u4E00\u5E74"), /* @__PURE__ */ React.createElement("span", { style: { padding: "3px 10px", borderRadius: 10, background: (chgPct ?? 0) >= 0 ? "#f6c6a0" : "#a5dba6", color: "#5a3a18", fontWeight: 700 } }, (chgPct ?? 0) >= 0 ? "\u25B2" : "\u25BC", " ", Math.abs(chgPct ?? 0), "%"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "#a89070" } }, "(\u5E74\u8CC7\u6599\u4E0D\u9069\u7528\u77ED\u671F\u8CB7\u8CE3\u5EFA\u8B70)")) : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 14, fontSize: 12, color: "#7a5418", alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", null, "\u8CFC\u8CB7\u5EFA\u8B70"), /* @__PURE__ */ React.createElement("span", { style: { padding: "3px 10px", borderRadius: 10, background: buyTag.bg, color: buyTag.fg, fontWeight: 700 } }, buyTag.label), /* @__PURE__ */ React.createElement("div", null, "\u8CE3\u51FA\u5EFA\u8B70"), /* @__PURE__ */ React.createElement("span", { style: { padding: "3px 10px", borderRadius: 10, background: sellTag.bg, color: sellTag.fg, fontWeight: 700 } }, sellTag.label))));
 };
 const TrendChartCard = ({ cropName }) => {
   const noData = !!(cropName && WHOLESALE_NO_DATA.has(cropName));
@@ -5193,16 +5430,22 @@ const TrendChartCard = ({ cropName }) => {
   const [period, setPeriod] = useState("weekly");
   const canvasRef = React.useRef(null);
   const chartRef = React.useRef(null);
+  const meta = PRICE_META[cropName] || {};
+  const periodOpts = meta.periods || [["weekly", "\u6BCF\u9031"], ["monthly", "\u6BCF\u6708"], ["year52", "\u4E00\u5E74"], ["yearly", "\u6BCF\u5E74"]];
+  const effPeriod = periodOpts.some((p) => p[0] === period) ? period : periodOpts[0][0];
   React.useEffect(() => {
     if (!m || !chartReady || !window.Chart || !canvasRef.current) return;
     let entries, priceLabel;
-    if (period === "weekly") {
+    if (effPeriod === "daily") {
+      entries = (m.daily || []).map((d) => ({ key: d.date.slice(5), price: d.price, volume: d.volume }));
+      priceLabel = "\u6BCF\u65E5\u5747\u50F9 (NTD/\u516C\u65A4)";
+    } else if (effPeriod === "weekly") {
       entries = m.weekly;
       priceLabel = "\u6BCF\u9031\u5747\u50F9 (NTD/\u516C\u65A4)";
-    } else if (period === "monthly") {
+    } else if (effPeriod === "monthly") {
       entries = m.monthly;
       priceLabel = "\u6BCF\u6708\u5747\u50F9 (NTD/\u516C\u65A4)";
-    } else if (period === "year52") {
+    } else if (effPeriod === "year52") {
       entries = m.weekly.slice(-52);
       priceLabel = "\u6BCF\u9031\u5747\u50F9 (NTD/\u516C\u65A4)";
     } else {
@@ -5212,16 +5455,32 @@ const TrendChartCard = ({ cropName }) => {
     const labels = entries.map((e) => e.key || e.date);
     const prices = entries.map((e) => e.price);
     const volumes = entries.map((e) => e.volume);
+    const volLabel = `\u4EA4\u6613\u91CF (${meta.volUnit || "KG"})`;
     if (chartRef.current) chartRef.current.destroy();
+    const datasets = [];
+    if (!meta.noVolume) {
+      datasets.push({ label: volLabel, data: volumes, backgroundColor: "rgba(168,213,176,0.55)", borderColor: "rgba(168,213,176,1)", borderWidth: 0, yAxisID: "y2", order: 2 });
+    }
+    datasets.push({ label: priceLabel, data: prices, type: "line", borderColor: "#3578d4", backgroundColor: "#3578d4", tension: 0.25, pointRadius: effPeriod === "weekly" ? 1.5 : 3, pointHoverRadius: 6, borderWidth: 2, yAxisID: "y1", order: 1 });
+    const scales = {
+      x: {
+        ticks: {
+          font: { size: 10 },
+          color: "#666",
+          maxRotation: 60,
+          autoSkip: true,
+          maxTicksLimit: effPeriod === "weekly" ? 14 : effPeriod === "monthly" ? 12 : effPeriod === "yearly" ? 11 : 14
+        },
+        grid: { display: false }
+      },
+      y1: { position: "left", title: { display: true, text: "\u50F9\u683C (NTD/\u516C\u65A4)", font: { size: 10 }, color: "#666" }, ticks: { font: { size: 10 }, color: "#666" }, grid: { color: "rgba(0,0,0,0.05)" } }
+    };
+    if (!meta.noVolume) {
+      scales.y2 = { position: "right", title: { display: true, text: volLabel, font: { size: 10 }, color: "#666" }, ticks: { font: { size: 10 }, color: "#666", callback: (v) => v >= 1e6 ? (v / 1e6).toFixed(0) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "K" : v }, grid: { drawOnChartArea: false } };
+    }
     chartRef.current = new window.Chart(canvasRef.current, {
       type: "bar",
-      data: {
-        labels,
-        datasets: [
-          { label: "\u4EA4\u6613\u91CF (KG)", data: volumes, backgroundColor: "rgba(168,213,176,0.55)", borderColor: "rgba(168,213,176,1)", borderWidth: 0, yAxisID: "y2", order: 2 },
-          { label: priceLabel, data: prices, type: "line", borderColor: "#3578d4", backgroundColor: "#3578d4", tension: 0.25, pointRadius: period === "weekly" ? 1.5 : 3, pointHoverRadius: 6, borderWidth: 2, yAxisID: "y1", order: 1 }
-        ]
-      },
+      data: { labels, datasets },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -5230,20 +5489,7 @@ const TrendChartCard = ({ cropName }) => {
           legend: { position: "top", labels: { font: { size: 11 }, boxWidth: 14, color: "#3a4a6a" } },
           tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.raw?.toLocaleString("zh-TW") ?? "\u2014"}` } }
         },
-        scales: {
-          x: {
-            ticks: {
-              font: { size: 10 },
-              color: "#666",
-              maxRotation: 60,
-              autoSkip: true,
-              maxTicksLimit: period === "weekly" ? 14 : period === "monthly" ? 12 : period === "yearly" ? 11 : 12
-            },
-            grid: { display: false }
-          },
-          y1: { position: "left", title: { display: true, text: "\u50F9\u683C (NTD/\u516C\u65A4)", font: { size: 10 }, color: "#666" }, ticks: { font: { size: 10 }, color: "#666" }, grid: { color: "rgba(0,0,0,0.05)" } },
-          y2: { position: "right", title: { display: true, text: "\u4EA4\u6613\u91CF (KG)", font: { size: 10 }, color: "#666" }, ticks: { font: { size: 10 }, color: "#666", callback: (v) => v >= 1e6 ? (v / 1e6).toFixed(0) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "K" : v }, grid: { drawOnChartArea: false } }
-        }
+        scales
       }
     });
     return () => {
@@ -5252,7 +5498,7 @@ const TrendChartCard = ({ cropName }) => {
         chartRef.current = null;
       }
     };
-  }, [m, period, chartReady]);
+  }, [m, effPeriod, chartReady, cropName]);
   if (noData) {
     return /* @__PURE__ */ React.createElement("div", { style: {
       position: "absolute",
@@ -5286,12 +5532,12 @@ const TrendChartCard = ({ cropName }) => {
     flexDirection: "column",
     gap: 6,
     fontFamily: "'Noto Sans TC',sans-serif"
-  } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 17, fontWeight: 900, color: "#5a7028", letterSpacing: 1.5 } }, "\u6279\u767C\u5E02\u5834\u884C\u60C5\u8DA8\u52E2\u5716"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, [["weekly", "\u6BCF\u9031"], ["monthly", "\u6BCF\u6708"], ["year52", "\u4E00\u5E74"], ["yearly", "\u6BCF\u5E74"]].map(([k, label]) => /* @__PURE__ */ React.createElement("button", { key: k, onClick: () => setPeriod(k), style: {
+  } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 17, fontWeight: 900, color: "#5a7028", letterSpacing: 1.5 } }, "\u6279\u767C\u5E02\u5834\u884C\u60C5\u8DA8\u52E2\u5716"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, periodOpts.map(([k, label]) => /* @__PURE__ */ React.createElement("button", { key: k, onClick: () => setPeriod(k), style: {
     fontSize: 11,
     padding: "3px 12px",
-    border: "1px solid " + (period === k ? "#7a8c2a" : "#d8dcc0"),
-    background: period === k ? "#bcc865" : "#fefef0",
-    color: period === k ? "#3d4a10" : "#7a8c2a",
+    border: "1px solid " + (effPeriod === k ? "#7a8c2a" : "#d8dcc0"),
+    background: effPeriod === k ? "#bcc865" : "#fefef0",
+    color: effPeriod === k ? "#3d4a10" : "#7a8c2a",
     borderRadius: 14,
     cursor: "pointer",
     fontFamily: "inherit",
@@ -5333,7 +5579,8 @@ const VolumeBarsCard = ({ cropName }) => {
       }
     };
   }, [m, chartReady]);
-  if (noData) {
+  const noCompare = !!(cropName && PRICE_META[cropName] && PRICE_META[cropName].noCompare);
+  if (noData || noCompare) {
     return /* @__PURE__ */ React.createElement("div", { style: {
       position: "absolute",
       left: `${34 / 1440 * 100}%`,
@@ -5349,7 +5596,7 @@ const VolumeBarsCard = ({ cropName }) => {
       flexDirection: "column",
       gap: 6,
       fontFamily: "'Noto Sans TC',sans-serif"
-    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 17, fontWeight: 900, color: "#256b78", letterSpacing: 1.5 } }, "\u6279\u767C\u5E02\u5834\u6210\u4EA4\u91CF\u6BD4\u8F03 \xB7 ", cropName), /* @__PURE__ */ React.createElement(_WholesaleNoDataMsg, null));
+    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 17, fontWeight: 900, color: "#256b78", letterSpacing: 1.5 } }, "\u6279\u767C\u5E02\u5834\u6210\u4EA4\u91CF\u6BD4\u8F03 \xB7 ", cropName), noData ? /* @__PURE__ */ React.createElement(_WholesaleNoDataMsg, null) : /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#888", fontSize: 12 } }, "\u6B64\u54C1\u9805\u70BA\u55AE\u4E00\u8CC7\u6599\u4F86\u6E90\uFF0C\u7121\u8DE8\u5E02\u5834\u6BD4\u8F03"));
   }
   return /* @__PURE__ */ React.createElement("div", { style: {
     position: "absolute",
@@ -5369,7 +5616,7 @@ const VolumeBarsCard = ({ cropName }) => {
   } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 17, fontWeight: 900, color: "#256b78", letterSpacing: 1.5 } }, "\u6279\u767C\u5E02\u5834\u6210\u4EA4\u91CF\u6BD4\u8F03"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#7a9a9e" } }, "(\u7576\u6708\u4EA4\u6613\u65E5\u7D2F\u7A4D", m?.market_compare?.month ? "\u30FB" + m.market_compare.month : "", ")")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff", border: "1px solid #cfe3e7", borderRadius: 10, padding: "8px 10px", position: "relative", minHeight: 0 } }, /* @__PURE__ */ React.createElement("canvas", { ref: canvasRef })));
 };
 const PriceBarsCard = ({ cropName }) => {
-  const noData = !!(cropName && WHOLESALE_NO_DATA.has(cropName));
+  const noData = !!(cropName && (WHOLESALE_NO_DATA.has(cropName) || PRICE_META[cropName] && PRICE_META[cropName].noCompare));
   const m = useCropMarket(noData ? "__nodata__" : cropName || "\u756A\u8304");
   const chartReady = useChart();
   const canvasRef = React.useRef(null);
@@ -5419,7 +5666,7 @@ const PriceBarsCard = ({ cropName }) => {
       flexDirection: "column",
       gap: 6,
       fontFamily: "'Noto Sans TC',sans-serif"
-    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 17, fontWeight: 900, color: "#a8581a", letterSpacing: 1.5 } }, "\u6279\u767C\u5E02\u5834\u50F9\u683C\u6BD4\u8F03 \xB7 ", cropName), /* @__PURE__ */ React.createElement(_WholesaleNoDataMsg, null));
+    } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 17, fontWeight: 900, color: "#a8581a", letterSpacing: 1.5 } }, "\u6279\u767C\u5E02\u5834\u50F9\u683C\u6BD4\u8F03 \xB7 ", cropName), WHOLESALE_NO_DATA.has(cropName) ? /* @__PURE__ */ React.createElement(_WholesaleNoDataMsg, null) : /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#888", fontSize: 12 } }, "\u6B64\u54C1\u9805\u70BA\u55AE\u4E00\u8CC7\u6599\u4F86\u6E90\uFF0C\u7121\u8DE8\u5E02\u5834\u6BD4\u8F03"));
   }
   return /* @__PURE__ */ React.createElement("div", { style: {
     position: "absolute",
@@ -5650,7 +5897,7 @@ const ExportTrendChart = ({ cropName } = {}) => {
       fontSize: 13,
       textAlign: "center",
       padding: "20px"
-    } }, loading ? "\u5916\u92B7\u8CC7\u6599\u8F09\u5165\u4E2D\u2026" : /* @__PURE__ */ React.createElement(React.Fragment, null, "\u672C\u4F5C\u7269\u4E4B\u5916\u92B7\u8CBF\u6613\u8CC7\u6599\u5C1A\u672A\u5EFA\u6A94", /* @__PURE__ */ React.createElement("br", null), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: "#aaa" } }, "(MOA \u6D77\u95DC COA \u78BC\u8CC7\u6599\u6E90\u5F85\u4EBA\u5DE5\u6838\u5C0D\u4F5C\u7269\u5C0D\u61C9 + \u8DD1 backfill)"))));
+    } }, loading ? "\u5916\u92B7\u8CC7\u6599\u8F09\u5165\u4E2D\u2026" : /* @__PURE__ */ React.createElement(React.Fragment, null, "\u6B64\u54C1\u9805\u76EE\u524D\u6C92\u6709\u5916\u92B7\u8CBF\u6613\u7D71\u8A08\u8CC7\u6599", /* @__PURE__ */ React.createElement("br", null), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: "#aaa" } }, "(\u6D77\u95DC\u51FA\u53E3\u7D71\u8A08\u672A\u55AE\u7368\u5217\u51FA\u6B64\u54C1\u9805)"))));
   }
   return /* @__PURE__ */ React.createElement("div", { style: {
     position: "absolute",
@@ -5706,6 +5953,7 @@ const ExportTrendChart = ({ cropName } = {}) => {
   } }, /* @__PURE__ */ React.createElement("canvas", { ref: canvasRef })));
 };
 const TaoyuanDetail = ({ onBack, onCropSelect }) => {
+  usePageDataReady();
   const W = 1201, H = 1500;
   return /* @__PURE__ */ React.createElement("div", { style: {
     position: "relative",
@@ -5737,14 +5985,22 @@ const TaoyuanDetail = ({ onBack, onCropSelect }) => {
       title: "\u56DE\u4E0A\u4E00\u9801",
       style: {
         position: "absolute",
-        left: `${50 / W * 100}%`,
-        top: `${25 / H * 100}%`,
-        width: `${130 / W * 100}%`,
-        height: `${45 / H * 100}%`,
+        left: `${45.61 / W * 100}%`,
+        top: `${60.4 / H * 100}%`,
+        width: `${252.94 / W * 100}%`,
+        height: `${53.58 / H * 100}%`,
         cursor: "pointer",
         zIndex: 5
       }
     }
+  ), /* @__PURE__ */ React.createElement(
+    "svg",
+    {
+      viewBox: `0 0 ${TAOYUAN_W} ${TAOYUAN_H}`,
+      preserveAspectRatio: "none",
+      style: { position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 4 }
+    },
+    /* @__PURE__ */ React.createElement(TaoyuanCharsLayer, { onCropSelect })
   ));
 };
 const _PIN_SVG = `<svg preserveAspectRatio="none" width="100%" height="100%" viewBox="0 0 18.454 22.5391" fill="none" xmlns="http://www.w3.org/2000/svg"><g><path d="M4.52809 9.49983C4.52809 6.90471 6.63185 4.80095 9.22698 4.80095C11.8221 4.80095 13.9259 6.90471 13.9259 9.49983C13.9259 12.095 11.8221 14.1987 9.22698 14.1987C6.63185 14.1987 4.52809 12.095 4.52809 9.49983Z" fill="#95AB52"/><path fill-rule="evenodd" clip-rule="evenodd" d="M0.0328606 8.24517C0.416921 3.58585 4.3105 0 8.98563 0H9.46838C14.1435 0 18.0371 3.58585 18.4211 8.24517C18.6279 10.7538 17.853 13.2448 16.2597 15.1934L10.9028 21.7447C10.0367 22.8039 8.41732 22.8039 7.55119 21.7447L2.19433 15.1934C0.600977 13.2448 -0.173921 10.7538 0.0328606 8.24517Z" fill="#95AB52"/></g><ellipse cx="8.98424" cy="8.98442" rx="4.49221" ry="4.49221" fill="#FDF8EB"/></svg>`;
@@ -5789,6 +6045,7 @@ const CharacterCard = ({ county, cropOverride }) => {
         width: 172.72,
         height: 190.57,
         objectFit: "contain",
+        objectPosition: "center bottom",
         pointerEvents: "none"
       }
     }
@@ -5810,12 +6067,12 @@ const CharacterCard = ({ county, cropOverride }) => {
   } }, region.name), /* @__PURE__ */ React.createElement("div", { style: {
     position: "absolute",
     left: 15,
-    top: 48,
-    fontSize: 30,
+    top: cropName === "\u77F3\u9580\u6D3B\u9B5A" ? 58 : cropName.length >= 4 ? 40 : 48,
+    fontSize: cropName.length >= 6 ? 20 : cropName.length >= 5 ? 24 : cropName.length >= 4 ? 27 : 30,
     fontWeight: 900,
     color: "#3b6826",
-    letterSpacing: 2,
-    lineHeight: "40px"
+    letterSpacing: cropName.length >= 5 ? 1 : 2,
+    lineHeight: cropName.length >= 4 ? "28px" : "40px"
   } }, cropName), /* @__PURE__ */ React.createElement("div", { style: {
     position: "absolute",
     left: 253,
