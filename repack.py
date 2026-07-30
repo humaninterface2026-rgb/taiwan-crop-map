@@ -520,7 +520,8 @@ self.addEventListener('fetch', e => {
     const key = isHTML ? new Request(url.origin + url.pathname) : req;
     e.respondWith((async () => {
       const cached = await caches.match(key, { ignoreSearch: isHTML });
-      const refresh = fetch(req).then(res => {
+      // no-cache: 背景更新一定去伺服器驗證，不吃瀏覽器 HTTP 快取的舊檔
+      const refresh = fetch(req.url, { cache: 'no-cache' }).then(res => {
         if (res && res.ok) {
           const copy = res.clone();
           caches.open(CACHE).then(c => c.put(key, copy));
