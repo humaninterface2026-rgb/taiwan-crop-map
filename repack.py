@@ -430,13 +430,15 @@ if head_open:
 # ── Service Worker (cache assets + serve from cache on repeat visits) ──────
 # Strategy:
 #   - VERSION is tied to the git short-SHA, so every push gets a fresh cache.
-#   - Install: pre-cache index.html + page-data.json + critical JS/images.
+#   - Install: pre-cache index.html + toolbox pages/data + critical JS/images.
 #   - Activate: drop every cache whose name doesn't match the new VERSION,
 #     then claim open clients so the new SW takes over without a reload.
 #   - Fetch:
-#       · same-origin HTML  → network-first (always show latest deploy,
-#         falls back to cache only when offline);
-#       · same-origin assets → cache-first (instant repeat-visit load,
+#       · same-origin HTML + 工具箱檔案 → stale-while-revalidate（快取先回、
+#         秒開，背景抓新版更新快取；新 deploy 靠 SW 版本號換 cache 立即生效。
+#         2026-07-30 從 network-first 改回——network-first 讓每次進站都等
+#         GH Pages 來回 600KB+，整站秒讀體感就沒了）;
+#       · same-origin /assets/ 重資產 → cache-first (instant repeat-visit load,
 #         falls back to network if missing);
 #       · cross-origin       → bypass (don't touch the live nongzhidao /
 #         weather API requests).
@@ -454,6 +456,14 @@ except Exception:
 precache_urls = [
     "index.html",
     "assets/page-data.json",
+    # 工具箱三頁與其大檔 — 部署時就預抓，第一次點進工具箱也能秒開
+    "toolbox.html",
+    "crop-dashboard.html",
+    "toolbox-shared.js",
+    "toolbox-entry.js",
+    "toolbox-product-calcs.js",
+    "toolbox-assets/crop-params.json",
+    "toolbox-assets/crop_chars.json",
 ]
 if react_uuid:     precache_urls.append(f"assets/{react_uuid}.js")
 if react_dom_uuid: precache_urls.append(f"assets/{react_dom_uuid}.js")
@@ -501,37 +511,26 @@ self.addEventListener('fetch', e => {
     url.pathname.endsWith('/') ||
     url.pathname.endsWith('.html');
 
-  if (isHTML) {
-    // Network-first: every reload pulls the latest HTML (which references the
-    // latest hashed asset URLs), cache only as offline fallback.
+  // HTML 與工具箱檔案（非 /assets/）→ stale-while-revalidate：
+  // 有快取立刻回（秒開），同時背景抓新版更新快取（下次就是新的）。
+  // 新 deploy 會換 SW 版本號 → 全新 cache + install 重新預抓，不會卡舊版。
+  if (isHTML || !url.pathname.includes('/assets/')) {
+    // HTML 頁面帶 ?crop= 等查詢參數但內容同一份 → 用純路徑當快取鍵，
+    // 才吃得到 install 時預抓的 toolbox.html / crop-dashboard.html。
+    const key = isHTML ? new Request(url.origin + url.pathname) : req;
     e.respondWith((async () => {
-      try {
-        const res = await fetch(req);
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(req, copy));
+      const cached = await caches.match(key, { ignoreSearch: isHTML });
+      const refresh = fetch(req).then(res => {
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(key, copy));
+        }
         return res;
-      } catch {
-        const cached = await caches.match(req);
-        if (cached) return cached;
-        throw new Error('offline + no cached HTML');
-      }
-    })());
-    return;
-  }
-
-  // 工具箱資料與腳本（非 /assets/ 的一般檔案）更新頻繁 → network-first，
-  // 快取只當離線備援。這樣推新資料（crop-params 等）不必等 SW 版本號。
-  if (!url.pathname.includes('/assets/')) {
-    e.respondWith((async () => {
-      try {
-        const res = await fetch(req);
-        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
-        return res;
-      } catch {
-        const cached = await caches.match(req);
-        if (cached) return cached;
-        throw new Error('offline + no cache');
-      }
+      }).catch(() => null);
+      if (cached) return cached;          // 秒開；refresh 在背景跑
+      const res = await refresh;          // 冷載入：等網路
+      if (res) return res;
+      throw new Error('offline + no cache');
     })());
     return;
   }
