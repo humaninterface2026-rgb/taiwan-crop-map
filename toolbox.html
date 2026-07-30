@@ -4,6 +4,7 @@
 <title>小農工具箱｜農知島</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <script src="toolbox-shared.js"></script>
+<script src="toolbox-product-calcs.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Noto Sans TC',sans-serif;background:#faf6ec;color:#5a4a30;min-height:100vh;display:flex;flex-direction:column}
@@ -1212,6 +1213,9 @@ function openModal(idx) {
     modal.innerHTML = html + CUSTOMS[t.custom].html();
     overlay.classList.add('show'); overlay.scrollTop = 0;
     CUSTOMS[t.custom].init();
+    _skinTextPatch(modal);
+    // 自訂 UI 互動後會局部重繪（如日曆點選），點擊後再補一次詞彙替換
+    if (_skin) modal.onclick = () => setTimeout(() => _skinTextPatch(modal), 60);
     return;
   }
 
@@ -1234,13 +1238,15 @@ function openModal(idx) {
   }
 
   // 小抄：專屬包存在 → 依該作物參數動態生成；否則顯示牛蕃茄版
-  const dynP = (NZD.A._pack && DYN_PRINCIPLES[t.origName || t.name]) ? DYN_PRINCIPLES[t.origName || t.name]() : null;
+  const _skinCalc = _skin && _skin.calcs && t.calc ? _skin.calcs[t.calc] : null;
+  const dynP = (!(_skinCalc && _skinCalc.hideDyn) && NZD.A._pack && DYN_PRINCIPLES[t.origName || t.name])
+    ? DYN_PRINCIPLES[t.origName || t.name]() : null;
   const packNotes = (NZD.A._pack && NZD.A.notes) ? NZD.A.notes : null;
   if (dynP && dynP.length) {
     html += '<div class="ptitle">📌 「' + CROP.display + '」小抄（依專屬參數）</div><div class="plist">'
       + dynP.map(p => '<div class="pitem">' + p + '</div>').join('') + '</div>';
   } else if (packNotes && t.principles && t.principles.length) {
-    html += '<div class="ptitle">📌 「' + CROP.display + '」種植小抄（通則整理）</div><div class="plist">'
+    html += '<div class="ptitle">📌 「' + CROP.display + '」' + (_skin ? '' : '種植') + '小抄（通則整理）</div><div class="plist">'
       + packNotes.map(p => '<div class="pitem">' + p + '</div>').join('') + '</div>';
   } else if (t.principles && t.principles.length) {
     const ph = CROP.isTomato ? '📌 牛蕃茄小抄（固定原則）'
@@ -1361,6 +1367,7 @@ const CROP = {
 const PRODUCT_SKIN = {
   '蜂蜜': {
     hello: '從蜂場到餐桌，都可以問我！',
+    termSwap: { '播種':'春繁', '定植':'進場', '種植':'養蜂', '採收':'採蜜', '田區':'蜂場', '整季時程':'整年蜂事', '這一季':'這一年' },
     stages: [['蜂場規劃','🐝'],['蜂群管理','🍯'],['採蜜保鮮','🫙'],['銷售市場','🛒'],['經營管理','📊']],
     tools: {
       variety:  { icon:'🐝', name:'蜂種與蜜源建議', desc:'幫你依季節和場址挑蜂種與主力蜜源方向。' },
@@ -1386,6 +1393,7 @@ const PRODUCT_SKIN = {
   },
   '黑豬肉': {
     hello: '從牧場到餐桌，都可以問我！',
+    termSwap: { '播種':'進豬', '定植':'進豬', '種植':'飼養', '採收':'出欄', '田區':'豬舍', '整季時程':'整批時程' },
     stages: [['牧場規劃','🐷'],['飼養管理','🥣'],['出欄保鮮','🥩'],['銷售市場','🛒'],['經營管理','📊']],
     tools: {
       variety:  { icon:'🐷', name:'品種與豬源建議', desc:'幫你依規模和市場挑品種與仔豬來源方向。' },
@@ -1411,6 +1419,7 @@ const PRODUCT_SKIN = {
   },
   '石門活魚': {
     hello: '從魚塭到餐桌，都可以問我！',
+    termSwap: { '播種':'放養', '定植':'放養', '種植':'養殖', '採收':'收成', '田區':'魚塭', '整季時程':'整批時程' },
     stages: [['魚塭規劃','🐟'],['養殖管理','💧'],['收成保鮮','🧊'],['銷售市場','🛒'],['經營管理','📊']],
     tools: {
       variety:  { icon:'🐟', name:'魚種與苗源建議', desc:'幫你依水源和市場挑魚種與魚苗來源方向。' },
@@ -1448,6 +1457,32 @@ if (_skin) {
   });
   const b1 = document.querySelector('.b1');
   if (b1) b1.textContent = _skin.hello;
+  // 工具「內容」覆蓋：整組換掉該品項不適用的計算器（輸入欄位＋run 輸出）
+  // 內容主體在 toolbox-product-calcs.js（window.PRODUCT_CALCS）
+  if (!_skin.calcs && window.PRODUCT_CALCS && window.PRODUCT_CALCS[CROP.display]) {
+    _skin.calcs = window.PRODUCT_CALCS[CROP.display];
+  }
+  if (_skin.calcs) {
+    for (const [id, o] of Object.entries(_skin.calcs)) {
+      if (!CALCS[id]) continue;
+      if (o.inputs) CALCS[id].inputs = o.inputs;
+      if (o.run) CALCS[id].run = o.run;
+      if (o.button) CALCS[id].button = o.button;
+      if (o.noPrepare) delete CALCS[id].prepare;
+    }
+  }
+}
+// 自訂 UI（如 16 天日曆）的殘留種植詞彙用文字節點替換處理，
+// 只動文字不動 DOM 結構，事件監聽不受影響。
+function _skinTextPatch(root) {
+  if (!_skin || !_skin.termSwap) return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = w.nextNode())) {
+    let s = n.nodeValue;
+    for (const [a, b] of Object.entries(_skin.termSwap)) s = s.split(a).join(b);
+    n.nodeValue = s;
+  }
 }
 
 NZD.applyParams(CROP.display).then(() => {
