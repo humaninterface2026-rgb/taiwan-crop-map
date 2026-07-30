@@ -59,8 +59,23 @@ const CODE_MAP = {
   '西瓜':'fruit_T1','大西瓜':'fruit_T1','西瓜-大西瓜':'fruit_T1',
   '芒果':'fruit_R1','芭樂':'fruit_P1','草莓':'fruit_45','葡萄':'fruit_S1',
   '釋迦':'fruit_31','香蕉':'fruit_A1','鳳梨':'fruit_B2',
+  '竹筍':'code_SH2','有機水耕蔬菜':'code_LC1',
 };
-const WHOLESALE_NO_DATA = new Set(['包種茶', '水稻', '茶葉', '稻米']);
+const WHOLESALE_NO_DATA = new Set(['包種茶', '水稻', '茶葉', '稻米', '桃映紅茶', '東方美人茶']);
+/* 260624 新品項：專屬行情來源與誠實口徑標示（與主站 App.tsx 同步） */
+const PRICE_META = {
+  '蜂蜜':     { panelSrc:'農業統計·年資料', latestLabel:'最新年均', annual:true,
+                periods:[['yearly','每年']], noVolume:true, hideRetail:true, hideAdvice:true, noCompare:true,
+                retailNote:'年均產地價非批發口徑，不做零售試算' },
+  '黑豬肉':   { panelSrc:'畜產拍賣·活豬', volUnit:'頭',
+                periods:[['daily','每日'],['weekly','每週']], hideRetail:true, noCompare:true,
+                retailNote:'活豬拍賣價與零售豬肉口徑不同，不做試算' },
+  '石門活魚': { panelSrc:'漁產批發·草魚',
+                periods:[['daily','每日'],['weekly','每週']], noCompare:true },
+  '有機水耕蔬菜': { panelSrc:'AMIS·包心白參考' },
+};
+const _PMETA = PRICE_META[(qsPeek('crop') || '番茄').trim()] || {};
+function qsPeek(k) { return new URLSearchParams(location.search).get(k); }
 const TRADE_COA_MAP = {
   '西瓜':'103xx10','大西瓜':'103xx10','西瓜-大西瓜':'103xx10','水蜜桃':'104xx12','桃子':'104xx12',
   '草莓':'0810100000','水稻':'101xx01','稻米':'101xx01','包種茶':'109xxxx','茶葉':'109xxxx',
@@ -70,6 +85,7 @@ const TRADE_COA_MAP = {
   '甘藍':'103xx05','甘藍-初秋':'103xx05','包心白':'103xx06','包心白菜':'103xx06',
   '柚子':'104xx24','文旦':'104xx24','綠竹筍':'103xx15','山藥':'0714302000',
   '水稻':'101xx01','稻米':'101xx01','包種茶':'109xxxx','茶葉':'109xxxx',
+  '黑豬肉':'201xx01','蜂蜜':'207xxxx','桃映紅茶':'109xxxx','東方美人茶':'109xxxx',
 };
 const NZ = 'https://wyaoguang3-code.github.io/nongzhidao/data/';
 
@@ -102,10 +118,10 @@ const NODATA_HTML = '<div class="nodata"><div style="font-size:13px;margin-botto
 
 function shells() {
   const nm = CROP.noMarket;
-  const trendPills = ['weekly:每週', 'monthly:每月', 'year52:一年', 'yearly:每年'].map(s => {
-    const [k, l] = s.split(':');
-    return '<button class="pillbtn tp" data-k="' + k + '" style="font-size:11px;padding:3px 12px;border-radius:14px;border:1px solid #d8dcc0;background:#fefef0;color:#7a8c2a">' + l + '</button>';
-  }).join('');
+  const periodOpts = _PMETA.periods || [['weekly','每週'],['monthly','每月'],['year52','一年'],['yearly','每年']];
+  const trendPills = periodOpts.map(([k, l]) =>
+    '<button class="pillbtn tp" data-k="' + k + '" style="font-size:11px;padding:3px 12px;border-radius:14px;border:1px solid #d8dcc0;background:#fefef0;color:#7a8c2a">' + l + '</button>'
+  ).join('');
   const expPills = ['monthly:每月', 'yearly:每年'].map(s => {
     const [k, l] = s.split(':');
     return '<button class="pillbtn ep" data-k="' + k + '" style="font-size:12px;padding:4px 14px;border-radius:16px;border:1px solid #e8dfd0;background:#faf2dd;color:#a8956e">' + l + '</button>';
@@ -114,7 +130,7 @@ function shells() {
   <!-- CharacterCard 34,87 292×287 -->
   <div class="card-shell" style="left:34px;top:87px;width:292px;height:287px;background:#fdf7ea;border:1.5px solid #efd8c6;border-radius:15px;overflow:hidden;z-index:3;display:block">
     <div class="abs" style="left:-8.5px;top:229px;width:321px;height:88px;pointer-events:none">${GRASS_SVG}</div>
-    <img id="charimg" class="abs" style="left:57.64px;top:72px;width:172.72px;height:190.57px;object-fit:contain;pointer-events:none;display:none">
+    <img id="charimg" class="abs" style="left:57.64px;top:72px;width:172.72px;height:190.57px;object-fit:contain;object-position:center bottom;pointer-events:none;display:none">
     <div class="abs" style="left:22.27px;top:14px;width:18.454px;height:22.539px">${PIN_SVG}</div>
     <div class="abs" style="left:49px;top:14px;font-size:16px;font-weight:700;color:#3b6826;letter-spacing:1.6px;line-height:22px">${CROP.county}</div>
     <div class="abs" style="left:15px;top:48px;font-size:30px;font-weight:900;color:#3b6826;letter-spacing:2px;line-height:40px">${CROP.display}</div>
@@ -126,16 +142,20 @@ function shells() {
     ${nm
       ? `<div style="font-size:14px;font-weight:900;color:#7a5418;letter-spacing:1.5px">價格面板 · ${CROP.display}</div>${NODATA_HTML}`
       : `<div style="flex:1;background:#fff5e8;border-radius:10px;padding:10px 12px;box-shadow:0 1px 0 #f0e0c8;display:flex;flex-direction:column;justify-content:space-evenly">
-        <div class="hrow" style="align-items:baseline"><span style="font-size:15px;font-weight:900;color:#a85a16;letter-spacing:1px">價格面板 (AMIS)</span><span id="pp_date" style="font-size:9px;color:#a89070"></span></div>
-        <div style="margin-top:4px;display:flex;align-items:baseline;gap:10px"><span style="font-size:12px;color:#7a5418;font-weight:700">最新均價</span><span id="pp_kg" style="font-size:14px;font-weight:900;color:#5a3a18">—</span><span id="pp_tj" style="font-size:11px;color:#a89070"></span></div>
+        <div class="hrow" style="align-items:baseline"><span style="font-size:15px;font-weight:900;color:#a85a16;letter-spacing:1px">價格面板 (${_PMETA.panelSrc || 'AMIS'})</span><span id="pp_date" style="font-size:9px;color:#a89070"></span></div>
+        <div style="margin-top:4px;display:flex;align-items:baseline;gap:10px"><span style="font-size:12px;color:#7a5418;font-weight:700">${_PMETA.latestLabel || '最新均價'}</span><span id="pp_kg" style="font-size:14px;font-weight:900;color:#5a3a18">—</span><span id="pp_tj" style="font-size:11px;color:#a89070"></span></div>
       </div>
       <div style="flex:1;background:#fff5e8;border-radius:10px;padding:10px 12px;box-shadow:0 1px 0 #f0e0c8;display:flex;flex-direction:column;justify-content:space-evenly">
-        <div class="hrow" style="align-items:baseline"><span style="font-size:15px;font-weight:900;color:#a85a16;letter-spacing:1px">試算預估零售價</span><span style="font-size:9px;color:#a89070">(口徑A: 批發 × 2)</span></div>
-        <div style="margin-top:4px;display:flex;align-items:baseline;gap:14px"><span id="rt_kg" style="font-size:14px;font-weight:900;color:#5a3a18">—</span><span style="font-size:9px;color:#c8a070">|</span><span id="rt_tj" style="font-size:14px;font-weight:900;color:#5a3a18">—</span></div>
+        <div class="hrow" style="align-items:baseline"><span style="font-size:15px;font-weight:900;color:#a85a16;letter-spacing:1px">試算預估零售價</span>${_PMETA.hideRetail ? '' : '<span style="font-size:9px;color:#a89070">(口徑A: 批發 × 2)</span>'}</div>
+        ${_PMETA.hideRetail
+          ? `<div style="margin-top:4px;font-size:11px;color:#a89070">${_PMETA.retailNote || '此品項口徑不適用零售試算'}</div>`
+          : `<div style="margin-top:4px;display:flex;align-items:baseline;gap:14px"><span id="rt_kg" style="font-size:14px;font-weight:900;color:#5a3a18">—</span><span style="font-size:9px;color:#c8a070">|</span><span id="rt_tj" style="font-size:14px;font-weight:900;color:#5a3a18">—</span></div>`}
       </div>
       <div style="flex:1;background:#fff5e8;border-radius:10px;padding:10px 12px;box-shadow:0 1px 0 #f0e0c8;display:flex;flex-direction:column;justify-content:space-evenly">
-        <div style="font-size:15px;font-weight:900;color:#a85a16;letter-spacing:1px;margin-bottom:6px">近期交易指標</div>
-        <div style="display:flex;gap:14px;font-size:12px;color:#7a5418;align-items:center;flex-wrap:wrap">購買建議 <span id="tag_buy" style="padding:3px 10px;border-radius:10px;background:#f3d27a;color:#7a5418;font-weight:700">—</span> 賣出建議 <span id="tag_sell" style="padding:3px 10px;border-radius:10px;background:#f3d27a;color:#7a5418;font-weight:700">—</span></div>
+        <div style="font-size:15px;font-weight:900;color:#a85a16;letter-spacing:1px;margin-bottom:6px">${_PMETA.hideAdvice ? '年度變化' : '近期交易指標'}</div>
+        ${_PMETA.hideAdvice
+          ? `<div style="display:flex;gap:10px;font-size:12px;color:#7a5418;align-items:center">較前一年 <span id="tag_yoy" style="padding:3px 10px;border-radius:10px;background:#f6c6a0;color:#5a3a18;font-weight:700">—</span> <span style="font-size:10px;color:#a89070">(年資料不適用短期買賣建議)</span></div>`
+          : `<div style="display:flex;gap:14px;font-size:12px;color:#7a5418;align-items:center;flex-wrap:wrap">購買建議 <span id="tag_buy" style="padding:3px 10px;border-radius:10px;background:#f3d27a;color:#7a5418;font-weight:700">—</span> 賣出建議 <span id="tag_sell" style="padding:3px 10px;border-radius:10px;background:#f3d27a;color:#7a5418;font-weight:700">—</span></div>`}
       </div>`}
   </div>
 
@@ -151,19 +171,23 @@ function shells() {
   <!-- VolumeBarsCard 34,385 679×444 -->
   <div class="card-shell" style="left:34px;top:385px;width:679px;height:444px;background:#dceef0;border:1.5px solid #b6d7da;padding:10px 14px;gap:6px">
     <div class="hrow">
-      <span style="font-size:17px;font-weight:900;color:#256b78;letter-spacing:1.5px">批發市場成交量比較${nm ? ' · ' + CROP.display : ''}</span>
-      ${nm ? '' : '<span id="vol_sub" style="font-size:9px;color:#7a9a9e">(當月交易日累積)</span>'}
+      <span style="font-size:17px;font-weight:900;color:#256b78;letter-spacing:1.5px">批發市場成交量比較${(nm || _PMETA.noCompare) ? ' · ' + CROP.display : ''}</span>
+      ${(nm || _PMETA.noCompare) ? '' : '<span id="vol_sub" style="font-size:9px;color:#7a9a9e">(當月交易日累積)</span>'}
     </div>
-    ${nm ? NODATA_HTML : '<div class="chartbox" style="border:1px solid #cfe3e7"><canvas class="cv" id="c_vol"></canvas></div>'}
+    ${nm ? NODATA_HTML
+      : _PMETA.noCompare ? '<div class="nodata" style="font-size:12px">此品項為單一資料來源，無跨市場比較</div>'
+      : '<div class="chartbox" style="border:1px solid #cfe3e7"><canvas class="cv" id="c_vol"></canvas></div>'}
   </div>
 
   <!-- PriceBarsCard 727,385 680×444 -->
   <div class="card-shell" style="left:727px;top:385px;width:680px;height:444px;background:#fcedd6;border:1.5px solid #eed8b4;padding:10px 14px;gap:6px">
     <div class="hrow">
-      <span style="font-size:17px;font-weight:900;color:#a8581a;letter-spacing:1.5px">批發市場價格比較${nm ? ' · ' + CROP.display : ''}</span>
-      ${nm ? '' : '<span style="font-size:9px;color:#bb9a72">(當月交易量加權均價；可挑價格較佳市場)</span>'}
+      <span style="font-size:17px;font-weight:900;color:#a8581a;letter-spacing:1.5px">批發市場價格比較${(nm || _PMETA.noCompare) ? ' · ' + CROP.display : ''}</span>
+      ${(nm || _PMETA.noCompare) ? '' : '<span style="font-size:9px;color:#bb9a72">(當月交易量加權均價；可挑價格較佳市場)</span>'}
     </div>
-    ${nm ? NODATA_HTML : '<div class="chartbox" style="border:1px solid #f0e0c8"><canvas class="cv" id="c_cmp"></canvas></div>'}
+    ${nm ? NODATA_HTML
+      : _PMETA.noCompare ? '<div class="nodata" style="font-size:12px">此品項為單一資料來源，無跨市場比較</div>'
+      : '<div class="chartbox" style="border:1px solid #f0e0c8"><canvas class="cv" id="c_cmp"></canvas></div>'}
   </div>
 
   <!-- ExportTrendChart 34,842 679×445 -->
@@ -260,7 +284,100 @@ async function fetchFromMOA(name) {
     },
   };
 }
+/* ── 特殊品項行情來源（與主站同邏輯）──
+ * 黑豬肉=畜產拍賣(規格豬,頭數加權,按日查28天)、石門活魚=漁產批發(草魚,範圍查14天)、
+ * 蜂蜜=農業統計年均產地價(靜態年資料) */
+const ANIMAL_URL  = 'https://data.moa.gov.tw/Service/OpenData/FromM/AnimalTransData.aspx';
+const AQUATIC_URL = 'https://data.moa.gov.tw/Service/OpenData/FromM/AquaticTransData.aspx';
+const HONEY_ANNUAL = [[104,148],[105,211],[106,300],[107,262],[108,200],[109,161],[110,227],[111,221],[112,239],[113,198],[114,324]];
+const rocCompact = d => (d.getFullYear() - 1911) + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+const isoFromRocCompact = s => { s = String(s); return (+s.slice(0, s.length - 4) + 1911) + '-' + s.slice(-4, -2) + '-' + s.slice(-2); };
+function finishSeries(daily) {
+  if (!daily.length) return null;
+  const j = { daily };
+  j.weekly  = aggregateDaily(daily, r => isoYearWeek(r.date));
+  j.monthly = aggregateDaily(daily, r => r.date.slice(0, 7));
+  j.yearly  = aggregateDaily(daily, r => r.date.slice(0, 4));
+  const last = daily[daily.length - 1];
+  j.latest_price = { date: last.date, price: last.price };
+  return j;
+}
+function lsCache(key, ttlMs, fn) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) { const o = JSON.parse(raw); if (Date.now() - o.at < ttlMs) return Promise.resolve(o.v); }
+  } catch (e) {}
+  return Promise.resolve(fn()).then(v => {
+    if (v != null) { try { localStorage.setItem(key, JSON.stringify({ at: Date.now(), v })); } catch (e) {} }
+    return v;
+  });
+}
+async function fetchPig() {
+  return lsCache('nzd.pigMarket.v1', 6e5, async () => {
+    // 14 天、每批 4 發——避免對 OpenData 端瞬間打太多請求觸發節流
+    const now = new Date();
+    const days = Array.from({ length: 14 }, (_, i) => new Date(now.getTime() - i * 864e5));
+    const rows = [];
+    for (let i = 0; i < days.length; i += 4) {
+      const batch = await Promise.all(days.slice(i, i + 4).map(async d => {
+        try {
+          const ctrl = new AbortController();
+          const to = setTimeout(() => ctrl.abort(), 12000);
+          const r = await fetch(ANIMAL_URL + '?TransDate=' + rocCompact(d), { signal: ctrl.signal });
+          clearTimeout(to);
+          if (!r.ok) return null;
+          const arr = await r.json();
+          if (!Array.isArray(arr) || !arr.length) return null;
+          let w = 0, n = 0;
+          for (const x of arr) { const p = x['規格豬-平均價格'], c = x['規格豬-頭數']; if (p > 0 && c > 0) { w += p * c; n += c; } }
+          return n ? { date: isoFromRocCompact(arr[0]['交易日期']), price: Math.round(w / n * 10) / 10, volume: n } : null;
+        } catch (e) { return null; }
+      }));
+      rows.push(...batch);
+    }
+    return finishSeries(rows.filter(Boolean).sort((a, b) => a.date < b.date ? -1 : 1));
+  });
+}
+async function fetchFish() {
+  return lsCache('nzd.fishMarket.v1', 6e5, () => _fetchFishRaw());
+}
+async function _fetchFishRaw() {
+  const now = new Date(), from = new Date(now.getTime() - 13 * 864e5);
+  let arr = null;
+  for (let i = 0; i < 3 && !arr; i++) {
+    if (i) await new Promise(r => setTimeout(r, 2000));
+    try {
+      const r = await fetch(AQUATIC_URL + '?StartDate=' + rocCompact(from) + '&EndDate=' + rocCompact(now));
+      if (!r.ok) continue;
+      const p = await r.json();
+      if (Array.isArray(p) && p.length) arr = p;
+    } catch (e) {}
+  }
+  if (!arr) return null;
+  const by = new Map();
+  for (const row of arr) {
+    if (row['魚貨名稱'] !== '草魚') continue;
+    const p = row['平均價'], q = row['交易量'];
+    if (!(p > 0 && q > 0)) continue;
+    const k = String(row['交易日期']);
+    const o = by.get(k) || { w: 0, v: 0 };
+    o.w += p * q; o.v += q; by.set(k, o);
+  }
+  const daily = [...by.entries()].map(([k, o]) => ({ date: isoFromRocCompact(k), price: Math.round(o.w / o.v * 10) / 10, volume: Math.round(o.v) }))
+    .sort((a, b) => a.date < b.date ? -1 : 1);
+  return finishSeries(daily);
+}
+function honeyMarket() {
+  const daily = HONEY_ANNUAL.map(([roc, price]) => ({ date: (roc + 1911) + '-01-01', price, volume: 1 }));
+  const j = finishSeries(daily);
+  j.weekly = j.monthly = j.yearly;
+  j.annual = true;
+  return Promise.resolve(j);
+}
 async function fetchMarket() {
+  if (rawCrop === '黑豬肉') return fetchPig();
+  if (rawCrop === '石門活魚') return fetchFish();
+  if (rawCrop === '蜂蜜') return honeyMarket();
   if (CROP.noMarket) return null;
   if (CROP.code) {
     try {
@@ -291,23 +408,25 @@ let M = null, trendPeriod = 'weekly';
 function drawTrend() {
   if (!M) return;
   const period = trendPeriod;
-  const entries = period === 'weekly' ? M.weekly : period === 'monthly' ? M.monthly
+  const entries = period === 'daily' ? (M.daily || []).map(d => ({ key: d.date.slice(5), price: d.price, volume: d.volume }))
+    : period === 'weekly' ? M.weekly : period === 'monthly' ? M.monthly
     : period === 'year52' ? M.weekly.slice(-52) : M.yearly;
-  const priceLabel = period === 'monthly' ? '每月均價 (NTD/公斤)' : period === 'yearly' ? '每年均價 (NTD/公斤)' : '每週均價 (NTD/公斤)';
+  const priceLabel = period === 'daily' ? '每日均價 (NTD/公斤)' : period === 'monthly' ? '每月均價 (NTD/公斤)' : period === 'yearly' ? '每年均價 (NTD/公斤)' : '每週均價 (NTD/公斤)';
+  const volLabel = '交易量 (' + (_PMETA.volUnit || 'KG') + ')';
+  const datasets = [];
+  if (!_PMETA.noVolume) datasets.push({ label: volLabel, data: entries.map(e => e.volume), backgroundColor: 'rgba(168,213,176,0.55)', borderColor: 'rgba(168,213,176,1)', borderWidth: 0, yAxisID: 'y2', order: 2 });
+  datasets.push({ label: priceLabel, data: entries.map(e => e.price), type: 'line', borderColor: '#3578d4', backgroundColor: '#3578d4', tension: .25, pointRadius: period === 'weekly' ? 1.5 : 3, pointHoverRadius: 6, borderWidth: 2, yAxisID: 'y1', order: 1 });
+  const scales = {
+    x: { ticks: { font: { size: 10 }, color: '#666', maxRotation: 60, autoSkip: true, maxTicksLimit: period === 'weekly' ? 14 : period === 'monthly' ? 12 : period === 'yearly' ? 11 : 14 }, grid: { display: false } },
+    y1: { position: 'left', title: { display: true, text: '價格 (NTD/公斤)', font: { size: 10 }, color: '#666' }, ticks: { font: { size: 10 }, color: '#666' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+  };
+  if (!_PMETA.noVolume) scales.y2 = { position: 'right', title: { display: true, text: volLabel, font: { size: 10 }, color: '#666' }, ticks: { font: { size: 10 }, color: '#666', callback: v => v >= 1e6 ? (v / 1e6).toFixed(0) + 'M' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'K' : v }, grid: { drawOnChartArea: false } };
   mk('c_trend', { type: 'bar',
-    data: { labels: entries.map(e => e.key || e.date),
-      datasets: [
-        { label: '交易量 (KG)', data: entries.map(e => e.volume), backgroundColor: 'rgba(168,213,176,0.55)', borderColor: 'rgba(168,213,176,1)', borderWidth: 0, yAxisID: 'y2', order: 2 },
-        { label: priceLabel, data: entries.map(e => e.price), type: 'line', borderColor: '#3578d4', backgroundColor: '#3578d4', tension: .25, pointRadius: period === 'weekly' ? 1.5 : 3, pointHoverRadius: 6, borderWidth: 2, yAxisID: 'y1', order: 1 },
-      ] },
+    data: { labels: entries.map(e => e.key || e.date), datasets },
     options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
       plugins: { legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 14, color: '#3a4a6a' } },
         tooltip: { callbacks: { label: c => c.dataset.label + ': ' + (c.raw?.toLocaleString('zh-TW') ?? '—') } } },
-      scales: {
-        x: { ticks: { font: { size: 10 }, color: '#666', maxRotation: 60, autoSkip: true, maxTicksLimit: period === 'weekly' ? 14 : period === 'monthly' ? 12 : period === 'yearly' ? 11 : 12 }, grid: { display: false } },
-        y1: { position: 'left', title: { display: true, text: '價格 (NTD/公斤)', font: { size: 10 }, color: '#666' }, ticks: { font: { size: 10 }, color: '#666' }, grid: { color: 'rgba(0,0,0,0.05)' } },
-        y2: { position: 'right', title: { display: true, text: '交易量 (KG)', font: { size: 10 }, color: '#666' }, ticks: { font: { size: 10 }, color: '#666', callback: v => v >= 1e6 ? (v / 1e6).toFixed(0) + 'M' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'K' : v }, grid: { drawOnChartArea: false } },
-      } } });
+      scales } });
 }
 document.querySelectorAll('.tp').forEach(b => b.addEventListener('click', () => {
   trendPeriod = b.dataset.k;
@@ -328,11 +447,22 @@ function fillPricePanel() {
   const chg = (latest != null && prev) ? Math.round((latest - prev) / prev * 100) : null;
   const fmt = v => v == null ? '—' : v.toLocaleString('zh-TW', { maximumFractionDigits: 2 });
   const tj = latest != null ? latest / 1.5 : null;
-  document.getElementById('pp_date').textContent = (M.latest_price?.date || '').replace(/-/g, '/');
+  const d0 = M.latest_price?.date || '';
+  document.getElementById('pp_date').textContent = _PMETA.annual ? d0.slice(0, 4) + '年' : d0.replace(/-/g, '/');
   document.getElementById('pp_kg').textContent = fmt(latest) + ' / 公斤';
   document.getElementById('pp_tj').textContent = '(' + fmt(tj) + ' / 台斤)';
-  document.getElementById('rt_kg').textContent = (latest != null ? Math.round(latest * 2).toLocaleString('zh-TW') : '—') + ' / 公斤';
-  document.getElementById('rt_tj').textContent = (tj != null ? Math.round(tj * 2).toLocaleString('zh-TW') : '—') + ' / 台斤';
+  if (!_PMETA.hideRetail) {
+    document.getElementById('rt_kg').textContent = (latest != null ? Math.round(latest * 2).toLocaleString('zh-TW') : '—') + ' / 公斤';
+    document.getElementById('rt_tj').textContent = (tj != null ? Math.round(tj * 2).toLocaleString('zh-TW') : '—') + ' / 台斤';
+  }
+  if (_PMETA.hideAdvice) {
+    const yt = document.getElementById('tag_yoy');
+    if (yt && chg != null) {
+      yt.textContent = (chg >= 0 ? '▲ ' : '▼ ') + Math.abs(chg) + '%';
+      yt.style.background = chg >= 0 ? '#f6c6a0' : '#a5dba6';
+    }
+    return;
+  }
   const G = { bg: '#a5dba6', fg: '#2c5d2e' }, Y = { bg: '#f3d27a', fg: '#7a5418' }, R = { bg: '#f6a99a', fg: '#7a261a' };
   const buy = chg != null && chg < 0 ? ['推薦購買', G] : chg != null && chg > 10 ? ['高點觀望', Y] : ['價格平穩', Y];
   const sell = chg != null && chg > 5 ? ['高價時機', G] : chg != null && chg < -5 ? ['較弱價格', R] : ['觀望', Y];
@@ -342,7 +472,7 @@ function fillPricePanel() {
 }
 
 function drawMarketBars() {
-  if (CROP.noMarket || !M || !M.market_compare) return;
+  if (CROP.noMarket || _PMETA.noCompare || !M || !M.market_compare) return;
   const mc = M.market_compare;
   if (mc.month) document.getElementById('vol_sub').textContent = '(當月交易日累積・' + mc.month + ')';
   mk('c_vol', { type: 'bar',
@@ -443,8 +573,9 @@ async function drawDisaster() {
 
 /* ════ boot ════ */
 (async () => {
-  // pill 初始狀態
-  document.querySelector('.tp[data-k="weekly"]')?.click();
+  // pill 初始狀態（特殊品項的檔位表可能沒有 weekly，點第一顆）
+  const firstPill = document.querySelector('.tp[data-k="weekly"]') || document.querySelector('.tp');
+  firstPill?.click();
   setExpPills();
 
   fetchMarket().then(m => { M = m; if (M) { fillPricePanel(); drawTrend(); drawMarketBars(); } });
@@ -455,7 +586,7 @@ async function drawDisaster() {
       const slug = TRADE_COA_MAP[rawCrop];
       document.getElementById('exp_box').innerHTML =
         '<div class="nodata" style="border:1px solid #e4dff0;font-size:13px">' +
-        (slug ? '外銷資料載入中…' : '本作物之外銷貿易資料尚未建檔<br><span style="font-size:11px;color:#aaa">(MOA 海關 COA 碼資料源待人工核對作物對應 + 跑 backfill)</span>') + '</div>';
+        (slug ? '外銷資料載入中…' : '此品項目前沒有外銷貿易統計資料<br><span style="font-size:11px;color:#aaa">(海關出口統計未單獨列出此品項)</span>') + '</div>';
       return;
     }
     document.getElementById('exp_title').textContent = '外銷趨勢圖 · ' + (TRADE.name || CROP.display);
