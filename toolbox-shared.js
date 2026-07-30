@@ -72,6 +72,7 @@ window.NZD = (function () {
     '文旦': 'fruit_H1', '柚子': 'fruit_H1', '梨': 'fruit_O10', '梨-寶島甘露梨': 'fruit_O10',
     '西瓜': 'fruit_T1', '大西瓜': 'fruit_T1', '芒果': 'fruit_R1', '芭樂': 'fruit_P1', '草莓': 'fruit_45',
     '葡萄': 'fruit_S1', '釋迦': 'fruit_31', '香蕉': 'fruit_A1', '鳳梨': 'fruit_B2',
+    '茭白筍': 'code_SQ1', '韭菜': 'code_SF1', '香菇': 'code_MD1',
   };
   const NZ_BASE = 'https://wyaoguang3-code.github.io/nongzhidao/data/';
   const _cache = {};

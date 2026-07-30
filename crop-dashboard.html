@@ -60,6 +60,7 @@ const CODE_MAP = {
   '芒果':'fruit_R1','芭樂':'fruit_P1','草莓':'fruit_45','葡萄':'fruit_S1',
   '釋迦':'fruit_31','香蕉':'fruit_A1','鳳梨':'fruit_B2',
   '竹筍':'code_SH2','有機水耕蔬菜':'code_LC1',
+  '茭白筍':'code_SQ1','韭菜':'code_SF1','香菇':'code_MD1',
 };
 const WHOLESALE_NO_DATA = new Set(['包種茶', '水稻', '茶葉', '稻米', '桃映紅茶', '東方美人茶']);
 /* 260624 新品項：專屬行情來源與誠實口徑標示（與主站 App.tsx 同步） */
@@ -73,6 +74,9 @@ const PRICE_META = {
   '石門活魚': { panelSrc:'漁產批發·草魚',
                 periods:[['daily','每日'],['weekly','每週']], noCompare:true },
   '有機水耕蔬菜': { panelSrc:'AMIS·包心白參考' },
+  '茭白筍':   { panelSrc:'AMIS·帶殼' },
+  '韭菜':     { panelSrc:'AMIS·白頭' },
+  '香菇':     { panelSrc:'AMIS·濕香菇' },
 };
 const _PMETA = PRICE_META[(qsPeek('crop') || '番茄').trim()] || {};
 function qsPeek(k) { return new URLSearchParams(location.search).get(k); }
@@ -83,7 +87,7 @@ const TRADE_COA_MAP = {
   '大蒜':'103xx26','大蒜-硬梗':'103xx26','哈蜜瓜':'0807191000','哈密瓜':'0807191000',
   '鳳梨':'104xx04','芒果':'104xx05','芭樂':'104xx46','洋蔥':'103xx03','釋迦':'104xx38',
   '甘藍':'103xx05','甘藍-初秋':'103xx05','包心白':'103xx06','包心白菜':'103xx06',
-  '柚子':'104xx24','文旦':'104xx24','綠竹筍':'103xx15','山藥':'0714302000',
+  '柚子':'104xx24','文旦':'104xx24','綠竹筍':'103xx15','竹筍':'103xx15','山藥':'0714302000',
   '水稻':'101xx01','稻米':'101xx01','包種茶':'109xxxx','茶葉':'109xxxx',
   '黑豬肉':'201xx01','蜂蜜':'207xxxx','桃映紅茶':'109xxxx','東方美人茶':'109xxxx',
 };
@@ -118,6 +122,13 @@ const NODATA_HTML = '<div class="nodata"><div style="font-size:13px;margin-botto
 
 function shells() {
   const nm = CROP.noMarket;
+  // 長作物名階梯縮字＋上移（與主站 App.tsx CharacterCard 同一套規則），
+  // 讓 東方美人茶/有機水耕蔬菜 等長名完全離開角色圖頂端不互卡。
+  const _n = CROP.display;
+  const _nameTop = _n === '石門活魚' ? 58 : _n.length >= 4 ? 40 : 48;
+  const _nameFs  = _n.length >= 6 ? 20 : _n.length >= 5 ? 24 : _n.length >= 4 ? 27 : 30;
+  const _nameLs  = _n.length >= 5 ? 1 : 2;
+  const _nameLh  = _n.length >= 4 ? 28 : 40;
   const periodOpts = _PMETA.periods || [['weekly','每週'],['monthly','每月'],['year52','一年'],['yearly','每年']];
   const trendPills = periodOpts.map(([k, l]) =>
     '<button class="pillbtn tp" data-k="' + k + '" style="font-size:11px;padding:3px 12px;border-radius:14px;border:1px solid #d8dcc0;background:#fefef0;color:#7a8c2a">' + l + '</button>'
@@ -133,7 +144,7 @@ function shells() {
     <img id="charimg" class="abs" style="left:57.64px;top:72px;width:172.72px;height:190.57px;object-fit:contain;object-position:center bottom;pointer-events:none;display:none">
     <div class="abs" style="left:22.27px;top:14px;width:18.454px;height:22.539px">${PIN_SVG}</div>
     <div class="abs" style="left:49px;top:14px;font-size:16px;font-weight:700;color:#3b6826;letter-spacing:1.6px;line-height:22px">${CROP.county}</div>
-    <div class="abs" style="left:15px;top:48px;font-size:30px;font-weight:900;color:#3b6826;letter-spacing:2px;line-height:40px">${CROP.display}</div>
+    <div class="abs" style="left:15px;top:${_nameTop}px;font-size:${_nameFs}px;font-weight:900;color:#3b6826;letter-spacing:${_nameLs}px;line-height:${_nameLh}px">${CROP.display}</div>
     <div class="abs" style="left:253px;top:15px;width:22.461px;height:22.461px">${HEART_SVG}</div>
   </div>
 
@@ -312,7 +323,17 @@ function lsCache(key, ttlMs, fn) {
     return v;
   });
 }
+async function fetchStatic(fname) {
+  // nongzhidao 每日預抓的靜態檔——秒載,不受 OpenData 端節流影響
+  try {
+    const j = await (await fetch(NZ + fname, { cache: 'no-store' })).json();
+    if (j && Array.isArray(j.daily) && j.daily.length) return finishSeries(j.daily);
+  } catch (e) {}
+  return null;
+}
 async function fetchPig() {
+  const s = await fetchStatic('market_pig.json');
+  if (s) return s;
   return lsCache('nzd.pigMarket.v1', 6e5, async () => {
     // 14 天、每批 4 發——避免對 OpenData 端瞬間打太多請求觸發節流
     const now = new Date();
@@ -339,6 +360,8 @@ async function fetchPig() {
   });
 }
 async function fetchFish() {
+  const s = await fetchStatic('market_fish.json');
+  if (s) return s;
   return lsCache('nzd.fishMarket.v1', 6e5, () => _fetchFishRaw());
 }
 async function _fetchFishRaw() {
@@ -578,7 +601,21 @@ async function drawDisaster() {
   firstPill?.click();
   setExpPills();
 
-  fetchMarket().then(m => { M = m; if (M) { fillPricePanel(); drawTrend(); drawMarketBars(); } });
+  // 載入指示：行情到位前別讓使用者面對空白
+  if (!CROP.noMarket) {
+    const pk = document.getElementById('pp_kg');
+    if (pk) pk.textContent = '載入中…';
+  }
+  fetchMarket().then(m => {
+    M = m;
+    if (M) { fillPricePanel(); drawTrend(); drawMarketBars(); }
+    else if (!CROP.noMarket) {
+      const pk = document.getElementById('pp_kg');
+      if (pk) pk.textContent = '暫時無法取得';
+      const tb = document.getElementById('c_trend');
+      if (tb) tb.parentElement.innerHTML = '<div class="nodata" style="font-size:12px">行情資料暫時無法取得，請稍後重新整理</div>';
+    }
+  });
 
   fetchTrade().then(t => {
     TRADE = t;

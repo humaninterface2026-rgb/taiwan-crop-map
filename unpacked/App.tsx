@@ -1725,6 +1725,10 @@ const NONGZHIDAO_MAP = {
   '文旦':         'fruit_H1',
   // 哈密瓜 (alternate writing of 哈蜜瓜): same fruit, same data
   '哈密瓜':       'fruit_W1',
+  // 260624 新版桃園品項 (2026-07-30)：AMIS 有實際拍賣行情，直接接上
+  '茭白筍':       'code_SQ1',  // 茭白筍-帶殼
+  '韭菜':         'code_SF1',  // 韭菜-白頭（大溪主力型態）
+  '香菇':         'code_MD1',  // 濕香菇（鮮菇）
 };
 
 // Crops with no AMIS wholesale market data (sold via different channels —
@@ -1845,6 +1849,10 @@ const PRICE_META = {
                 panelSrc:'漁產批發·草魚',
                 periods:[['daily','每日'],['weekly','每週']], noCompare:true },
   '有機水耕蔬菜': { title:'今日包心白批發', unit:'(每公斤·參考)', src:'AMIS 包心白行情', panelSrc:'AMIS·包心白參考' },
+  // 2026-07-30 接上 AMIS 實際拍賣行情 — 標明交易型態
+  '茭白筍':   { panelSrc:'AMIS·帶殼' },
+  '韭菜':     { panelSrc:'AMIS·白頭' },
+  '香菇':     { panelSrc:'AMIS·濕香菇' },
 };
 const _rocCompact = (d) =>
   `${d.getFullYear() - 1911}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
@@ -1875,6 +1883,24 @@ const _isoFromRocCompact = (s) => {
   const roc = parseInt(s.slice(0, s.length - 4), 10);
   return `${roc + 1911}-${s.slice(-4, -2)}-${s.slice(-2)}`;
 };
+// nongzhidao 每日預抓的靜態行情檔（launchd 每日更新）— 秒載，不受
+// OpenData 端節流影響；抓不到才退回直連 API 的即時路徑。
+async function _fetchMarketStatic(fname) {
+  try {
+    const r = await fetch(`https://wyaoguang3-code.github.io/nongzhidao/data/${fname}`, { cache: 'no-store' });
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (!j || !Array.isArray(j.daily) || !j.daily.length) return null;
+    const daily = j.daily;
+    const out = { daily };
+    out.weekly  = _aggregateDaily(daily, r2 => _isoYearWeek(r2.date));
+    out.monthly = _aggregateDaily(daily, r2 => r2.date.slice(0, 7));
+    out.yearly  = _aggregateDaily(daily, r2 => r2.date.slice(0, 4));
+    const last = daily[daily.length - 1];
+    out.latest_price = { date: last.date, price: last.price };
+    return out;
+  } catch (e) { return null; }
+}
 const _fetchPigMarket = () => _fetchTransDaily(_ANIMAL_TRANS_URL, (arr) => {
   let wSum = 0, n = 0;
   for (const r of arr) {
@@ -1956,8 +1982,10 @@ async function _fetchCropMarket(cropName) {
   // 特殊品項 → 專屬行情來源（畜產拍賣/漁產批發/農業統計年均）
   // 10 分鐘 TTL memo：useCropMarket 每次 mount 都會重抓，黑豬肉一次是
   // 28 個平行請求，不加 memo 會把 OpenData 端打到限流。
-  if (cropName === '黑豬肉') return _memoTrans('pig', _fetchPigMarket);
-  if (cropName === '石門活魚') return _memoTrans('fish', _fetchFishMarket);
+  if (cropName === '黑豬肉')
+    return _memoTrans('pig', async () => (await _fetchMarketStatic('market_pig.json')) || _fetchPigMarket());
+  if (cropName === '石門活魚')
+    return _memoTrans('fish', async () => (await _fetchMarketStatic('market_fish.json')) || _fetchFishMarket());
   if (cropName === '蜂蜜') return _honeyMarket();
   const code = NONGZHIDAO_MAP[cropName];
   if (code) {
@@ -1996,7 +2024,7 @@ const useCropMarket = (cropName) => {
       _cropMarketCache.set(cropName, tm);
       return tm;
     }
-    return null;
+    return undefined;   // undefined=載入中；null=抓過但失敗（卡片據此顯示載入/失敗訊息）
   });
   usePageDataReady();
   React.useEffect(() => {
@@ -2011,8 +2039,8 @@ const useCropMarket = (cropName) => {
     } else if (_cropMarketCache.has(cropName)) {
       setData(_cropMarketCache.get(cropName));
     } else {
-      // 換作物且無快取 → 先清空，避免前一作物的數字掛在新作物的卡上
-      setData(null);
+      // 換作物且無快取 → 先清空（undefined=載入中），避免前一作物的數字掛在新作物的卡上
+      setData(undefined);
     }
     if (!_cropMarketListeners.has(cropName)) _cropMarketListeners.set(cropName, new Set());
     _cropMarketListeners.get(cropName).add(setData);
@@ -2061,6 +2089,7 @@ const TRADE_COA_MAP = {
   '西瓜-大西瓜':  '103xx10',
   // 16 crops backfilled 2026-05-22 (batch via scripts/backfill_trade_export.py)
   '綠竹筍':       '103xx15',     // 台北 (竹筍 aggregate)
+  '竹筍':         '103xx15',     // 桃園復興 — 同一海關竹筍總類代號
   '包種茶':       '109xxxx',     // 新北 (茶葉及其製品 aggregate)
   '山藥':         '0714302000',  // 基隆 (CCC 山藥生鮮冷藏)
   '水稻':         '101xx01',     // 新竹市 (稻米 aggregate)
@@ -2276,11 +2305,17 @@ const PricePanelCard = ({cropName}) => {
           <div style={{fontSize:15, fontWeight:900, color:'#a85a16', letterSpacing:1}}>價格面板 ({_pmeta.panelSrc || 'AMIS'})</div>
           <div style={{fontSize:9, color:'#a89070'}}>{latestDate ? (_pmeta.annual ? latestDate.slice(0,4) + '年' : latestDate.replace(/-/g,'/')) : ''}</div>
         </div>
-        <div style={{marginTop:4, display:'flex', alignItems:'baseline', gap:10}}>
-          <div style={{fontSize:12, color:'#7a5418', fontWeight:700}}>{_pmeta.latestLabel || '最新均價'}</div>
-          <div style={{fontSize:14, fontWeight:900, color:'#5a3a18'}}>${fmt(latest)} / 公斤</div>
-          <div style={{fontSize:11, color:'#a89070'}}>(${fmt(taikinPrice)} / 台斤)</div>
-        </div>
+        {m == null ? (
+          <div style={{marginTop:4, fontSize:12, color:'#a89070', fontWeight:700}}>
+            {m === undefined ? '行情載入中…' : '行情暫時無法取得，請稍後重新整理'}
+          </div>
+        ) : (
+          <div style={{marginTop:4, display:'flex', alignItems:'baseline', gap:10}}>
+            <div style={{fontSize:12, color:'#7a5418', fontWeight:700}}>{_pmeta.latestLabel || '最新均價'}</div>
+            <div style={{fontSize:14, fontWeight:900, color:'#5a3a18'}}>${fmt(latest)} / 公斤</div>
+            <div style={{fontSize:11, color:'#a89070'}}>(${fmt(taikinPrice)} / 台斤)</div>
+          </div>
+        )}
       </div>
       {/* Sub-card: 試算預估零售價 — 年資料/活豬口徑不適用試算 */}
       <div style={{flex:1, background:'#fff5e8', borderRadius:10, padding:'10px 12px', boxShadow:'0 1px 0 #f0e0c8', display:'flex', flexDirection:'column', justifyContent:'space-evenly'}}>
@@ -2435,6 +2470,11 @@ const TrendChartCard = ({cropName}) => {
       </div>
       <div style={{flex:1, background:'#fff', border:'1px solid #e3e6cd', borderRadius:10, padding:'8px 10px', position:'relative', minHeight:0}}>
         <canvas ref={canvasRef}/>
+        {m == null && (
+          <div style={{position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, color:'#8a9668', fontWeight:700}}>
+            {m === undefined ? '行情資料載入中…' : '行情資料暫時無法取得，請稍後重新整理'}
+          </div>
+        )}
       </div>
     </div>
   );

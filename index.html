@@ -4908,7 +4908,14 @@ const NONGZHIDAO_MAP = {
   // 桃園大溪文旦
   "\u6587\u65E6": "fruit_H1",
   // 哈密瓜 (alternate writing of 哈蜜瓜): same fruit, same data
-  "\u54C8\u5BC6\u74DC": "fruit_W1"
+  "\u54C8\u5BC6\u74DC": "fruit_W1",
+  // 260624 新版桃園品項 (2026-07-30)：AMIS 有實際拍賣行情，直接接上
+  "\u832D\u767D\u7B4D": "code_SQ1",
+  // 茭白筍-帶殼
+  "\u97ED\u83DC": "code_SF1",
+  // 韭菜-白頭（大溪主力型態）
+  "\u9999\u83C7": "code_MD1"
+  // 濕香菇（鮮菇）
 };
 const WHOLESALE_NO_DATA = /* @__PURE__ */ new Set([
   "\u5305\u7A2E\u8336",
@@ -5028,7 +5035,11 @@ const PRICE_META = {
     periods: [["daily", "\u6BCF\u65E5"], ["weekly", "\u6BCF\u9031"]],
     noCompare: true
   },
-  "\u6709\u6A5F\u6C34\u8015\u852C\u83DC": { title: "\u4ECA\u65E5\u5305\u5FC3\u767D\u6279\u767C", unit: "(\u6BCF\u516C\u65A4\xB7\u53C3\u8003)", src: "AMIS \u5305\u5FC3\u767D\u884C\u60C5", panelSrc: "AMIS\xB7\u5305\u5FC3\u767D\u53C3\u8003" }
+  "\u6709\u6A5F\u6C34\u8015\u852C\u83DC": { title: "\u4ECA\u65E5\u5305\u5FC3\u767D\u6279\u767C", unit: "(\u6BCF\u516C\u65A4\xB7\u53C3\u8003)", src: "AMIS \u5305\u5FC3\u767D\u884C\u60C5", panelSrc: "AMIS\xB7\u5305\u5FC3\u767D\u53C3\u8003" },
+  // 2026-07-30 接上 AMIS 實際拍賣行情 — 標明交易型態
+  "\u832D\u767D\u7B4D": { panelSrc: "AMIS\xB7\u5E36\u6BBC" },
+  "\u97ED\u83DC": { panelSrc: "AMIS\xB7\u767D\u982D" },
+  "\u9999\u83C7": { panelSrc: "AMIS\xB7\u6FD5\u9999\u83C7" }
 };
 const _rocCompact = (d) => `${d.getFullYear() - 1911}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
 async function _fetchTransDaily(url, mapDay) {
@@ -5060,6 +5071,24 @@ const _isoFromRocCompact = (s) => {
   const roc = parseInt(s.slice(0, s.length - 4), 10);
   return `${roc + 1911}-${s.slice(-4, -2)}-${s.slice(-2)}`;
 };
+async function _fetchMarketStatic(fname) {
+  try {
+    const r = await fetch(`https://wyaoguang3-code.github.io/nongzhidao/data/${fname}`, { cache: "no-store" });
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (!j || !Array.isArray(j.daily) || !j.daily.length) return null;
+    const daily = j.daily;
+    const out = { daily };
+    out.weekly = _aggregateDaily(daily, (r2) => _isoYearWeek(r2.date));
+    out.monthly = _aggregateDaily(daily, (r2) => r2.date.slice(0, 7));
+    out.yearly = _aggregateDaily(daily, (r2) => r2.date.slice(0, 4));
+    const last = daily[daily.length - 1];
+    out.latest_price = { date: last.date, price: last.price };
+    return out;
+  } catch (e) {
+    return null;
+  }
+}
 const _fetchPigMarket = () => _fetchTransDaily(_ANIMAL_TRANS_URL, (arr) => {
   let wSum = 0, n = 0;
   for (const r of arr) {
@@ -5134,8 +5163,10 @@ const _cropMarketListeners = /* @__PURE__ */ new Map();
 const _cropMarketInflight = /* @__PURE__ */ new Map();
 async function _fetchCropMarket(cropName) {
   if (cropName === "__nodata__") return null;
-  if (cropName === "\u9ED1\u8C6C\u8089") return _memoTrans("pig", _fetchPigMarket);
-  if (cropName === "\u77F3\u9580\u6D3B\u9B5A") return _memoTrans("fish", _fetchFishMarket);
+  if (cropName === "\u9ED1\u8C6C\u8089")
+    return _memoTrans("pig", async () => await _fetchMarketStatic("market_pig.json") || _fetchPigMarket());
+  if (cropName === "\u77F3\u9580\u6D3B\u9B5A")
+    return _memoTrans("fish", async () => await _fetchMarketStatic("market_fish.json") || _fetchFishMarket());
   if (cropName === "\u8702\u871C") return _honeyMarket();
   const code = NONGZHIDAO_MAP[cropName];
   if (code) {
@@ -5169,7 +5200,7 @@ const useCropMarket = (cropName) => {
       _cropMarketCache.set(cropName, tm);
       return tm;
     }
-    return null;
+    return void 0;
   });
   usePageDataReady();
   React.useEffect(() => {
@@ -5184,7 +5215,7 @@ const useCropMarket = (cropName) => {
     } else if (_cropMarketCache.has(cropName)) {
       setData(_cropMarketCache.get(cropName));
     } else {
-      setData(null);
+      setData(void 0);
     }
     if (!_cropMarketListeners.has(cropName)) _cropMarketListeners.set(cropName, /* @__PURE__ */ new Set());
     _cropMarketListeners.get(cropName).add(setData);
@@ -5220,6 +5251,8 @@ const TRADE_COA_MAP = {
   // 16 crops backfilled 2026-05-22 (batch via scripts/backfill_trade_export.py)
   "\u7DA0\u7AF9\u7B4D": "103xx15",
   // 台北 (竹筍 aggregate)
+  "\u7AF9\u7B4D": "103xx15",
+  // 桃園復興 — 同一海關竹筍總類代號
   "\u5305\u7A2E\u8336": "109xxxx",
   // 新北 (茶葉及其製品 aggregate)
   "\u5C71\u85E5": "0714302000",
@@ -5419,7 +5452,7 @@ const PricePanelCard = ({ cropName }) => {
     flexDirection: "column",
     gap: 12,
     fontFamily: "'Noto Sans TC',sans-serif"
-  } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff5e8", borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 0 #f0e0c8", display: "flex", flexDirection: "column", justifyContent: "space-evenly" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 900, color: "#a85a16", letterSpacing: 1 } }, "\u50F9\u683C\u9762\u677F (", _pmeta.panelSrc || "AMIS", ")"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#a89070" } }, latestDate ? _pmeta.annual ? latestDate.slice(0, 4) + "\u5E74" : latestDate.replace(/-/g, "/") : "")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, display: "flex", alignItems: "baseline", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#7a5418", fontWeight: 700 } }, _pmeta.latestLabel || "\u6700\u65B0\u5747\u50F9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#5a3a18" } }, "$", fmt(latest), " / \u516C\u65A4"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#a89070" } }, "($", fmt(taikinPrice), " / \u53F0\u65A4)"))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff5e8", borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 0 #f0e0c8", display: "flex", flexDirection: "column", justifyContent: "space-evenly" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 900, color: "#a85a16", letterSpacing: 1 } }, "\u8A66\u7B97\u9810\u4F30\u96F6\u552E\u50F9"), !_pmeta.hideRetail && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#a89070" } }, "(\u53E3\u5F91A: \u6279\u767C \xD7 2)")), _pmeta.hideRetail ? /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, fontSize: 11, color: "#a89070" } }, _pmeta.annual ? "\u5E74\u5747\u7522\u5730\u50F9\u975E\u6279\u767C\u53E3\u5F91\uFF0C\u4E0D\u505A\u96F6\u552E\u8A66\u7B97" : "\u6D3B\u8C6C\u62CD\u8CE3\u50F9\u8207\u96F6\u552E\u8C6C\u8089\u53E3\u5F91\u4E0D\u540C\uFF0C\u4E0D\u505A\u8A66\u7B97") : /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, display: "flex", alignItems: "baseline", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#5a3a18" } }, "$", retailKg ?? "\u2014", " / \u516C\u65A4"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#c8a070" } }, "|"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#5a3a18" } }, "$", retailTaikin ?? "\u2014", " / \u53F0\u65A4"))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff5e8", borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 0 #f0e0c8", display: "flex", flexDirection: "column", justifyContent: "space-evenly" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 900, color: "#a85a16", letterSpacing: 1, marginBottom: 6 } }, _pmeta.hideAdvice ? "\u5E74\u5EA6\u8B8A\u5316" : "\u8FD1\u671F\u4EA4\u6613\u6307\u6A19"), _pmeta.hideAdvice ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, fontSize: 12, color: "#7a5418", alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", null, "\u8F03\u524D\u4E00\u5E74"), /* @__PURE__ */ React.createElement("span", { style: { padding: "3px 10px", borderRadius: 10, background: (chgPct ?? 0) >= 0 ? "#f6c6a0" : "#a5dba6", color: "#5a3a18", fontWeight: 700 } }, (chgPct ?? 0) >= 0 ? "\u25B2" : "\u25BC", " ", Math.abs(chgPct ?? 0), "%"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "#a89070" } }, "(\u5E74\u8CC7\u6599\u4E0D\u9069\u7528\u77ED\u671F\u8CB7\u8CE3\u5EFA\u8B70)")) : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 14, fontSize: 12, color: "#7a5418", alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", null, "\u8CFC\u8CB7\u5EFA\u8B70"), /* @__PURE__ */ React.createElement("span", { style: { padding: "3px 10px", borderRadius: 10, background: buyTag.bg, color: buyTag.fg, fontWeight: 700 } }, buyTag.label), /* @__PURE__ */ React.createElement("div", null, "\u8CE3\u51FA\u5EFA\u8B70"), /* @__PURE__ */ React.createElement("span", { style: { padding: "3px 10px", borderRadius: 10, background: sellTag.bg, color: sellTag.fg, fontWeight: 700 } }, sellTag.label))));
+  } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff5e8", borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 0 #f0e0c8", display: "flex", flexDirection: "column", justifyContent: "space-evenly" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 900, color: "#a85a16", letterSpacing: 1 } }, "\u50F9\u683C\u9762\u677F (", _pmeta.panelSrc || "AMIS", ")"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#a89070" } }, latestDate ? _pmeta.annual ? latestDate.slice(0, 4) + "\u5E74" : latestDate.replace(/-/g, "/") : "")), m == null ? /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, fontSize: 12, color: "#a89070", fontWeight: 700 } }, m === void 0 ? "\u884C\u60C5\u8F09\u5165\u4E2D\u2026" : "\u884C\u60C5\u66AB\u6642\u7121\u6CD5\u53D6\u5F97\uFF0C\u8ACB\u7A0D\u5F8C\u91CD\u65B0\u6574\u7406") : /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, display: "flex", alignItems: "baseline", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#7a5418", fontWeight: 700 } }, _pmeta.latestLabel || "\u6700\u65B0\u5747\u50F9"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#5a3a18" } }, "$", fmt(latest), " / \u516C\u65A4"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#a89070" } }, "($", fmt(taikinPrice), " / \u53F0\u65A4)"))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff5e8", borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 0 #f0e0c8", display: "flex", flexDirection: "column", justifyContent: "space-evenly" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 900, color: "#a85a16", letterSpacing: 1 } }, "\u8A66\u7B97\u9810\u4F30\u96F6\u552E\u50F9"), !_pmeta.hideRetail && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#a89070" } }, "(\u53E3\u5F91A: \u6279\u767C \xD7 2)")), _pmeta.hideRetail ? /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, fontSize: 11, color: "#a89070" } }, _pmeta.annual ? "\u5E74\u5747\u7522\u5730\u50F9\u975E\u6279\u767C\u53E3\u5F91\uFF0C\u4E0D\u505A\u96F6\u552E\u8A66\u7B97" : "\u6D3B\u8C6C\u62CD\u8CE3\u50F9\u8207\u96F6\u552E\u8C6C\u8089\u53E3\u5F91\u4E0D\u540C\uFF0C\u4E0D\u505A\u8A66\u7B97") : /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, display: "flex", alignItems: "baseline", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#5a3a18" } }, "$", retailKg ?? "\u2014", " / \u516C\u65A4"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: "#c8a070" } }, "|"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 900, color: "#5a3a18" } }, "$", retailTaikin ?? "\u2014", " / \u53F0\u65A4"))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff5e8", borderRadius: 10, padding: "10px 12px", boxShadow: "0 1px 0 #f0e0c8", display: "flex", flexDirection: "column", justifyContent: "space-evenly" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 900, color: "#a85a16", letterSpacing: 1, marginBottom: 6 } }, _pmeta.hideAdvice ? "\u5E74\u5EA6\u8B8A\u5316" : "\u8FD1\u671F\u4EA4\u6613\u6307\u6A19"), _pmeta.hideAdvice ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, fontSize: 12, color: "#7a5418", alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", null, "\u8F03\u524D\u4E00\u5E74"), /* @__PURE__ */ React.createElement("span", { style: { padding: "3px 10px", borderRadius: 10, background: (chgPct ?? 0) >= 0 ? "#f6c6a0" : "#a5dba6", color: "#5a3a18", fontWeight: 700 } }, (chgPct ?? 0) >= 0 ? "\u25B2" : "\u25BC", " ", Math.abs(chgPct ?? 0), "%"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "#a89070" } }, "(\u5E74\u8CC7\u6599\u4E0D\u9069\u7528\u77ED\u671F\u8CB7\u8CE3\u5EFA\u8B70)")) : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 14, fontSize: 12, color: "#7a5418", alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", null, "\u8CFC\u8CB7\u5EFA\u8B70"), /* @__PURE__ */ React.createElement("span", { style: { padding: "3px 10px", borderRadius: 10, background: buyTag.bg, color: buyTag.fg, fontWeight: 700 } }, buyTag.label), /* @__PURE__ */ React.createElement("div", null, "\u8CE3\u51FA\u5EFA\u8B70"), /* @__PURE__ */ React.createElement("span", { style: { padding: "3px 10px", borderRadius: 10, background: sellTag.bg, color: sellTag.fg, fontWeight: 700 } }, sellTag.label))));
 };
 const TrendChartCard = ({ cropName }) => {
   const noData = !!(cropName && WHOLESALE_NO_DATA.has(cropName));
@@ -5540,7 +5573,7 @@ const TrendChartCard = ({ cropName }) => {
     cursor: "pointer",
     fontFamily: "inherit",
     fontWeight: 700
-  } }, label)))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff", border: "1px solid #e3e6cd", borderRadius: 10, padding: "8px 10px", position: "relative", minHeight: 0 } }, /* @__PURE__ */ React.createElement("canvas", { ref: canvasRef })));
+  } }, label)))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "#fff", border: "1px solid #e3e6cd", borderRadius: 10, padding: "8px 10px", position: "relative", minHeight: 0 } }, /* @__PURE__ */ React.createElement("canvas", { ref: canvasRef }), m == null && /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#8a9668", fontWeight: 700 } }, m === void 0 ? "\u884C\u60C5\u8CC7\u6599\u8F09\u5165\u4E2D\u2026" : "\u884C\u60C5\u8CC7\u6599\u66AB\u6642\u7121\u6CD5\u53D6\u5F97\uFF0C\u8ACB\u7A0D\u5F8C\u91CD\u65B0\u6574\u7406")));
 };
 const VolumeBarsCard = ({ cropName }) => {
   const noData = !!(cropName && WHOLESALE_NO_DATA.has(cropName));
