@@ -382,13 +382,25 @@ const CALCS = {
     prepare() {
       const pest = NZD.S.get('pest', []);
       const soil = pest.filter(p => p.soilborne).length;
-      if (soil) calcNote('📡 本季有 ' + soil + ' 次土傳病紀錄——強烈建議下季輪作，別再種茄科。');
+      if (soil) calcNote('📡 本季有 ' + soil + ' 次土傳病紀錄——強烈建議下季輪作，別再種' + (FAM && FAM.fam ? FAM.fam : '茄科') + '。');
     },
     run(v) {
       const month = new Date().getMonth() + 1;
       // 該作物專屬的連作提醒（從參數包 notes 撈「連作/輪作」相關條目）
       const packRot = NZD.A._pack ? (NZD.A.notes || []).find(n => /連作|輪作/.test(n)) : null;
       const isPerennial = NZD.A._pack && /多年生|果樹|茶樹|竹/.test(NZD.A._pack.caveat || '');
+      if (FAM && FAM.mode === 'substrate') {
+        return {
+          headline: '「' + CROP.display + '」是介質包栽培——重點不是輪作，是批次與環境管理！',
+          detail: '太空包栽培不佔田土，沒有輪作問題；要顧的是：每批採完徹底清舍消毒（層架、地面、走道）、廢包當天清出別堆在菇舍旁、新舊批分區不混放，發黴包整包封袋銷毀。菇舍連續使用多批後，休舍 1~2 週全面消毒再進新包，雜菌壓力會低很多。',
+        };
+      }
+      if (FAM && FAM.mode === 'keepBed') {
+        return {
+          headline: '「' + CROP.display + '」是留墩宿根栽培——輪作看「更新期」！',
+          detail: (packRot ? packRot + ' ' : '') + '茭白筍留墩可連續採收多年，平時不需逐季輪作；要顧的是：老墩產量掉、灰茭變多就該更新，更新時最好與水稻輪作一季或休耕曬田，把福壽螺卵與病原壓下來；留種墩要挑不出灰茭的健康墩。',
+        };
+      }
       if (isPerennial) {
         return {
           headline: '「' + CROP.display + '」是多年生作物——重點不是輪作，是園區管理！',
@@ -397,14 +409,16 @@ const CALCS = {
       }
       const plans = {
         '養地恢復': { pick: '豆科毛豆（或休耕種綠肥田菁）', why: '固氮養地，收成還能賣；綠肥翻耕更省事', when: '秋作 9~10 月、春作 2~3 月播' },
-        '打斷病蟲循環': { pick: '禾本科硬質玉米（或水稻輪作）', why: '和原作物不同科，土傳病原斷糧', when: '春秋皆可；田若能淹水，水旱輪作效果最好' },
-        '還是要有收入': { pick: '換科的高行情蔬菜', why: '不同科又有收入；選哪支先看行情儀表板', when: '依作物產季安排' },
+        '打斷病蟲循環': { pick: (FAM && FAM.brk) || '禾本科硬質玉米（或水稻輪作）', why: '和原作物不同科，土傳病原斷糧', when: '春秋皆可；田若能淹水，水旱輪作效果最好' },
+        '還是要有收入': { pick: (FAM && FAM.next ? '換科作物：' + FAM.next : '換科的高行情蔬菜'), why: '不同科又有收入；選哪支先看行情儀表板', when: '依作物產季安排' },
       };
       const p = plans[v.goal];
       const solar = month >= 6 && month <= 8 ? ' 另外現在是 6~8 月——收完可先做太陽能消毒（透明膜覆蓋曝曬 4 週）再種下季。' : '';
-      const family = NZD.A._pack
-        ? (packRot ? '本作物連作重點：' + packRot : '同科作物連續種都算連作，換科才有效。')
-        : '連作判定：番茄/茄子/辣椒/馬鈴薯同為茄科都算連作。綠燈田區可在畦邊間作羅勒或萬壽菊驅粉蝨薊馬（忌與茴香、馬鈴薯相鄰）。';
+      const family = FAM
+        ? '連作判定：' + FAM.fam + '（' + FAM.kin + '）同科連續種都算連作，下季換 ' + FAM.next + ' 才有效。'
+        : (NZD.A._pack
+          ? (packRot ? '本作物連作重點：' + packRot : '同科作物連續種都算連作，換科才有效。')
+          : '連作判定：番茄/茄子/辣椒/馬鈴薯同為茄科都算連作。綠燈田區可在畦邊間作羅勒或萬壽菊驅粉蝨薊馬（忌與茴香、馬鈴薯相鄰）。');
       return {
         headline: '下季建議：' + p.pick + '！',
         detail: '為什麼：' + p.why + '。時機：' + p.when + '。' + family + solar,
@@ -996,20 +1010,23 @@ const CALCS = {
       const soil = pest.filter(p => p.soilborne).length;
       if (soil > 0) {
         document.getElementById('f_disease').value = soil;
-        calcNote('📡 病蟲害工具記錄到 ' + soil + ' 次土傳病（青枯病類），已自動帶入。');
+        calcNote('📡 病蟲害工具記錄到 ' + soil + ' 次土傳病（' + ((FAM && FAM.soil) || '青枯病類') + '），已自動帶入。');
       }
     },
     run(v) {
       const n = +v.seasons || 0, d = +v.disease || 0;
+      if (FAM && FAM.mode === 'substrate') return { headline: '「' + CROP.display + '」是介質包栽培，沒有土壤連作的問題！', detail: '要顧的是「批次衛生」：連續 ' + n + ' 批使用同一菇舍的話，每批之間徹底清舍消毒、廢包當天清出；發黴率變高就是環境累積病原的警訊，休舍 1~2 週全面消毒再進新包。' };
+      if (FAM && FAM.mode === 'keepBed') return { headline: '「' + CROP.display + '」是留墩宿根栽培，連作風險看「老墩狀態」！', detail: '同一批墩連續採 ' + n + ' 年、灰茭或病株變多，就該分株更新；更新時與水稻輪作一季或休耕曬田最能壓病原與福壽螺。病害紀錄仍建議用「病蟲害辨識」持續記。' };
       if (NZD.A._pack && /多年生|果樹|茶樹|竹/.test(NZD.A._pack.caveat || '')) return { headline: '「' + CROP.display + '」是多年生作物，沒有逐季連作的問題！', detail: '要注意的是「忌地」：老園更新或補植時，避免立刻在原位置種同種作物；病株移除後該區先消毒休養。園區病害紀錄仍建議用「病蟲害辨識」持續記。' };
+      const fam = (FAM && FAM.fam) || '茄科';
       const month = new Date().getMonth() + 1;
       const solar = (month >= 6 && month <= 8) ? '現在正好是 6~8 月——收完可做「太陽能消毒」：整地後蓋透明膜曝曬 4 週，最省錢的土壤消毒。' : '';
       let head, act;
       if (n >= 3 || d >= 2) { head = '🔴 高風險！連作 ' + n + ' 季＋病害 ' + d + ' 次，下季強烈建議輪作或休耕。';
-        act = '建議：下季改種非茄科（豆科毛豆固氮／禾本科玉米斷病原／蔥蒜抑菌），或休耕消毒一季。' + solar; }
+        act = '建議：下季改種非' + fam + '（' + ((FAM && FAM.next) || '豆科毛豆固氮／禾本科玉米斷病原／蔥蒜抑菌') + '），或休耕消毒一季。' + solar; }
       else if (n === 2 || d === 1) { head = '🟡 中風險——這是最後一季，下季務必輪作。';
-        act = '本季顧好排水與病株清除；下季排非茄科作物。' + solar; }
-      else { head = '🟢 低風險，可以續種！'; act = '維持病株即拔即清的習慣。' + (NZD.A._pack ? ((NZD.A.notes || []).find(n => /連作|輪作/.test(n)) || '同科作物連續種都算連作。') : '畦邊可間作羅勒/萬壽菊驅蟲。茄科（番茄/茄子/辣椒/馬鈴薯）同科都算連作。'); }
+        act = '本季顧好排水與病株清除；下季排非' + fam + '作物' + ((FAM && FAM.next) ? '（' + FAM.next + '）' : '') + '。' + solar; }
+      else { head = '🟢 低風險，可以續種！'; act = '維持病株即拔即清的習慣。' + (FAM ? fam + '（' + FAM.kin + '）同科連續種都算連作。' : (NZD.A._pack ? ((NZD.A.notes || []).find(x => /連作|輪作/.test(x)) || '同科作物連續種都算連作。') : '畦邊可間作羅勒/萬壽菊驅蟲。茄科（番茄/茄子/辣椒/馬鈴薯）同科都算連作。')); }
       return { headline: head, detail: act + ' 門檻：<2 季且病害≤1 次＝低；2 季或 1~2 次＝中；≥3 季或≥2 次＝高。' };
     },
   },
@@ -1359,6 +1376,28 @@ const CROP = {
   county: (qs.get('county') || '桃園市').trim(),
   isTomato: rawCrop === '番茄' || rawCrop === '牛蕃茄',
 };
+
+/* ── 作物科別參數（輪作/連作工具用；沒列的用番茄茄科預設） ──────────
+ * mode: annual=一年生輪作、keepBed=宿根留墩、substrate=介質包栽培 */
+const FAMILY_MAP = {
+  '稻米':   { fam:'禾本科', kin:'水稻、玉米、小麥', next:'豆科（大豆/毛豆）、十字花科蔬菜或旱作雜糧', brk:'旱作雜糧或豆科（水旱輪作最能斷病蟲）', soil:'紋枯病菌核等土傳病原' },
+  '包心白': { fam:'十字花科', kin:'甘藍、白菜、青花菜、蘿蔔', next:'豆科（毛豆）、禾本科（水稻/玉米）或瓜果類', brk:'禾本科硬質玉米（或水稻輪作）', soil:'根瘤病等土傳病原' },
+  '甘藍-初秋': { fam:'十字花科', kin:'甘藍、白菜、青花菜、蘿蔔', next:'豆科（毛豆）、禾本科（水稻/玉米）或瓜果類', brk:'禾本科硬質玉米（或水稻輪作）', soil:'根瘤病等土傳病原' },
+  '青蔥':   { fam:'蔥蒜類', kin:'青蔥、洋蔥、大蒜、韭菜', next:'禾本科（水稻/玉米）、豆科或非蔥蒜葉菜', brk:'水稻輪作（淹水最能壓土傳病）', soil:'白絹病、軟腐病等土傳病原' },
+  '青蔥-粉蔥': { fam:'蔥蒜類', kin:'青蔥、洋蔥、大蒜、韭菜', next:'禾本科（水稻/玉米）、豆科或非蔥蒜葉菜', brk:'水稻輪作（淹水最能壓土傳病）', soil:'白絹病、軟腐病等土傳病原' },
+  '大蒜':   { fam:'蔥蒜類', kin:'青蔥、洋蔥、大蒜、韭菜', next:'禾本科（水稻/玉米）、豆科或非蔥蒜葉菜', brk:'水稻輪作（淹水最能壓土傳病）', soil:'白絹病、蔥蒜類土傳病原' },
+  '洋蔥':   { fam:'蔥蒜類', kin:'青蔥、洋蔥、大蒜、韭菜', next:'禾本科（水稻/玉米）、豆科或非蔥蒜葉菜', brk:'水稻輪作（淹水最能壓土傳病）', soil:'白絹病、鐮孢基腐病等土傳病原' },
+  '草莓':   { fam:'草莓（薔薇科）', kin:'草莓最忌原床連作', next:'禾本科（水稻輪作）或豆科綠肥', brk:'水稻輪作（本田淹水斷萎凋病）', soil:'萎凋病、冠腐病等土傳病原' },
+  '西瓜':   { fam:'葫蘆科', kin:'西瓜、洋香瓜、胡瓜、絲瓜', next:'禾本科（水稻/玉米）或豆科', brk:'水稻輪作（蔓割病最怕淹水）', soil:'蔓割病、蔓枯病等土傳病原' },
+  '哈密瓜': { fam:'葫蘆科', kin:'西瓜、洋香瓜、胡瓜、絲瓜', next:'禾本科（水稻/玉米）或豆科', brk:'水稻輪作（蔓割病最怕淹水）', soil:'蔓割病、蔓枯病等土傳病原' },
+  '山藥':   { fam:'薯蕷科', kin:'山藥自身（同田連種）', next:'禾本科（水稻/玉米）或豆科綠肥', brk:'禾本科雜糧（斷線蟲糧路）', soil:'根瘤線蟲、根腐病' },
+  '茭白筍': { mode:'keepBed', fam:'禾本科（水田宿根）' },
+  '香菇':   { mode:'substrate', fam:'菇類（太空包）' },
+};
+const FAM = FAMILY_MAP[CROP.display] || null;
+// 連作工具的輸入欄標籤跟著作物科別走（預設茄科=番茄）
+if (FAM && !FAM.mode) CALCS.chain.inputs[0].label = FAM.fam + '連作季數';
+else if (FAM) CALCS.chain.inputs[0].label = '同地（同批）使用季數';
 
 /* ── 產品型態用語皮膚 ────────────────────────────────────────────────
  * 蜂蜜/黑豬肉/石門活魚 是非種植品項，「播種/採收/🌱」等種植詞彙會違和。
