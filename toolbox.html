@@ -110,6 +110,12 @@ img.charimg{position:relative;width:126px;height:126px;object-fit:contain;flex:n
 .gstep{font-family:inherit;font-size:13px;font-weight:700;border-radius:12px;padding:8px 14px;cursor:pointer;border:2px solid #d8dcc0;background:#fff;color:#5a4a30}
 .gstep.done{background:#dcead0;border-color:#a8c380;color:#3d5a20;cursor:default}
 .gstep.next{border-color:#8aa353;box-shadow:0 0 0 3px #e4ecc9}
+.gnext{margin-top:10px;font-size:12.5px;color:#6a7a44;line-height:1.7;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.gnext b{color:#3d5a20}
+.gnext.flash{background:#fdf3d8;border:1.5px solid #e8d089;border-radius:10px;padding:8px 12px;color:#7a5418}
+.gnext.done{color:#5a7028}
+.gnext-btns{display:inline-flex;gap:6px;margin-left:auto}
+.ob-btn.sm{font-size:12px;padding:5px 12px}
 .wave{margin-top:44px;height:86px;background:radial-gradient(120% 70px at 50% 0,#faf6ec 60%,transparent 61%),#a3b86c;position:relative;flex:none}
 .wave .cp{position:absolute;bottom:18px;width:100%;text-align:center;font-size:12px;color:#f4f8e6;font-weight:700}
 </style></head><body>
@@ -1951,16 +1957,23 @@ renderTools();
     const sIdx = TOOLS.findIndex(t => t.custom === 'sow');
     return [
       { label: '⚙️ 建立我的農場', done: !!profile.farm_name,
+        tip: '填農場名稱和基本資料，之後每個工具都自動帶入、文案自動署名',
+        doneMsg: '農場建好了！',
         go: () => document.getElementById('farmbtn').click() },
       { label: (vIdx >= 0 ? TOOLS[vIdx].icon + ' ' + TOOLS[vIdx].name : '🌱 作物選種'),
         done: get().indexOf('v2') >= 0,
+        tip: '依你的目標和月份，挑出適合的品種方向',
+        doneMsg: '選種方向有了！',
         go: () => { if (get().indexOf('v2') < 0) set(get() + '|v2'); if (vIdx >= 0) openModal(vIdx); } },
       { label: (sIdx >= 0 ? TOOLS[sIdx].icon + ' ' + TOOLS[sIdx].name : '📅 排整季時程'),
         done: !!season,
+        tip: '挑個適合的日子開工，自動排出整季時程表（其他工具會跟著這份時程提醒你）',
+        doneMsg: '整季時程排好了！',
         go: () => { if (sIdx >= 0) openModal(sIdx); } },
     ];
   }
 
+  let lastDone = -1;   // 偵測「剛完成一步」→ 顯示接棒提示
   function render() {
     const st = get();
     if (!st) {
@@ -1971,19 +1984,46 @@ renderTools();
       document.getElementById('obSkip').onclick = () => { set('skip'); render(); };
       return;
     }
-    if (st.indexOf('guide') < 0) { host.innerHTML = ''; return; }
+    if (st.indexOf('guide') < 0) { host.innerHTML = ''; lastDone = -1; return; }
     const ss = steps();
-    const allDone = ss.every(s => s.done);
+    const doneCount = ss.filter(s => s.done).length;
+    const allDone = doneCount === ss.length;
     const nextIdx = ss.findIndex(s => !s.done);
+    const next = nextIdx >= 0 ? ss[nextIdx] : null;
+    const justFinished = lastDone >= 0 && doneCount > lastDone && next;
+    lastDone = doneCount;
+
+    // 底部導引列：剛完成→接棒提示；未完成→下一步說明；全完成→日常怎麼用
+    let guideLine;
+    if (allDone) {
+      const wIdx = TOOLS.findIndex(t => t.calc === 'water');
+      const lIdx = TOOLS.findIndex(t => t.custom === 'logs');
+      guideLine = '<div class="gnext done">🎉 主線完成！日常這樣用：早上看「灌溉排程」要不要澆水，收工前用「作業日誌」兩下記完今天'
+        + '<span class="gnext-btns">'
+        + (wIdx >= 0 ? '<button class="ob-btn sm" data-open="' + wIdx + '">💧 灌溉排程</button>' : '')
+        + (lIdx >= 0 ? '<button class="ob-btn sm ghost" data-open="' + lIdx + '">📝 作業日誌</button>' : '')
+        + '</span></div>';
+    } else if (justFinished) {
+      const prev = ss[nextIdx - 1] || ss[0];
+      guideLine = '<div class="gnext flash">✓ ' + prev.doneMsg + '　下一步：<b>' + next.label + '</b>——' + next.tip
+        + '<span class="gnext-btns"><button class="ob-btn sm" data-open="next">開始下一步 ›</button></span></div>';
+    } else {
+      guideLine = '<div class="gnext">👉 下一步：<b>' + next.label + '</b>——' + next.tip + '</div>';
+    }
+
     host.innerHTML = '<div class="guide-strip"><div class="gh">'
-      + '<span class="t">' + (allDone ? '🎉 主線完成！之後每天開「灌溉排程」和「作業日誌」就對了' : '🧭 上手主線（點一步做一步，隨時可收）') + '</span>'
+      + '<span class="t">' + (allDone ? '🎉 上手主線完成' : '🧭 上手主線 ' + doneCount + '/' + ss.length + '（點一步做一步，隨時可收）') + '</span>'
       + '<button class="x" id="gClose">收起 ✕</button></div>'
       + '<div class="guide-steps">' + ss.map((s, i) =>
-          '<button class="gstep' + (s.done ? ' done' : (i === nextIdx ? ' next' : '')) + '" data-i="' + i + '">'
-          + (s.done ? '✓ ' : '') + s.label + '</button>').join('') + '</div></div>';
+          '<button class="gstep' + (s.done ? ' done' : (i === nextIdx ? ' next' : '')) + '" data-i="' + i + '" title="' + s.tip + '">'
+          + (s.done ? '✓ ' : '') + s.label + '</button>').join('') + '</div>'
+      + guideLine + '</div>';
     document.getElementById('gClose').onclick = () => { set(st.replace('guide', 'skip')); render(); };
     host.querySelectorAll('.gstep').forEach(b => {
       b.onclick = () => ss[+b.dataset.i].go();   // 完成的步驟也可重新點開
+    });
+    host.querySelectorAll('[data-open]').forEach(b => {
+      b.onclick = () => { const k = b.dataset.open; (k === 'next' ? next.go() : openModal(+k)); };
     });
   }
   render();
