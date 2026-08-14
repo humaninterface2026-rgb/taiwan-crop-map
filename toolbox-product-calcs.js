@@ -1,5 +1,68 @@
 // 產品型態工具內容覆蓋（蜂蜜/黑豬肉/石門活魚）——由 PRODUCT_SKIN 合併進 CALCS。
 // 內容依 toolbox-assets/crop-params.json 專屬參數包；連結皆實測可達。
+
+// ── 共用文案引擎（2026-08-15）：三產品的行銷文案共用一套豐富模板 ──
+// cfg：emoji/noun/unit/defPrice/fresh/story[2]/safe/ship/keep/notice[]/tags[]/
+//      sells={賣點label:[{head,sub}×N 變化]}/defSell
+// 提供：🎲幫我想（隨機賣點）、自家亮點填空、每按一次開場隨機換、三平台模板＋短版
+function _mkCopywrite(cfg) {
+  return {
+    inputs: [
+      { key: 'sell', label: '主打賣點', unit: '', def: cfg.defSell,
+        options: Object.keys(cfg.sells).concat(['🎲 幫我想']) },
+      { key: 'tone', label: '要發到哪', unit: '', def: 'FB/LINE 社團',
+        options: ['FB/LINE 社團', 'IG 貼文', '拍賣/蝦皮商品文'] },
+      { key: 'price', label: '售價', unit: '元/' + cfg.unit, def: String(cfg.defPrice) },
+      { key: 'custom', label: '自家亮點（選填，會編進文案）',
+        unit: '例：在地農友吳伯伯，吃玉米長大的黑毛豬', def: '' },
+    ],
+    button: '生文案 ›',
+    run(v) {
+      const pf = NZD.S.get('profile');
+      const farm = (pf && pf.farm_name) ? pf.farm_name : (CROP.county + '小農');
+      const county = CROP.county;
+      const price = +v.price || 0;
+      const priceLine = (price ? price + ' 元／' + cfg.unit : '歡迎私訊詢價') +
+                        (cfg.unitNote ? '（' + cfg.unitNote + '）' : '');
+      const pick = (a) => a[Math.floor(Math.random() * a.length)];
+      let sell = v.sell === '🎲 幫我想' ? pick(Object.keys(cfg.sells)) : v.sell;
+      if (!cfg.sells[sell]) sell = cfg.defSell;
+      const h = pick(cfg.sells[sell]);
+      const custom = (v.custom || '').trim();
+      const customLine = custom ? '⭐ ' + custom : '';
+      const cta = pick(['要的請留言 +1 或私訊，收單後依序安排出貨！',
+                        '數量有限，留言 +1 先搶先贏，私訊也通！',
+                        '想吃的別猶豫——留言 +1 或私訊下單，額滿收單！']);
+      const tags = cfg.tags.concat([county.slice(0, 2) + '小農'])
+        .map(t => '#' + t.replace(/\s/g, '')).join(' ');
+      let text;
+      if (v.tone === 'IG 貼文') {
+        text = h.head + '\n' + (h.sub || '') + '\n' + (customLine ? customLine + '\n' : '') +
+          '—\n' + cfg.story[0] + '\n' + cfg.story[1] +
+          '\n—\n' + cfg.emoji + ' ' + farm + '｜' + cfg.noun + '\n💰 ' + priceLine +
+          '\n📦 ' + cfg.ship + '\n🛒 訂購請私訊，或留言 +1\n—\n' + tags;
+      } else if (v.tone === '拍賣/蝦皮商品文') {
+        text = '【' + farm + '】' + cfg.noun + '｜' + sell +
+          '\n\n' + (custom ? '✔ ' + custom + '\n' : '') +
+          '✔ ' + cfg.fresh + '\n✔ ' + cfg.safe + '\n✔ ' + cfg.story[0] + cfg.story[1] +
+          '\n\n─ 商品規格 ─\n・品項：' + cfg.noun + '（' + county + '產）\n・價格：' + priceLine +
+          '\n・出貨：' + cfg.ship + '\n・保存：' + cfg.keep +
+          '\n\n─ 購買須知 ─\n' + cfg.notice.map(x => '・' + x).join('\n') +
+          '\n・大量訂購（店家/團購）歡迎聊聊議價';
+      } else {
+        text = h.head + '\n' + (h.sub || '') + '\n\n' + (customLine ? customLine + '\n\n' : '') +
+          cfg.story[0] + cfg.story[1] +
+          '\n\n🛒 本週供應\n・' + farm + '｜' + cfg.noun + '\n・' + priceLine +
+          '\n・' + cfg.ship + '\n📍 ' + county + '面交／全台宅配\n\n' + cta;
+      }
+      const short = cfg.emoji + ' ' + (custom ? custom + '｜' : '') + cfg.noun + ' ' +
+        (price ? price + ' 元／' + cfg.unit : '私訊詢價') + '｜' + cfg.fresh + '，要的 +1！';
+      return { headline: '文案好了，長按複製直接發！',
+               detail: text + '\n\n— 短版（限時動態／群組快發）—\n' + short };
+    },
+  };
+}
+
 window.PRODUCT_CALCS = {
   '蜂蜜': {
   /* ══ 蜂蜜 CALCS 覆蓋：養蜂語境（蜂場/蜂群/採蜜），數字依專屬參數 ══ */
@@ -276,32 +339,43 @@ window.PRODUCT_CALCS = {
       };
     },
   },
-  copywrite: {
-    inputs: [
-      { key: 'sell', label: '主打賣點', unit: '', def: '今年新蜜開搖', options: ['今年新蜜開搖', '龍眼蜜', '荔枝蜜', '蜂場直送'] },
-      { key: 'tone', label: '要發到哪', unit: '', def: 'FB/LINE 社團', options: ['FB/LINE 社團', 'IG 貼文', '拍賣/蝦皮商品文'] },
-      { key: 'price', label: '售價', unit: '元/瓶(700g)', def: '600' },
-    ],
-    button: '生文案 ›',
-    run(v) {
-      const pf = NZD.S.get('profile');
-      const farm = (pf && pf.farm_name) ? pf.farm_name : '在地小蜂場';
-      const price = +v.price || 600;
-      const hooks = {
-        '今年新蜜開搖': '🍯 今年新蜜開搖了！封蓋熟成才搖，濃、香、稠，一年就等這一波！',
-        '龍眼蜜': '🍯 龍眼花開的味道直接裝進瓶子裡——琥珀色龍眼蜜，香氣就是經典！',
-        '荔枝蜜': '🍯 荔枝蜜帶著淡淡果酸花香，泡水不搶味，喝過就回不去！',
-        '蜂場直送': '🐝 自家蜂場自己顧，搖蜜、過濾、裝瓶一手包，產地直送不轉手！',
-      };
-      const tag = (v.sell === '龍眼蜜' || v.sell === '荔枝蜜') ? ' #' + v.sell : '';
-      const body = hooks[v.sell] + '\n\n' + farm + '的台灣蜂蜜 🍯\n💰 ' + price + ' 元/瓶（700g）';
-      let text;
-      if (v.tone === 'IG 貼文') text = body + '\n\n#台灣蜂蜜' + tag + ' #小農直送 #蜂場日常 #純蜂蜜';
-      else if (v.tone === '拍賣/蝦皮商品文') text = '【' + farm + '】台灣蜂蜜 ' + v.sell + '\n規格：700g 玻璃瓶裝 ' + price + ' 元，兩瓶免運\n' + hooks[v.sell] + '\n產地：台灣在地蜂場｜結晶為純蜜自然現象，隔水溫水就化開';
-      else text = body + '\n📍 可面交／可宅配\n🛒 +1 留言或私訊我～';
-      return { headline: '文案好了，長按複製直接發！', detail: text + '\n\n小提醒：蜂蜜放久會結晶是正常現象，貼文先講明白，客訴會少很多。' };
+  copywrite: _mkCopywrite({
+    emoji: '🍯', noun: '台灣蜂蜜', unit: '瓶', unitNote: '700g 玻璃瓶裝', defPrice: 600,
+    defSell: '今年新蜜開搖',
+    fresh: '當季採收、封蓋熟成才搖蜜',
+    story: ['蜂群跟著花期走，採什麼花就是什麼味，', '每一罐都是蜂場當季的真實風土。'],
+    safe: '單一蜂場來源透明，不混充、不加工調和',
+    ship: '常溫出貨、玻璃罐加強防撞', keep: '常溫保存即可，結晶為天然現象',
+    notice: ['蜂蜜放久會結晶是純蜜的正常現象，隔水溫水就化開',
+             '天然蜜每批花源不同，色澤香氣略有差異'],
+    tags: ['台灣蜂蜜', '小農直送', '蜂場日常', '純蜂蜜'],
+    sells: {
+      '今年新蜜開搖': [
+        { head: '🍯 今年新蜜開搖了！封蓋熟成才搖，濃、香、稠，一年就等這一波！',
+          sub: '搖蜜、過濾、裝瓶一手包，鮮度直接封進瓶子裡。' },
+        { head: '🍯 等了一整年——新蜜開搖，第一波最搶手！',
+          sub: '封蓋七成以上才搖，濃稠度和香氣都是熟成的味道。' },
+      ],
+      '龍眼蜜': [
+        { head: '🍯 龍眼花開的味道直接裝進瓶子裡——琥珀色龍眼蜜，香氣就是經典！',
+          sub: '台灣人最熟悉的那一味，泡水、入菜、直接挖都對。' },
+        { head: '🍯 琥珀色的龍眼蜜上架——香氣厚、尾韻甜，就是記憶中的味道。',
+          sub: '龍眼花季一年一次，錯過再等明年。' },
+      ],
+      '荔枝蜜': [
+        { head: '🍯 荔枝蜜帶著淡淡果酸花香，泡水不搶味，喝過就回不去！',
+          sub: '清爽系的蜜，冰水氣泡水都百搭。' },
+        { head: '🍯 喜歡清爽路線的看過來——荔枝蜜的果香花香剛剛好。',
+          sub: '甜而不膩，夏天冰飲的最佳拍檔。' },
+      ],
+      '蜂場直送': [
+        { head: '🐝 自家蜂場自己顧，搖蜜、過濾、裝瓶一手包，產地直送不轉手！',
+          sub: '從蜂箱到你家餐桌，只有一段路。' },
+        { head: '🐝 蜂場直出、當季現搖——中間沒有別人，價格和品質都實在。',
+          sub: '你買的每一瓶，都養活一箱蜜蜂和一個蜂農。' },
+      ],
     },
-  },
+  }),
   buyer: {
     inputs: [
       { key: 'ch', label: '想走的通路', unit: '', def: '自有品牌零售（市集/團購）', options: ['蜂蜜收購商/大盤', '農會與展售活動', '自有品牌零售（市集/團購）', '電商平台', '飲料烘焙店直供'] },
@@ -987,30 +1061,43 @@ window.PRODUCT_CALCS = {
       };
     },
   },
-  copywrite: {
-    inputs: [
-      { key: 'sell', label: '主打賣點', unit: '', def: '自家牧場直送', options: ['自家牧場直送', '慢養14個月', '年節禮盒', '合法屠宰安心'] },
-      { key: 'tone', label: '要發到哪', unit: '', def: 'FB/LINE 社團', options: ['FB/LINE 社團', 'IG 貼文', '拍賣/蝦皮商品文'] },
-      { key: 'price', label: '售價', unit: '元/台斤', def: '350' },
-    ],
-    run(v) {
-      const p = NZD.S.get('profile');
-      const farm = (p && p.farm_name) ? p.farm_name : (CROP.county + '小農');
-      const price = +v.price || 350;
-      const hooks = {
-        '自家牧場直送': '🐷 自家牧場的台灣黑豬，當天分切、急速冷凍直送到你家！',
-        '慢養14個月': '🐷 黑豬急不得——足足養 14 個月，油花和風味就是不一樣！',
-        '年節禮盒': '🧧 年節送禮送黑豬！自家牧場黑豬肉禮盒，數量有限，先訂先留。',
-        '合法屠宰安心': '✅ 合法屠宰場屠宰、屠檢合格，全程冷鏈，給家人吃的標準！',
-      };
-      const body = hooks[v.sell] + '\n\n' + farm + '的黑豬肉 🥩\n💰 ' + price + ' 元/台斤';
-      let text;
-      if (v.tone === 'IG 貼文') text = body + '\n\n#' + CROP.county.slice(0, 2) + '黑豬 #黑豬肉 #產地直送 #冷凍宅配 #台灣豬';
-      else if (v.tone === '拍賣/蝦皮商品文') text = '【' + farm + '】台灣黑豬肉 ' + v.sell + '\n規格：真空分裝，一台斤 ' + price + ' 元\n' + hooks[v.sell] + '\n產地：' + CROP.county + '｜出貨：接單分切、全程冷凍宅配';
-      else text = body + '\n📍 ' + CROP.county + '冷凍面交／低溫宅配\n🛒 +1 留言或私訊我～';
-      return { headline: '文案好了，長按複製直接發！', detail: text };
+  copywrite: _mkCopywrite({
+    emoji: '🐷', noun: '台灣黑豬肉', unit: '台斤', unitNote: '真空分裝', defPrice: 350,
+    defSell: '自家牧場直送',
+    fresh: '接單分切、急速冷凍、全程冷鏈',
+    story: ['黑豬急不得，飼養週期養好養滿，', '油花與肉香是時間換來的。'],
+    safe: '合法屠宰場屠宰、屠檢合格，來源單一牧場',
+    ship: '真空分裝、冷凍宅配', keep: '冷凍保存，退冰後當日料理完畢',
+    notice: ['接單分切，實際重量與標示略有差異屬正常',
+             '生鮮肉品全程冷凍出貨，不適用七天猶豫期'],
+    tags: ['台灣黑豬', '黑豬肉', '產地直送', '冷凍宅配', '台灣豬'],
+    sells: {
+      '自家牧場直送': [
+        { head: '🐷 自家牧場的台灣黑豬，當天分切、急速冷凍直送到你家！',
+          sub: '從牧場到餐桌只有一段路，鮮度和來源都看得見。' },
+        { head: '🐷 牧場直出的黑豬肉——沒有中間商，只有冷鏈和誠意。',
+          sub: '指定部位可預訂，切法也能聊。' },
+      ],
+      '慢養14個月': [
+        { head: '🐷 黑豬急不得——足足養 14 個月，油花和風味就是不一樣！',
+          sub: '時間養出來的肉香，一煎就知道差在哪。' },
+        { head: '🐷 別人養半年就出，我們的黑豬養足 14 個月。',
+          sub: '慢工出細活，油花分布和口感騙不了人。' },
+      ],
+      '年節禮盒': [
+        { head: '🧧 年節送禮送黑豬！自家牧場黑豬肉禮盒，數量有限，先訂先留。',
+          sub: '長輩收到會記得的禮，比餅乾禮盒有誠意。' },
+        { head: '🧧 過年圍爐的主角先訂起來——黑豬肉禮盒開放預購！',
+          sub: '自用加菜、送禮體面，年前依訂單順序出貨。' },
+      ],
+      '合法屠宰安心': [
+        { head: '✅ 合法屠宰場屠宰、屠檢合格，全程冷鏈，給家人吃的標準！',
+          sub: '每一批來源清楚，吃得安心才是真的好吃。' },
+        { head: '✅ 來源單一牧場、屠檢合格章看得到——安心是基本配備。',
+          sub: '我們自己家餐桌吃的，就是這一批。' },
+      ],
     },
-  },
+  }),
   buyer: {
     inputs: [
       { key: 'ch', label: '想走的通路', unit: '', def: '肉品市場拍賣', options: ['肉品市場拍賣', '肉商/攤商承銷', '餐廳直供', '社區團購', '電商冷凍宅配'] },
@@ -1711,31 +1798,43 @@ window.PRODUCT_CALCS = {
       return { headline: head, detail: det + ' 判斷門檻：量多>1000kg／行情低<60 元、高>80 元（照你輸入的口徑自己校準）。加工前先算成本：代工費、包材、冷凍運費若吃掉價差就別做。' };
     },
   },
-  copywrite: {
-    inputs: [
-      { key: 'sell', label: '主打賣點', unit: '', def: '現撈活魚', options: ['現撈活魚', '當日直送', '現撈現宰', '量大優惠'] },
-      { key: 'tone', label: '要發到哪', unit: '', def: 'FB/LINE 社團', options: ['FB/LINE 社團', 'IG 貼文', '拍賣/蝦皮商品文'] },
-      { key: 'price', label: '售價', unit: '元/台斤', def: '80' },
-    ],
-    button: '生文案 ›',
-    run(v) {
-      const p = NZD.S.get('profile');
-      const farm = (p && p.farm_name) ? p.farm_name : (CROP.county + '小農');
-      const price = +v.price || 80;
-      const hooks = {
-        '現撈活魚': '🐟 早上還在池裡游，中午就能上桌——活力好，肉質才彈！',
-        '當日直送': '🚚 石門水庫邊的魚塭當天直送，不繞批發、少一層就是新鮮！',
-        '現撈現宰': '🔪 現撈現宰馬上冰鎮，魚鰓紅、眼睛亮，新鮮看得到！',
-        '量大優惠': '📦 這批規格齊、量也足，餐廳、辦桌、揪團訂更划算！',
-      };
-      const body = hooks[v.sell] + '\n\n' + farm + '的石門活魚 🐟（草魚／大頭鰱）\n💰 ' + price + ' 元/台斤';
-      let text;
-      if (v.tone === 'IG 貼文') text = body + '\n\n#石門活魚 #現撈 #' + CROP.county.slice(0, 2) + '小農 #砂鍋魚頭 #產地直送';
-      else if (v.tone === '拍賣/蝦皮商品文') text = '【' + farm + '】石門活魚 ' + v.sell + '\n規格：一台斤 ' + price + ' 元，整尾約 3~5 台斤\n' + hooks[v.sell] + '\n產地：' + CROP.county + '｜出貨：現撈處理後低溫宅配或面交';
-      else text = body + '\n📍 ' + CROP.county + '面交自取／餐廳配送\n🛒 +1 留言或私訊我～';
-      return { headline: '文案好了，長按複製直接發！', detail: text };
+  copywrite: _mkCopywrite({
+    emoji: '🐟', noun: '石門活魚（草魚／大頭鰱）', unit: '台斤', unitNote: '整尾約 3~5 台斤', defPrice: 80,
+    defSell: '現撈活魚',
+    fresh: '活水養殖、現撈處理',
+    story: ['水庫活水養出來的魚肉質緊實不帶土味，', '現撈處理直接封箱，鮮度看得見。'],
+    safe: '養殖水源乾淨、出貨前活魚吊水吐沙',
+    ship: '現撈處理後低溫宅配或面交', keep: '冷藏 2 天內食用，或分裝冷凍',
+    notice: ['整尾出貨，實際重量依當日漁獲略有差異',
+             '生鮮水產低溫出貨，不適用七天猶豫期'],
+    tags: ['石門活魚', '現撈', '砂鍋魚頭', '產地直送'],
+    sells: {
+      '現撈活魚': [
+        { head: '🐟 早上還在池裡游，中午就能上桌——活力好，肉質才彈！',
+          sub: '活魚現撈現處理，這種新鮮超市買不到。' },
+        { head: '🐟 活魚的彈性騙不了人——今天現撈，要的動作快！',
+          sub: '魚鰓紅、眼睛亮，看得見的新鮮。' },
+      ],
+      '當日直送': [
+        { head: '🚚 石門水庫邊的魚塭當天直送，不繞批發、少一層就是新鮮！',
+          sub: '從魚塭到你家，中間沒有別人。' },
+        { head: '🚚 當日處理當日出——石門直送，晚餐就能上桌。',
+          sub: '砂鍋魚頭、糖醋、清蒸，怎麼煮都對味。' },
+      ],
+      '現撈現宰': [
+        { head: '🔪 現撈現宰馬上冰鎮，魚鰓紅、眼睛亮，新鮮看得到！',
+          sub: '處理乾淨到家直接下鍋，省事又新鮮。' },
+        { head: '🔪 撈起來十分鐘內處理完冰鎮——鮮度就是這樣鎖住的。',
+          sub: '可依需求切段、去鱗去鰓，跟我說就好。' },
+      ],
+      '量大優惠': [
+        { head: '📦 這批規格齊、量也足，餐廳、辦桌、揪團訂更划算！',
+          sub: '整批訂購另有優惠，歡迎店家長期配合。' },
+        { head: '📦 辦桌、聚餐、餐廳備貨看過來——量大直配價更漂亮！',
+          sub: '規格齊全出貨穩定，長期配合歡迎聊聊。' },
+      ],
     },
-  },
+  }),
   buyer: {
     inputs: [
       { key: 'ch', label: '想走的通路', unit: '', def: '活魚餐廳直供', options: ['活魚餐廳直供', '盤商收購', '自家塘邊零售', '社區團購', '電商冰鮮宅配'] },

@@ -206,11 +206,11 @@ const TOOLS = [
   // ── 銷售市場 ──
   { stage: 3, icon: '🏷️', type: 'chat', name: '定價策略建議', desc: '幫你依品質和通路算出建議售價。', calc: 'price',
     principles: ['品質係數：A 1.15、B 1.00、C 0.85', '通路係數：批發 1.00、直銷 1.10、電商 1.20', '行情判讀：低價 <40、中價 40~55、高價 >55 元/kg'] },
-  { stage: 3, icon: '🔗', type: 'auto', name: '溯源履歷生成', desc: '一鍵把產地、時程、用藥紀錄整理成履歷卡。', calc: 'trace',
+  { stage: 3, icon: '🔗', type: 'auto', name: '自主履歷卡生成', desc: '把產地、時程、田間紀錄整理成自主揭露履歷卡（非官方產銷履歷驗證）。', calc: 'trace',
     principles: [] },
   { stage: 3, icon: '🤝', type: 'link', name: '買家媒合', desc: '想走哪種通路？給你具體的接洽方法和眉角。', calc: 'buyer',
     principles: [] },
-  { stage: 3, icon: '📣', type: 'link', name: '行銷文案生成', desc: '幫你寫貼文文案，把今天採收的番茄賣出去。', calc: 'copywrite',
+  { stage: 3, icon: '📣', type: 'link', name: '行銷文案生成', desc: '幫你寫貼文文案，把自家農產漂亮賣出去。', calc: 'copywrite',
     principles: [],
     extra: '例：「幫我寫 IG 貼文：今日牛蕃茄採收」。' },
   { stage: 3, icon: '📦', type: 'auto', name: '出口文件輔助', desc: '選目的地，給你外銷文件清單和申請順序。', calc: 'export',
@@ -669,37 +669,137 @@ const CALCS = {
   },
   copywrite: {
     inputs: [
-      { key: 'sell', label: '主打賣點', unit: '', def: '今日現採', options: ['今日現採', '產地直送', '安心栽培', '量大優惠'] },
+      { key: 'sell', label: '主打賣點', unit: '', def: '新鮮直送', options: ['新鮮直送', '產地故事', '安心品質', '量大優惠', '🎲 幫我想'] },
       { key: 'tone', label: '要發到哪', unit: '', def: 'FB/LINE 社團', options: ['FB/LINE 社團', 'IG 貼文', '拍賣/蝦皮商品文'] },
-      { key: 'price', label: '售價', unit: '元/台斤', def: '45' },
+      { key: 'price', label: '售價', unit: '元', def: '45' },
+      { key: 'custom', label: '自家亮點（選填，會編進文案）', unit: '例：在地農友吳伯伯，吃玉米長大的黑毛豬', def: '' },
     ],
     button: '生文案 ›',
+    // 分類詞庫 — 文案依品項類型長出對的話（茶不會「現採番茄」、豬不會「從藤上摘」）
+    _lex() {
+      const n = CROP.display, county = CROP.county;
+      const L = (o) => Object.assign({
+        emoji: '🥬', unit: '台斤', fresh: '清晨現採、當日出貨',
+        story: ['自家田自己顧，照節氣種、看天色收，', '每一批都是產季當下最好的狀態。'],
+        safe: '用藥嚴守停藥期與安全採收間隔，給家人吃的標準',
+        ship: '採收後 24 小時內出貨，夏季低溫宅配', keep: '冷藏保存，趁鮮食用風味最佳',
+        tags: ['產地直送', '當季鮮採', '自家栽種', '小農直賣'],
+      }, o);
+      if (/茶/.test(n)) return L({ emoji: '🍵', unit: '斤', fresh: '當季新茶、自家焙製',
+        story: ['從茶菁採摘、萎凋到烘焙都親手把關，', '喝得到山頭氣，也喝得到工序的講究。'],
+        safe: '茶園管理透明，安全檢驗合格才出茶',
+        ship: '常溫出貨、鋁袋密封', keep: '常溫避光防潮，開封後盡早沖泡',
+        tags: ['台灣茶', '產地直送', '自家茶園', '當季新茶'] });
+      if (n === '蜂蜜') return L({ emoji: '🍯', unit: '罐', fresh: '當季採收、單一蜂場直出',
+        story: ['蜂群跟著花期走，採什麼花就是什麼味，', '每一罐都是蜂場當季的真實風土。'],
+        safe: '單一蜂場來源透明，不混充、不加工調和',
+        ship: '常溫出貨、玻璃罐加強防撞', keep: '常溫保存即可，結晶為天然現象',
+        tags: ['台灣蜂蜜', '產地直送', '自家蜂場', '當季採收'] });
+      if (n === '黑豬肉') return L({ emoji: '🐷', unit: '台斤', fresh: '在地牧場直供、新鮮分切',
+        story: ['自家牧場飼養週期養好養滿，', '油花與肉香是時間換來的，急不得。'],
+        safe: '來源單一牧場、屠宰檢驗合格，履歷清楚',
+        ship: '真空分裝、冷凍宅配', keep: '冷凍保存，退冰後當日料理完畢',
+        tags: ['台灣黑豬', '產地直送', '在地牧場', '新鮮分切'] });
+      if (n === '石門活魚') return L({ emoji: '🐟', unit: '台斤', fresh: '活水養殖、活魚現撈',
+        story: ['水庫活水養出來的魚肉質緊實不帶土味，', '現撈處理直接封箱，鮮度看得見。'],
+        safe: '養殖水源乾淨、出貨前活魚吊水吐沙',
+        ship: '現撈處理、低溫宅配', keep: '冷藏 2 天內或分裝冷凍',
+        tags: ['石門活魚', '產地直送', '活水養殖', '現撈直送'] });
+      if (/菇/.test(n)) return L({ emoji: '🍄', unit: '台斤', fresh: '菇寮現採、朵朵挑選',
+        story: ['溫溼度顧到位，菇才長得厚實飽滿，', '現採現出，香氣跟市場貨就是不一樣。'],
+        ship: '採後當日出貨、低溫宅配', keep: '冷藏保存，紙袋包裝可延長鮮度',
+        tags: ['新鮮香菇', '產地直送', '菇寮現採', '小農直賣'] });
+      if (/稻|米/.test(n)) return L({ emoji: '🌾', unit: '公斤', fresh: '當期碾米、鮮米直送',
+        story: ['稻子照節氣種、日曬烘乾慢慢來，', '訂單來了才碾米，米香封在袋子裡。'],
+        ship: '碾米後真空包裝出貨', keep: '陰涼乾燥保存，開封後冷藏更保鮮',
+        tags: ['台灣米', '產地直送', '當期新米', '自家碾製'] });
+      const fruitEmoji = { '水蜜桃': '🍑', '柚子': '🍊', '文旦': '🍊', '番茄': '🍅', '牛蕃茄': '🍅' };
+      if (fruitEmoji[n]) return L({ emoji: fruitEmoji[n] });
+      return L({});
+    },
     async prepare() {
       const p = NZD.S.get('profile');
+      const lex = this._lex();
+      const u = document.getElementById('f_price');
+      if (u && u.nextElementSibling) u.nextElementSibling.textContent = '元/' + lex.unit;
       try {
         const m = await getMarket();
-        if (m && m.latest_price) {
-          document.getElementById('f_price').value = Math.round(m.latest_price.price * 1.1 / NZD.C.taikinDiv);
-          calcNote('📡 售價預設＝今日批發價 ×1.1（直銷係數）換算台斤' + (p && p.farm_name ? '；署名用「' + p.farm_name + '」' : '——到 ⚙️ 我的農場填農場名，文案會自動署名'));
+        if (m && m.latest_price && !m.annual) {
+          u.value = Math.round(m.latest_price.price * 1.1 / NZD.C.taikinDiv);
+          calcNote('📡 售價預設＝今日批發價 ×1.1（直銷係數）換算' + lex.unit + (p && p.farm_name ? '；署名用「' + p.farm_name + '」' : '——到 ⚙️ 我的農場填農場名，文案會自動署名'));
+          return;
         }
       } catch (e) {}
+      calcNote('✍️ 請填你的實際售價（元/' + lex.unit + '）' + (p && p.farm_name ? '；署名用「' + p.farm_name + '」' : '——到 ⚙️ 我的農場填農場名，文案會自動署名'));
     },
     run(v) {
       const p = NZD.S.get('profile');
       const farm = (p && p.farm_name) ? p.farm_name : (CROP.county + '小農');
-      const price = +v.price || 45;
+      const n = CROP.display, county = CROP.county;
+      const lex = this._lex();
+      const price = +v.price || 0;
+      const priceLine = price ? price + ' 元／' + lex.unit : '歡迎私訊詢價';
+      const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+      // 🎲 幫我想：隨機挑賣點；四種賣點各有多組開場，每按一次都不一樣
+      let sell = v.sell;
+      if (sell === '🎲 幫我想') sell = pick(['新鮮直送', '產地故事', '安心品質', '量大優惠']);
       const hooks = {
-        '今日現採': '🍅 今天早上剛從藤上摘下來，太陽還沒曬熱就裝箱！',
-        '產地直送': '🚚 ' + CROP.county + '產地直送，不進批發市場、少一層就是新鮮！',
-        '安心栽培': '🌱 自家田自己顧，用藥嚴守停藥期，給家人吃的標準！',
-        '量大優惠': '📦 產季正旺量大出清，揪鄰居親友一起訂更划算！',
+        '新鮮直送': pick([
+          { head: lex.emoji + ' ' + lex.fresh + '，' + n + '開賣！',
+            sub: '不進批發市場、少一層通路，到你手上就是最新鮮的狀態。' },
+          { head: lex.emoji + ' 本週' + n + '到貨——' + lex.fresh + '！',
+            sub: '從產地到你家只有一段路，鮮度自己會說話。' },
+        ]),
+        '產地故事': pick([
+          { head: lex.emoji + ' 來自' + county + '的' + n + '，' + lex.story[0].replace(/，$/, '') + '。',
+            sub: lex.story[1] },
+          { head: lex.emoji + ' 認識一下' + county + '的' + n + '——' + lex.story[1].replace(/。$/, '') + '。',
+            sub: lex.story[0].replace(/，$/, '') + '，這是我們的日常。' },
+        ]),
+        '安心品質': pick([
+          { head: '🌱 ' + n + '安心上架——' + lex.safe + '。',
+            sub: '吃進嘴裡的東西，我們自己每天也在吃。' },
+          { head: '🌱 給家人吃的' + n + '，才敢賣給你。',
+            sub: lex.safe + '，來源清楚、吃得放心。' },
+        ]),
+        '量大優惠': pick([
+          { head: '📦 產季正旺、' + n + '量大直配，揪團更划算！',
+            sub: '鄰居親友湊一單，運費均攤、價格更漂亮。' },
+          { head: '📦 ' + n + '大出清——產季就是要吃個過癮！',
+            sub: '自用送禮都合適，量多另有優惠歡迎聊聊。' },
+        ]),
       };
-      const body = hooks[v.sell] + '\n\n' + farm + '的牛番茄 🍅\n💰 ' + price + ' 元/台斤';
+      const h = hooks[sell];
+      const custom = (v.custom || '').trim();
+      const customLine = custom ? '⭐ ' + custom : '';
+      const cta = pick(['要的請留言 +1 或私訊，收單後依序安排出貨！',
+                        '數量有限，留言 +1 先搶先贏，私訊也通！',
+                        '想吃的別猶豫——留言 +1 或私訊下單，額滿收單！']);
+      v = Object.assign({}, v, { sell: sell });
+      const tags = lex.tags.concat([county.slice(0, 2) + '小農', n]).map(t => '#' + t.replace(/\s/g, '')).join(' ');
       let text;
-      if (v.tone === 'IG 貼文') text = body + '\n\n#' + CROP.county.slice(0, 2) + '小農 #牛番茄 #產地直送 #當季水果 #自家栽種';
-      else if (v.tone === '拍賣/蝦皮商品文') text = '【' + farm + '】牛番茄 ' + v.sell + '\n規格：一台斤 ' + price + ' 元，五斤免運\n' + hooks[v.sell] + '\n產地：' + CROP.county + '｜出貨：採收後 24 小時內寄出';
-      else text = body + '\n📍 ' + CROP.county + '面交／可宅配\n🛒 +1 留言或私訊我～';
-      return { headline: '文案好了，長按複製直接發！', detail: text };
+      if (v.tone === 'IG 貼文') {
+        // 「產地故事」賣點的開頭已是故事本身 → 不再重複故事段
+        const storyBlock = v.sell === '產地故事' ? '' : '—\n' + lex.story[0] + '\n' + lex.story[1] + '\n';
+        text = h.head + '\n' + h.sub + '\n' + (customLine ? customLine + '\n' : '') + storyBlock +
+          '—\n' + lex.emoji + ' ' + farm + '｜' + n + '\n💰 ' + priceLine +
+          '\n📦 ' + lex.ship + '\n🛒 訂購請私訊，或留言 +1\n—\n' + tags;
+      } else if (v.tone === '拍賣/蝦皮商品文') {
+        text = '【' + farm + '】' + county + n + '｜' + v.sell +
+          '\n\n' + (custom ? '✔ ' + custom + '\n' : '') +
+          '✔ ' + lex.fresh + '\n✔ ' + lex.safe + '\n✔ ' + lex.story[0] + lex.story[1] +
+          '\n\n─ 商品規格 ─\n・品項：' + n + '（' + county + '產）\n・價格：' + priceLine +
+          '\n・出貨：' + lex.ship + '\n・保存：' + lex.keep +
+          '\n\n─ 購買須知 ─\n・農產品依當日採收狀況出貨，外觀略有差異屬自然現象\n・鑑賞期非試用期，生鮮品項不適用七天猶豫期\n・大量訂購（店家/團購）歡迎聊聊議價';
+      } else {
+        text = h.head + '\n' + h.sub + '\n\n' + (customLine ? customLine + '\n\n' : '') +
+          lex.story[0] + lex.story[1] +
+          '\n\n🛒 本週供應\n・' + farm + '｜' + n + '\n・' + priceLine +
+          '\n・' + lex.ship + '\n📍 ' + county + '面交／全台宅配\n\n' + cta;
+      }
+      const short = lex.emoji + ' ' + (custom ? custom + '｜' : '') + n + ' ' + priceLine + '｜' + lex.fresh + '，要的 +1！';
+      return { headline: '文案好了，長按複製直接發！',
+               detail: text + '\n\n— 短版（限時動態／群組快發）—\n' + short };
     },
   },
   buyer: {
@@ -720,25 +820,42 @@ const CALCS = {
     },
   },
   trace: {
-    inputs: [],
+    inputs: [
+      { key: 'producer', label: '生產者／農場名', unit: '', def: '' },
+      { key: 'origin', label: '產地（鄉鎮）', unit: '選填', def: '' },
+      { key: 'harvest', label: '採收／出貨日', unit: '', def: '', type: 'date' },
+      { key: 'contact', label: '聯絡方式', unit: '選填', def: '' },
+    ],
     button: '生成履歷卡 ›',
-    run() {
+    prepare() {
       const p = NZD.S.get('profile') || {};
+      if (p.farm_name) document.getElementById('f_producer').value = p.farm_name;
+      const h = document.getElementById('f_harvest');
+      if (h && !h.value) h.value = new Date().toISOString().slice(0, 10);
+      calcNote('📋 本卡為「生產者自主揭露」——要申請官方產銷履歷（TAP）驗證標章，見結果附的官方連結');
+    },
+    run(v) {
+      const lex = CALCS.copywrite._lex();
       const season = NZD.S.get('season');
       const logs = NZD.S.get('logs', []);
       const sprays = logs.filter(x => x.cat === '噴藥').slice(0, 5);
       const ferts = logs.filter(x => x.cat === '施肥').slice(0, 5);
       const lines = [
-        '🍅 產品履歷卡',
-        '品名：牛番茄（' + CROP.county + '產）',
-        '生產者：' + (p.farm_name || '（到 ⚙️ 我的農場填名稱）'),
-        season ? '定植：' + season.transplant_date + '｜採收期：' + (season.harvest_start || '—') + ' 起' : '種植時程：（到「最佳播種時機」排時程後自動帶入）',
+        lex.emoji + ' ' + CROP.display + '自主生產履歷卡',
+        '品名：' + CROP.display + '（' + (v.origin ? CROP.county + v.origin : CROP.county) + '產）',
+        '生產者：' + (v.producer || '（到 ⚙️ 我的農場填名稱）'),
+        v.harvest ? '採收／出貨日：' + v.harvest : '',
+        season ? '生產時程：' + season.transplant_date + ' 起｜採收期：' + (season.harvest_start || '—') + ' 起' : '生產時程：（到「最佳播種時機」排時程後自動帶入）',
         sprays.length ? '用藥紀錄：' + sprays.map(x => x.date.slice(5) + ' ' + x.txt).join('；') : '用藥紀錄：本季無噴藥紀錄',
         ferts.length ? '施肥紀錄：' + ferts.map(x => x.date.slice(5) + ' ' + x.txt).join('；') : '',
-        '（資料來自小農工具箱作業日誌，' + new Date().toISOString().slice(0, 10) + ' 產出）',
+        v.contact ? '聯絡：' + v.contact : '',
+        '────────────',
+        '＊本卡為生產者「自主揭露」，資料來自小農工具箱作業日誌（' + new Date().toISOString().slice(0, 10) + ' 產出），',
+        '　非官方「產銷履歷（TAP）」驗證標章——該標章需第三方驗證機構審查。',
       ].filter(Boolean);
-      return { headline: '履歷卡生成了——複製貼到出貨單、貼文或印出來附箱！',
-        detail: lines.join('\n') };
+      return { headline: '自主履歷卡生成了——複製貼到出貨單、貼文或印出來附箱！',
+        detail: lines.join('\n'),
+        links: [{ label: '申請官方產銷履歷驗證 → 產銷履歷農產品資訊網', url: 'https://taft.moa.gov.tw/' }] };
     },
   },
   pnl: {
