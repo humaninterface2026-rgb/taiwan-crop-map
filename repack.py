@@ -499,6 +499,8 @@ self.addEventListener('activate', e => {
   })());
 });
 
+const _SCOPE_PATH = new URL(self.registration.scope).pathname;
+
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
@@ -506,6 +508,9 @@ self.addEventListener('fetch', e => {
   // Only manage same-origin requests. Live nongzhidao / weather API stay
   // direct so they always get the freshest data and never hit a stale cache.
   if (url.origin !== self.location.origin) return;
+  // 只管自己站台路徑（GH Pages 上 nongzhidao 資料站與本站同網域——
+  // 不加這條會被 SWR 蓋到，行情變成「上一次的」才對外顯示）
+  if (!url.pathname.startsWith(_SCOPE_PATH)) return;
   const isHTML =
     req.destination === 'document' ||
     url.pathname.endsWith('/') ||
