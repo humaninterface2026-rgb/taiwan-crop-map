@@ -15,18 +15,25 @@ header img.logo{height:36px;display:block}
 .hbtns{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
 h1{font-size:24px;font-weight:900;color:#5a4a30;letter-spacing:2px;margin:10px 0 2px}
 .sub{font-size:12.5px;color:#a89070;margin-bottom:16px}
-.cols{display:grid;grid-template-columns:340px 1fr;gap:18px;align-items:start}
+.cols{display:grid;grid-template-columns:410px 1fr;gap:18px;align-items:start}
 @media(max-width:860px){.cols{grid-template-columns:1fr}}
-/* 農場地圖 */
-.island{background:#b7ab99;border-radius:22px;padding:18px;min-height:300px}
+/* 農場地圖：九向網格（北西/北/北東 … 中 … 南東），位置由田區「方位」決定，不用拖 */
+.island{background:#b7ab99;border-radius:22px;padding:18px;min-height:340px}
 .island .it{font-size:15px;font-weight:900;color:#fff;letter-spacing:2px;margin-bottom:12px;text-shadow:0 1px 2px rgba(0,0,0,.15)}
-.plots{display:flex;flex-direction:column;gap:14px}
-.plot{background:#7fb069;border:none;border-radius:18px;padding:14px;text-align:center;cursor:pointer;position:relative;font-family:inherit;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.plots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;
+ grid-template-areas:"nw n ne" "w c e" "sw s se"}
+.cell{display:flex;flex-direction:column;gap:10px;justify-content:center;min-width:0}
+.cell-nw{grid-area:nw}.cell-n{grid-area:n}.cell-ne{grid-area:ne}
+.cell-w{grid-area:w}.cell-c{grid-area:c}.cell-e{grid-area:e}
+.cell-sw{grid-area:sw}.cell-s{grid-area:s}.cell-se{grid-area:se}
+.ihint{font-size:10.5px;color:#f4efe2;margin-top:12px;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.12);line-height:1.7}
+.plot{background:#7fb069;border:none;border-radius:16px;padding:12px 8px;text-align:center;cursor:pointer;position:relative;font-family:inherit;box-shadow:0 3px 0 rgba(0,0,0,.12)}
 .plot.on{outline:4px solid #ffd97a}
-.plot .pn{font-size:13.5px;font-weight:900;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.2)}
-.plot .pa{position:absolute;top:8px;right:12px;font-size:19px;font-weight:900;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.25)}
-.plot .pa small{font-size:11px;font-weight:700}
-.plot img{height:86px;margin:8px auto 2px;display:block;filter:drop-shadow(0 3px 3px rgba(0,0,0,.18))}
+.plot .pn{font-size:12px;font-weight:900;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.2);word-break:break-all;padding-right:48px;text-align:left}
+@media(max-width:520px){.plot .pn{padding-right:0;padding-top:18px}}
+.plot .pa{position:absolute;top:7px;right:9px;font-size:16px;font-weight:900;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.plot .pa small{font-size:10px;font-weight:700}
+.plot img{margin:8px auto 2px;display:block;max-width:88%;object-fit:contain;filter:drop-shadow(0 3px 3px rgba(0,0,0,.18))}
 .plot .pc{font-size:12px;font-weight:900;color:#eafbe0}
 .plot.empty{background:#98a88e;border:2.5px dashed #d6e2cd;box-shadow:none}
 .plot.empty .pe{font-size:26px;color:#eef4e8;margin:14px 0 4px}
@@ -87,6 +94,7 @@ h1{font-size:24px;font-weight:900;color:#5a4a30;letter-spacing:2px;margin:10px 0
     <div class="island">
       <div class="it" id="islandTitle">我的農場</div>
       <div class="plots" id="plots"></div>
+      <div class="ihint" id="ihint" style="display:none">📍 地塊位置＝田區設定的方位、大小依面積——到工具箱「⚙️ 我的農場」調整</div>
     </div>
     <div>
       <div class="panel">
@@ -114,12 +122,23 @@ let fields = S.get('fields', []) || [];
 let selIdx = 0;
 let curMonth;   // Date（該月 1 號）
 
-const seasonsMap = (() => {
+function loadSeasons() {
   const m = S.get('seasons', {}) || {};
   const legacy = S.get('season');
   if (legacy && legacy.crop && !m[legacy.crop]) m[legacy.crop] = legacy;
   return m;
-})();
+}
+let seasonsMap = loadSeasons();
+
+// 手機按「返回」鍵回來常走 bfcache（腳本不重跑）——重讀資料再畫，工具箱剛改的方位/田區才會反映
+window.addEventListener('pageshow', e => {
+  if (e.persisted) {
+    fields = S.get('fields', []) || [];
+    seasonsMap = loadSeasons();
+    if (selIdx >= fields.length) selIdx = Math.max(0, fields.length - 1);
+    initMonth(); renderAll();
+  }
+});
 
 function d2iso(d) {  // 本地日期（不能用 toISOString——UTC 轉換會讓台灣時區整體位移一天）
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -152,28 +171,60 @@ function buildEvents(plot) {
   return ev;
 }
 
+// 九向格：田區可設 dir（方位）；沒設的依序自動補位（中→東→西→南→北→東南→西北→東北→西南）
+const DIR_ORDER = ['c', 'e', 'w', 's', 'n', 'se', 'nw', 'ne', 'sw'];
+const CELL_ORDER = ['nw', 'n', 'ne', 'w', 'c', 'e', 'sw', 's', 'se'];
+function placedDirs() {  // 只算顯示位置，不寫回儲存
+  const used = {};
+  const out = fields.map(f => {
+    const d = DIR_ORDER.indexOf(f.dir) >= 0 ? f.dir : '';
+    if (d) used[d] = (used[d] || 0) + 1;
+    return d;
+  });
+  out.forEach((d, i) => {
+    if (!d) {
+      const free = DIR_ORDER.find(k => !used[k]) || 'c';
+      used[free] = (used[free] || 0) + 1;
+      out[i] = free;
+    }
+  });
+  return out;
+}
+
 function renderPlots() {
   const box = document.getElementById('plots');
+  const hint = document.getElementById('ihint');
   if (!fields.length) {
-    box.innerHTML = '<div class="empty-state">還沒有田區。<br>到工具箱「⚙️ 我的農場」加一塊地、設定種什麼，<br>回來這裡就會看到你的農場island。</div>';
+    box.innerHTML = '<div class="empty-state" style="grid-column:1/-1">還沒有田區。<br>到工具箱「⚙️ 我的農場」加一塊地、設定種什麼，<br>回來這裡就會看到你的農場島。</div>';
+    if (hint) hint.style.display = 'none';
     document.getElementById('info').innerHTML =
       '<a class="cta" href="./toolbox.html">🧰 去工具箱建立我的農場 ›</a>';
     return;
   }
-  box.innerHTML = fields.map((f, i) => {
+  if (hint) hint.style.display = '';
+  const dirs = placedDirs();
+  const maxA = Math.max.apply(null, fields.map(f => +f.area_fen || 1).concat([1]));
+  const plotHtml = (f, i) => {
+    const s = Math.max(0.6, Math.min(1, Math.sqrt((+f.area_fen || 1) / maxA)));  // 面積→大小（開根號比例）
+    const imgH = Math.round(100 * s);
     if (!f.crop) {
       return '<button class="plot empty' + (i === selIdx ? ' on' : '') + '" data-i="' + i + '">'
         + '<span class="pa">' + esc(f.area_fen) + '<small> 分</small></span>'
-        + '<div class="pn">' + esc(f.name) + '</div><div class="pe">＋</div>'
-        + '<div class="pc">還沒設定作物——到工具箱「我的農場」選</div></button>';
+        + '<div class="pn">' + esc(f.name) + '</div><div class="pe" style="font-size:' + Math.round(26 * s + 8) + 'px">＋</div>'
+        + '<div class="pc">還沒設定作物</div></button>';
     }
     const uri = CHARS[f.crop === '番茄' ? '牛蕃茄' : f.crop] || '';
     return '<button class="plot' + (i === selIdx ? ' on' : '') + '" data-i="' + i + '">'
       + '<span class="pa">' + esc(f.area_fen) + '<small> 分</small></span>'
       + '<div class="pn">' + esc(f.name) + '</div>'
-      + (uri ? '<img src="' + uri + '" alt="' + esc(f.crop) + '">' : '<div class="pe" style="font-size:40px;margin:10px 0">🌱</div>')
+      + (uri ? '<img src="' + uri + '" alt="' + esc(f.crop) + '" style="height:' + imgH + 'px">'
+             : '<div class="pe" style="font-size:' + Math.round(40 * s) + 'px;margin:10px 0">🌱</div>')
       + '<div class="pc">' + esc(f.crop) + '</div></button>';
-  }).join('');
+  };
+  box.innerHTML = CELL_ORDER.map(cell =>
+    '<div class="cell cell-' + cell + '">'
+    + fields.map((f, i) => dirs[i] === cell ? plotHtml(f, i) : '').join('')
+    + '</div>').join('');
   box.querySelectorAll('.plot').forEach(b => b.onclick = () => { selIdx = +b.dataset.i; initMonth(); renderAll(); });
 }
 
@@ -211,7 +262,7 @@ function renderCal() {
 function renderInfo() {
   const plot = fields[selIdx];
   const box = document.getElementById('info');
-  if (!plot) { box.innerHTML = ''; return; }
+  if (!plot) { box.innerHTML = '<a class="cta" href="./toolbox.html">🧰 去工具箱建立我的農場 ›</a>'; return; }
   const p = S.get('profile', {}) || {};
   if (!plot.crop) {
     box.innerHTML = '<div class="kv"><b>' + esc(plot.name) + '</b>（' + esc(plot.area_fen) + ' 分）還沒設定作物。</div>'
@@ -242,11 +293,121 @@ function renderInfo() {
       }).join('') + '</div>';
     }
     html += '<div class="foot">＊時程來自你在工具箱「最佳播種時機」排定的整季計畫；生長階段區間依本作物參數推算；📓 為你的作業日誌紀錄。</div>';
+    // 匯出卡是給消費者看的實體卡——只在有排時程時開放，卡上才不會出現空欄或 App 導引文字
+    html += '<button class="cta" id="expCard" style="width:100%;border:none;cursor:pointer;font-family:inherit">🖨 匯出資訊卡（可印出隨箱附上）</button>';
   } else {
     html += '<div class="kv">這塊地還沒排整季時程。</div>'
       + '<a class="cta" href="./toolbox.html?crop=' + encodeURIComponent(plot.crop) + '">📅 到工具箱幫「' + esc(plot.crop) + '」排時程 ›</a>';
   }
   box.innerHTML = html;
+  const eb = document.getElementById('expCard');
+  if (eb) eb.onclick = () => exportCard(plot);
+}
+
+/* ── 資訊卡匯出：畫成 PNG 讓農友印出隨箱附上（只放真實資料；自主記錄非官方驗證） ── */
+function _rrect(ctx, x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+// 舊版 Firefox 對只有 viewBox 的 SVG 會回報 0×0（drawImage 會靜默失敗）——當成載入失敗走降級路徑
+function _limg(src) { return new Promise(res => { if (!src) return res(null); const im = new Image(); im.onload = () => res(im.width > 0 && im.height > 0 ? im : null); im.onerror = () => res(null); im.src = src; }); }
+async function exportCard(plot) {
+  const p = S.get('profile', {}) || {};
+  const season = seasonsMap[plot.crop] || null;
+  const pack = PARAMS[plot.crop] || {};
+  const FONT = '"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
+  const phaseLines = [];
+  if (season) {
+    const b = season.transplant_date || season.sow_date;
+    (pack.growthPhases || []).forEach(ph => {
+      if (!b) return;
+      const from = addDays(b, ph.lo);
+      const to = ph.hi < 900 ? addDays(b, ph.hi) : (season.harvest_end || '採收季');
+      phaseLines.push({ n: ph.name, d: from + ' ～ ' + to });
+    });
+  }
+  const kvLines = [];
+  if (season) {
+    if (season.sow_date) kvLines.push(['播種日', season.sow_date]);
+    if (season.transplant_date && season.transplant_date !== season.sow_date) kvLines.push(['定植日', season.transplant_date]);
+    if (season.harvest_start) kvLines.push(['預計採收', season.harvest_start + (season.harvest_end ? ' ～ ' + season.harvest_end : '')]);
+  }
+  const W = 1000;
+  const H = 560 + kvLines.length * 52 + (phaseLines.length ? 60 + phaseLines.length * 74 : 70) + 244;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#faf6ec'; ctx.fillRect(0, 0, W, H);
+  _rrect(ctx, 40, 40, W - 80, H - 80, 36);
+  ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.lineWidth = 5; ctx.strokeStyle = '#e0d4b4'; ctx.stroke();
+  const [logo, chr] = await Promise.all([
+    _limg('toolbox-assets/logo_nongzhidao.png'),
+    _limg(CHARS[plot.crop === '番茄' ? '牛蕃茄' : plot.crop] || ''),
+  ]);
+  let y = 100;
+  if (chr) {
+    const ch = 250, cw = chr.width / chr.height * ch;
+    ctx.drawImage(chr, (W - cw) / 2, y, cw, ch); y += ch + 46;
+  } else y += 30;
+  // 長字自動縮級再畫（超過安全寬就一路降字級，比照站內長名階梯縮字）
+  const fitFont = (weight, size, text, maxW) => {
+    let s = size; ctx.font = weight + ' ' + s + 'px ' + FONT;
+    while (s > 16 && ctx.measureText(text).width > maxW) { s -= 2; ctx.font = weight + ' ' + s + 'px ' + FONT; }
+  };
+  ctx.textAlign = 'center'; ctx.fillStyle = '#5a4a30';
+  fitFont('900', 58, plot.crop, 820);
+  ctx.fillText(plot.crop, W / 2, y); y += 52;
+  const subT = (p.farm_name || '我的農場') + '｜' + plot.name + '（' + plot.area_fen + ' 分）';
+  ctx.fillStyle = '#a89070';
+  fitFont('700', 27, subT, 820);
+  ctx.fillText(subT, W / 2, y); y += 44;
+  ctx.strokeStyle = '#eee4cc'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(110, y); ctx.lineTo(W - 110, y); ctx.stroke(); y += 54;
+  ctx.textAlign = 'left';
+  if (kvLines.length) {
+    kvLines.forEach(kv => {
+      ctx.font = '700 30px ' + FONT; ctx.fillStyle = '#8a7a56';
+      ctx.fillText(kv[0] + '：', 120, y);
+      ctx.font = '900 30px ' + FONT; ctx.fillStyle = '#3d5a20';
+      ctx.fillText(kv[1], 120 + ctx.measureText(kv[0] + '：').width + 60, y);
+      y += 52;
+    });
+  } else {
+    // 正常流程到不了這裡（沒排時程不會出現匯出鈕）——保險起見印中性文字，不能有 App 導引字樣
+    ctx.font = '700 28px ' + FONT; ctx.fillStyle = '#a89070';
+    ctx.fillText('本季時程尚未排定', 120, y); y += 52;
+  }
+  if (phaseLines.length) {
+    y += 24;
+    ctx.font = '900 30px ' + FONT; ctx.fillStyle = '#2e7c6c';
+    ctx.fillText('🌱 生長階段', 120, y); y += 50;
+    phaseLines.forEach(ph => {
+      ctx.fillStyle = '#57b8a2'; ctx.fillRect(120, y - 30, 7, 58);
+      ctx.font = '900 27px ' + FONT; ctx.fillStyle = '#2e7c6c';
+      ctx.fillText(ph.n, 146, y);
+      ctx.font = '700 24px ' + FONT; ctx.fillStyle = '#8a9668';
+      ctx.fillText(ph.d, 146, y + 34);
+      y += 74;
+    });
+  }
+  // 底部：品牌 + 誠實標示（日期是排程推算值，不是逐日實際記錄）+ 合規註記
+  let fy = H - 209;
+  if (logo) {
+    const lh = 52, lw = logo.width / logo.height * lh;
+    ctx.drawImage(logo, (W - lw) / 2, fy - 40, lw, lh); fy += 42;
+  }
+  ctx.textAlign = 'center';
+  ctx.font = '700 21px ' + FONT; ctx.fillStyle = '#a89070';
+  ctx.fillText('＊日期依農友排定的時程與本作物生長階段推算，非逐日實際記錄', W / 2, fy); fy += 32;
+  ctx.fillText('本資訊卡為農友自主記錄，非官方產銷履歷（TAP）驗證', W / 2, fy); fy += 32;
+  ctx.fillText('農知島 The Island of Harvest｜我的農場島', W / 2, fy);
+  cv.toBlob(b => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = (p.farm_name || '我的農場') + '_' + plot.name + '_' + plot.crop + '_資訊卡.png';
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }, 'image/png');
 }
 
 function renderAll() { renderPlots(); renderCal(); renderInfo(); }

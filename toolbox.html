@@ -83,6 +83,8 @@ img.charimg{position:relative;width:126px;height:126px;object-fit:contain;flex:n
 .extra{margin-top:12px;font-size:12.5px;color:#a89070;line-height:1.6}
 .inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
 @media(max-width:520px){.inputs{grid-template-columns:1fr}}
+.fmadd{grid-template-columns:1.6fr .9fr 1.3fr 1fr auto;align-items:end}
+@media(max-width:640px){.fmadd{grid-template-columns:1fr 1fr}.fmadd .gobtn{grid-column:1/-1;width:100%}}
 .infield{background:#fff;border:2px solid #e0d4b4;border-radius:13px;padding:9px 13px}
 .infield .l{font-size:11.5px;font-weight:700;color:#a89070}
 .inrow{display:flex;align-items:baseline;gap:5px}
@@ -1818,6 +1820,7 @@ const CUSTOMS = {
     },
   },
   farm: {
+    FDIRS: [['', '自動'], ['c', '中'], ['e', '東'], ['se', '東南'], ['s', '南'], ['sw', '西南'], ['w', '西'], ['nw', '西北'], ['n', '北'], ['ne', '東北']],
     html() {
       const p = NZD.S.get('profile', {});
       return '<div class="inputs" style="grid-template-columns:1fr 1fr">'
@@ -1825,13 +1828,14 @@ const CUSTOMS = {
         + '<div class="infield"><div class="l">主要通路</div><select id="fm_ch">' + ['批發','直銷','電商'].map(c => '<option' + (p.channel_pref === c ? ' selected' : '') + '>' + c + '</option>').join('') + '</select></div>'
         + '</div>'
         + '<div class="ptitle" style="margin-top:14px">🗺 我的田區（成本試算會自動帶面積）</div><div class="plist" id="fm_list"></div>'
-        + '<div class="inputs" style="grid-template-columns:2fr 1fr 1.4fr auto;margin-top:8px;align-items:end">'
+        + '<div class="inputs fmadd" style="margin-top:8px">'
         + '<div class="infield"><div class="l">田區名</div><input id="fm_fname" type="text" placeholder="例：東邊那塊" style="font-size:14px"></div>'
         + '<div class="infield"><div class="l">面積</div><div class="inrow"><input id="fm_farea" type="text" inputmode="decimal" placeholder="2"><span class="u">分</span></div></div>'
-        + '<div class="infield"><div class="l">種什麼</div><select id="fm_fcrop"><option value="">（未定）</option>' + NZD.D.cropList().map(c => '<option' + (c === CROP.display ? ' selected' : '') + '>' + c + '</option>').join('') + '</select></div>'
+        + '<div class="infield"><div class="l">種什麼</div><select id="fm_fcrop" style="font-size:14px"><option value="">（未定）</option>' + NZD.D.cropList().map(c => '<option' + (c === CROP.display ? ' selected' : '') + '>' + c + '</option>').join('') + '</select></div>'
+        + '<div class="infield"><div class="l">農場島方位</div><select id="fm_fdir" style="font-size:14px">' + this.FDIRS.map(d => '<option value="' + d[0] + '">' + d[1] + '</option>').join('') + '</select></div>'
         + '<button class="gobtn" id="fm_addf" style="margin-top:0;padding:11px 18px;width:auto">＋</button>'
         + '</div>'
-        + '<div class="extra">設好田區和作物後，到 <a href="./myfarm.html" style="color:#5d8a34;font-weight:900">🏝 我的農場島</a> 看你的農場地圖和種植規劃月曆。</div>'
+        + '<div class="extra">設好田區和作物後，到 <a href="./myfarm.html" style="color:#5d8a34;font-weight:900">🏝 我的農場島</a> 看你的農場地圖和種植規劃月曆——地塊位置照「方位」排、大小照面積，不用拖拉。</div>'
         + '<button class="gobtn" id="fm_save">儲存設定 ›</button>'
         + '<div class="ptitle" style="margin-top:16px">💾 備份（很重要！）</div>'
         + '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">'
@@ -1841,13 +1845,23 @@ const CUSTOMS = {
         + '<div class="extra">所有工具的紀錄（日誌/讀值/成本/田區）都存在這支手機的瀏覽器。換手機或清瀏覽資料前，先匯出備份檔傳給自己。</div>';
     },
     init() {
+      const FD = this.FDIRS;
       const renderF = () => {
         const fs = NZD.S.get('fields', []);
         document.getElementById('fm_list').innerHTML = fs.length
-          ? fs.map((f, i) => '<div class="pitem" style="display:flex;gap:8px;align-items:baseline"><span style="flex:1"><b>' + f.name.replace(/</g, '&lt;') + '</b>　' + f.area_fen + ' 分</span><a href="javascript:void 0" data-fdel="' + i + '" style="color:#b05548;font-weight:900;text-decoration:none">✕</a></div>').join('')
+          ? fs.map((f, i) => '<div class="pitem" style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap">'
+              + '<span style="flex:1;min-width:120px"><b>' + f.name.replace(/</g, '&lt;') + '</b>　' + f.area_fen + ' 分'
+              + (f.crop ? '　<span style="color:#5d8a34;font-weight:900">' + f.crop.replace(/</g, '&lt;') + '</span>' : '') + '</span>'
+              + '<select data-fdir="' + i + '" style="font-family:inherit;font-size:12px;font-weight:700;border:1.5px solid #d8c9a4;border-radius:8px;padding:3px 6px;background:#fff;color:#7a5418">'
+              + FD.map(d => '<option value="' + d[0] + '"' + ((f.dir || '') === d[0] ? ' selected' : '') + '>📍' + d[1] + '</option>').join('') + '</select>'
+              + '<a href="javascript:void 0" data-fdel="' + i + '" style="color:#b05548;font-weight:900;text-decoration:none">✕</a></div>').join('')
           : '<div class="pitem" style="color:#a89070">還沒有田區——右下 ＋ 加一塊！</div>';
         document.querySelectorAll('#fm_list [data-fdel]').forEach(a => a.onclick = () => {
           const fs2 = NZD.S.get('fields', []); fs2.splice(+a.dataset.fdel, 1); NZD.S.set('fields', fs2); renderF();
+        });
+        document.querySelectorAll('#fm_list [data-fdir]').forEach(sel => sel.onchange = () => {
+          const fs2 = NZD.S.get('fields', []); const f = fs2[+sel.dataset.fdir];
+          if (f) { f.dir = sel.value; NZD.S.set('fields', fs2); }
         });
       };
       document.getElementById('fm_addf').onclick = () => {
@@ -1856,7 +1870,8 @@ const CUSTOMS = {
         if (!name || !(area > 0)) return;
         const fs = NZD.S.get('fields', []);
         fs.push({ id: 'f' + Date.now(), name, area_fen: area,
-                  crop: document.getElementById('fm_fcrop').value || '' });
+                  crop: document.getElementById('fm_fcrop').value || '',
+                  dir: document.getElementById('fm_fdir').value || '' });
         NZD.S.set('fields', fs);
         document.getElementById('fm_fname').value = ''; document.getElementById('fm_farea').value = '';
         renderF();
