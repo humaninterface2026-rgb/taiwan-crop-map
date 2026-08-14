@@ -96,6 +96,20 @@ img.charimg{position:relative;width:126px;height:126px;object-fit:contain;flex:n
 .result .r2{font-size:13px;color:#7a6a4c;margin-top:5px;line-height:1.65}
 .phase-badge{display:inline-block;margin-top:14px;font-size:12px;font-weight:900;background:#FDEBBF;color:#a85a16;border-radius:99px;padding:4px 13px}
 
+/* ── 輕度上手引導（可選不強制）── */
+.ob-card{margin:14px 0 4px;background:#fdf9ee;border:2px dashed #cdbd93;border-radius:16px;padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.ob-card .t{font-size:14.5px;font-weight:900;color:#5a4a30}
+.ob-card .btns{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.ob-btn{font-family:inherit;font-size:13px;font-weight:900;border-radius:99px;padding:8px 16px;cursor:pointer;border:2px solid #8aa353;background:#8aa353;color:#fff}
+.ob-btn.ghost{background:transparent;color:#8a7a56;border-color:#d8c9a4}
+.guide-strip{margin:14px 0 4px;background:#f2f6e4;border:2px solid #c9d69a;border-radius:16px;padding:12px 16px}
+.guide-strip .gh{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.guide-strip .gh .t{font-size:13px;font-weight:900;color:#5a7028}
+.guide-strip .gh .x{margin-left:auto;font-size:12px;color:#a89070;cursor:pointer;background:none;border:none;font-family:inherit;font-weight:700}
+.guide-steps{display:flex;gap:8px;flex-wrap:wrap}
+.gstep{font-family:inherit;font-size:13px;font-weight:700;border-radius:12px;padding:8px 14px;cursor:pointer;border:2px solid #d8dcc0;background:#fff;color:#5a4a30}
+.gstep.done{background:#dcead0;border-color:#a8c380;color:#3d5a20;cursor:default}
+.gstep.next{border-color:#8aa353;box-shadow:0 0 0 3px #e4ecc9}
 .wave{margin-top:44px;height:86px;background:radial-gradient(120% 70px at 50% 0,#faf6ec 60%,transparent 61%),#a3b86c;position:relative;flex:none}
 .wave .cp{position:absolute;bottom:18px;width:100%;text-align:center;font-size:12px;color:#f4f8e6;font-weight:700}
 </style></head><body>
@@ -1907,5 +1921,74 @@ document.getElementById('farmbtn')?.addEventListener('click', () =>
 
 renderTabs();
 renderTools();
+
+/* ── 輕度上手引導（2026-08-15 團隊共識：可選、不強制、可收）──
+   主線：① 我的農場建檔 → ② 作物選種 → ③ 排整季時程。
+   首訪二選一（帶我上手／直接用），選擇記住；老用戶不打擾，
+   header 有「🧭 上手引導」隨時叫回。 */
+(function initOnboard() {
+  if (typeof EMBED !== 'undefined' && EMBED) return;
+  const KEY = 'nzd.onboard';
+  const get = () => { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } };
+  const set = (v) => { try { localStorage.setItem(KEY, v); } catch (e) {} };
+
+  // header 加常駐入口
+  const btnRow = document.querySelector('header > div');
+  if (btnRow) {
+    const a = document.createElement('a');
+    a.className = 'backlink'; a.href = 'javascript:void 0'; a.textContent = '🧭 上手引導';
+    a.onclick = () => { const s = get(); set(s ? s.replace('skip', 'guide') : 'guide'); render(); };
+    btnRow.insertBefore(a, btnRow.firstChild);
+  }
+
+  const host = document.createElement('div');
+  document.querySelector('header').insertAdjacentElement('afterend', host);
+
+  function steps() {
+    const profile = NZD.S.get('profile') || {};
+    const season = NZD.S.get('season');
+    const vIdx = TOOLS.findIndex(t => t.calc === 'variety');
+    const sIdx = TOOLS.findIndex(t => t.custom === 'sow');
+    return [
+      { label: '⚙️ 建立我的農場', done: !!profile.farm_name,
+        go: () => document.getElementById('farmbtn').click() },
+      { label: (vIdx >= 0 ? TOOLS[vIdx].icon + ' ' + TOOLS[vIdx].name : '🌱 作物選種'),
+        done: get().indexOf('v2') >= 0,
+        go: () => { if (get().indexOf('v2') < 0) set(get() + '|v2'); if (vIdx >= 0) openModal(vIdx); } },
+      { label: (sIdx >= 0 ? TOOLS[sIdx].icon + ' ' + TOOLS[sIdx].name : '📅 排整季時程'),
+        done: !!season,
+        go: () => { if (sIdx >= 0) openModal(sIdx); } },
+    ];
+  }
+
+  function render() {
+    const st = get();
+    if (!st) {
+      host.innerHTML = '<div class="ob-card"><div class="t">👋 第一次用小農工具箱？三步帶你上手，也可以直接開逛。</div>'
+        + '<div class="btns"><button class="ob-btn" id="obGo">🌱 帶我上手</button>'
+        + '<button class="ob-btn ghost" id="obSkip">我熟了，直接用</button></div></div>';
+      document.getElementById('obGo').onclick = () => { set('guide'); render(); };
+      document.getElementById('obSkip').onclick = () => { set('skip'); render(); };
+      return;
+    }
+    if (st.indexOf('guide') < 0) { host.innerHTML = ''; return; }
+    const ss = steps();
+    const allDone = ss.every(s => s.done);
+    const nextIdx = ss.findIndex(s => !s.done);
+    host.innerHTML = '<div class="guide-strip"><div class="gh">'
+      + '<span class="t">' + (allDone ? '🎉 主線完成！之後每天開「灌溉排程」和「作業日誌」就對了' : '🧭 上手主線（點一步做一步，隨時可收）') + '</span>'
+      + '<button class="x" id="gClose">收起 ✕</button></div>'
+      + '<div class="guide-steps">' + ss.map((s, i) =>
+          '<button class="gstep' + (s.done ? ' done' : (i === nextIdx ? ' next' : '')) + '" data-i="' + i + '">'
+          + (s.done ? '✓ ' : '') + s.label + '</button>').join('') + '</div></div>';
+    document.getElementById('gClose').onclick = () => { set(st.replace('guide', 'skip')); render(); };
+    host.querySelectorAll('.gstep').forEach(b => {
+      b.onclick = () => ss[+b.dataset.i].go();   // 完成的步驟也可重新點開
+    });
+  }
+  render();
+  // 任何互動後刷新打勾狀態（存檔/排時程完成即反映）
+  document.addEventListener('click', () => setTimeout(render, 400), true);
+})();
 </script>
 </body></html>
