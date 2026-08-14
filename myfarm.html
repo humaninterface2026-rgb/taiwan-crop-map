@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>我的農場島｜農知島</title>
+<script src="toolbox-shared.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans TC','PingFang TC',sans-serif;background:#faf6ec;color:#5a4a30;min-height:100vh;display:flex;flex-direction:column}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 22px 40px;width:100%;flex:1}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+header img.logo{height:36px;display:block}
+.backlink{font-size:13px;font-weight:900;color:#7a5418;text-decoration:none;background:#fff;border:2px solid #e0d4b4;border-radius:99px;padding:8px 16px}
+.hbtns{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+h1{font-size:24px;font-weight:900;color:#5a4a30;letter-spacing:2px;margin:10px 0 2px}
+.sub{font-size:12.5px;color:#a89070;margin-bottom:16px}
+.cols{display:grid;grid-template-columns:340px 1fr;gap:18px;align-items:start}
+@media(max-width:860px){.cols{grid-template-columns:1fr}}
+/* 農場地圖 */
+.island{background:#b7ab99;border-radius:22px;padding:18px;min-height:300px}
+.island .it{font-size:15px;font-weight:900;color:#fff;letter-spacing:2px;margin-bottom:12px;text-shadow:0 1px 2px rgba(0,0,0,.15)}
+.plots{display:flex;flex-direction:column;gap:14px}
+.plot{background:#7fb069;border:none;border-radius:18px;padding:14px;text-align:center;cursor:pointer;position:relative;font-family:inherit;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.plot.on{outline:4px solid #ffd97a}
+.plot .pn{font-size:13.5px;font-weight:900;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.2)}
+.plot .pa{position:absolute;top:8px;right:12px;font-size:19px;font-weight:900;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.plot .pa small{font-size:11px;font-weight:700}
+.plot img{height:86px;margin:8px auto 2px;display:block;filter:drop-shadow(0 3px 3px rgba(0,0,0,.18))}
+.plot .pc{font-size:12px;font-weight:900;color:#eafbe0}
+.plot.empty{background:#98a88e;border:2.5px dashed #d6e2cd;box-shadow:none}
+.plot.empty .pe{font-size:26px;color:#eef4e8;margin:14px 0 4px}
+.plot.empty .pc{color:#e4ecdd}
+/* 月曆 */
+.panel{background:#b7ab99;border-radius:22px;padding:18px}
+.panel .pt{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.panel .pt .t{font-size:15px;font-weight:900;color:#fff;letter-spacing:2px;text-shadow:0 1px 2px rgba(0,0,0,.15)}
+.mnav{margin-left:auto;display:flex;gap:6px;align-items:center}
+.mnav button{font-family:inherit;font-size:14px;font-weight:900;border:none;background:#fff;color:#7a5418;border-radius:9px;width:30px;height:30px;cursor:pointer}
+.mnav .mm{font-size:14px;font-weight:900;color:#fff;min-width:96px;text-align:center;text-shadow:0 1px 2px rgba(0,0,0,.15)}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.calgrid .wd{font-size:12px;font-weight:900;color:#fff;text-align:center;padding:4px 0;text-shadow:0 1px 2px rgba(0,0,0,.15)}
+.day{background:#fdf9ee;border-radius:10px;min-height:66px;padding:5px 6px;font-size:11px}
+.day.out{opacity:.35}
+.day.today{outline:2.5px solid #ffd97a}
+.day .dn{font-weight:900;color:#8a7a56;font-size:11px}
+.ev{margin-top:3px;border-radius:6px;padding:2px 5px;font-size:10.5px;font-weight:900;line-height:1.35;overflow:hidden}
+.ev.sow{background:#ffd97a;color:#7a5418}
+.ev.tp{background:#e8a952;color:#fff}
+.ev.phase{background:#57b8a2;color:#fff}
+.ev.harv{background:#e8828c;color:#fff}
+.ev.log{background:#cde6a8;color:#4a6420}
+/* Info */
+.info{background:#fff;border-radius:16px;padding:14px 16px;margin-top:14px}
+.info .ih{display:flex;gap:12px;align-items:center}
+.info .ih img{height:64px}
+.info .ih .t{font-size:16px;font-weight:900;color:#5a4a30}
+.info .ih .s{font-size:12px;color:#a89070;margin-top:2px}
+.kv{margin-top:10px;font-size:12.5px;line-height:2;color:#5a4a30}
+.kv b{color:#3d5a20}
+.phaselist{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+.ph{border-left:4px solid #57b8a2;background:#f4faf7;border-radius:0 10px 10px 0;padding:7px 10px}
+.ph .pn2{font-size:12.5px;font-weight:900;color:#2e7c6c}
+.ph .pd{font-size:11px;color:#8a9668}
+.ph .pf{font-size:11.5px;color:#5a4a30;margin-top:3px;line-height:1.6}
+.cta{display:block;text-align:center;background:#8aa353;color:#fff;font-weight:900;font-size:13.5px;text-decoration:none;border-radius:12px;padding:12px;margin-top:12px}
+.foot{font-size:10.5px;color:#a89070;margin-top:12px;line-height:1.7}
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:10.5px;color:#fff;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.15)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.wave{margin-top:44px;height:86px;background:radial-gradient(120% 70px at 50% 0,#faf6ec 60%,transparent 61%),#a3b86c;position:relative;flex:none}
+.wave .cp{position:absolute;bottom:18px;width:100%;text-align:center;font-size:12px;color:#f4f8e6;font-weight:700}
+.empty-state{background:#fdf9ee;border:2px dashed #cdbd93;border-radius:16px;padding:26px 20px;text-align:center;font-size:14px;color:#8a7a56;line-height:2}
+</style></head>
+<body>
+<div class="wrap">
+  <header>
+    <a href="./index.html" title="回農知島首頁" style="line-height:0"><img class="logo" src="toolbox-assets/logo_nongzhidao.png" alt="農知島"></a>
+    <div class="hbtns">
+      <a class="backlink" id="tbLink" href="./toolbox.html">🧰 小農工具箱</a>
+      <a class="backlink" href="./index.html">← 回作物地圖</a>
+    </div>
+  </header>
+  <h1 id="farmTitle">🏝 我的農場島</h1>
+  <div class="sub">你的地、你的作物、你的整季規劃——資料都存在這支裝置的瀏覽器裡</div>
+
+  <div class="cols">
+    <div class="island">
+      <div class="it" id="islandTitle">我的農場</div>
+      <div class="plots" id="plots"></div>
+    </div>
+    <div>
+      <div class="panel">
+        <div class="pt"><span class="t">種植規劃表</span>
+          <span class="mnav"><button id="mPrev">‹</button><span class="mm" id="mLabel"></span><button id="mNext">›</button></span>
+        </div>
+        <div class="calgrid" id="cal"></div>
+        <div class="legend">
+          <span><i style="background:#ffd97a"></i>播種</span><span><i style="background:#e8a952"></i>定植</span>
+          <span><i style="background:#57b8a2"></i>生長階段</span><span><i style="background:#e8828c"></i>採收</span>
+          <span><i style="background:#cde6a8"></i>我的日誌</span>
+        </div>
+      </div>
+      <div class="info" id="info"></div>
+    </div>
+  </div>
+</div>
+<div class="wave"><div class="cp">農知島 The Island of Harvest｜我的農場島</div></div>
+
+<script>
+const S = NZD.S;
+const esc = s => String(s == null ? '' : s).replace(/</g, '&lt;');
+let CHARS = {}, PARAMS = {};
+let fields = S.get('fields', []) || [];
+let selIdx = 0;
+let curMonth;   // Date（該月 1 號）
+
+const seasonsMap = (() => {
+  const m = S.get('seasons', {}) || {};
+  const legacy = S.get('season');
+  if (legacy && legacy.crop && !m[legacy.crop]) m[legacy.crop] = legacy;
+  return m;
+})();
+
+function d2iso(d) {  // 本地日期（不能用 toISOString——UTC 轉換會讓台灣時區整體位移一天）
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function addDays(iso, n) { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d2iso(d); }
+
+// 由「排好的時程＋參數包生長階段＋作業日誌」組出事件表：date → [{cls,label}]
+function buildEvents(plot) {
+  const ev = {};
+  const push = (iso, cls, label) => { if (!iso) return; (ev[iso] = ev[iso] || []).push({ cls, label }); };
+  const season = plot.crop ? seasonsMap[plot.crop] : null;
+  if (season) {
+    push(season.sow_date, 'sow', '播種日');
+    if (season.transplant_date && season.transplant_date !== season.sow_date)
+      push(season.transplant_date, 'tp', '定植');
+    const pack = (PARAMS[plot.crop] || {});
+    const phases = pack.growthPhases || [];
+    const base = season.transplant_date || season.sow_date;
+    phases.forEach(p => {
+      if (base && p.lo > 0 && p.hi < 900) push(addDays(base, p.lo), 'phase', '進入' + p.name);
+      else if (base && p.lo > 0) push(addDays(base, p.lo), 'phase', '進入' + p.name);
+    });
+    push(season.harvest_start, 'harv', '預計開採');
+    if (season.harvest_end && season.harvest_end !== season.harvest_start)
+      push(season.harvest_end, 'harv', '採收結束');
+  }
+  (S.get('logs', []) || []).forEach(l => {
+    if (l && l.date) push(l.date, 'log', '📓 ' + (l.cat || '') + ' ' + (l.txt || '').slice(0, 8));
+  });
+  return ev;
+}
+
+function renderPlots() {
+  const box = document.getElementById('plots');
+  if (!fields.length) {
+    box.innerHTML = '<div class="empty-state">還沒有田區。<br>到工具箱「⚙️ 我的農場」加一塊地、設定種什麼，<br>回來這裡就會看到你的農場island。</div>';
+    document.getElementById('info').innerHTML =
+      '<a class="cta" href="./toolbox.html">🧰 去工具箱建立我的農場 ›</a>';
+    return;
+  }
+  box.innerHTML = fields.map((f, i) => {
+    if (!f.crop) {
+      return '<button class="plot empty' + (i === selIdx ? ' on' : '') + '" data-i="' + i + '">'
+        + '<span class="pa">' + esc(f.area_fen) + '<small> 分</small></span>'
+        + '<div class="pn">' + esc(f.name) + '</div><div class="pe">＋</div>'
+        + '<div class="pc">還沒設定作物——到工具箱「我的農場」選</div></button>';
+    }
+    const uri = CHARS[f.crop === '番茄' ? '牛蕃茄' : f.crop] || '';
+    return '<button class="plot' + (i === selIdx ? ' on' : '') + '" data-i="' + i + '">'
+      + '<span class="pa">' + esc(f.area_fen) + '<small> 分</small></span>'
+      + '<div class="pn">' + esc(f.name) + '</div>'
+      + (uri ? '<img src="' + uri + '" alt="' + esc(f.crop) + '">' : '<div class="pe" style="font-size:40px;margin:10px 0">🌱</div>')
+      + '<div class="pc">' + esc(f.crop) + '</div></button>';
+  }).join('');
+  box.querySelectorAll('.plot').forEach(b => b.onclick = () => { selIdx = +b.dataset.i; initMonth(); renderAll(); });
+}
+
+function initMonth() {
+  const plot = fields[selIdx];
+  const season = plot && plot.crop ? seasonsMap[plot.crop] : null;
+  const anchor = season ? (season.transplant_date || season.sow_date) : null;
+  const d = anchor ? new Date(anchor + 'T12:00:00') : new Date();
+  curMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
+function renderCal() {
+  const plot = fields[selIdx] || {};
+  const ev = buildEvents(plot);
+  const y = curMonth.getFullYear(), m = curMonth.getMonth();
+  document.getElementById('mLabel').textContent = y + ' 年 ' + (m + 1) + ' 月';
+  const first = new Date(y, m, 1);
+  const start = new Date(first); start.setDate(1 - first.getDay());
+  const todayISO = d2iso(new Date());
+  let html = ['日', '一', '二', '三', '四', '五', '六'].map(w => '<div class="wd">' + w + '</div>').join('');
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    const iso = d2iso(d);
+    const out = d.getMonth() !== m;
+    const evs = ev[iso] || [];
+    html += '<div class="day' + (out ? ' out' : '') + (iso === todayISO ? ' today' : '') + '">'
+      + '<div class="dn">' + (d.getMonth() + 1) + '/' + d.getDate() + '</div>'
+      + evs.slice(0, 3).map(e => '<div class="ev ' + e.cls + '">' + esc(e.label) + '</div>').join('')
+      + (evs.length > 3 ? '<div class="ev log">+' + (evs.length - 3) + '</div>' : '')
+      + '</div>';
+  }
+  document.getElementById('cal').innerHTML = html;
+}
+
+function renderInfo() {
+  const plot = fields[selIdx];
+  const box = document.getElementById('info');
+  if (!plot) { box.innerHTML = ''; return; }
+  const p = S.get('profile', {}) || {};
+  if (!plot.crop) {
+    box.innerHTML = '<div class="kv"><b>' + esc(plot.name) + '</b>（' + esc(plot.area_fen) + ' 分）還沒設定作物。</div>'
+      + '<a class="cta" href="./toolbox.html">🧰 到工具箱「⚙️ 我的農場」設定作物 ›</a>';
+    return;
+  }
+  const season = seasonsMap[plot.crop];
+  const uri = CHARS[plot.crop === '番茄' ? '牛蕃茄' : plot.crop] || '';
+  const pack = PARAMS[plot.crop] || {};
+  let html = '<div class="ih">' + (uri ? '<img src="' + uri + '">' : '')
+    + '<div><div class="t">' + esc(plot.crop) + '</div>'
+    + '<div class="s">' + esc(p.farm_name || '我的農場') + '｜' + esc(plot.name) + '（' + esc(plot.area_fen) + ' 分）</div></div></div>';
+  if (season) {
+    html += '<div class="kv">'
+      + (season.sow_date ? '播種日：<b>' + season.sow_date + '</b><br>' : '')
+      + (season.transplant_date ? '定植日：<b>' + season.transplant_date + '</b><br>' : '')
+      + (season.harvest_start ? '預計採收：<b>' + season.harvest_start + (season.harvest_end ? ' ～ ' + season.harvest_end : '') + '</b>' : '')
+      + '</div>';
+    const base = season.transplant_date || season.sow_date;
+    const phases = pack.growthPhases || [];
+    if (base && phases.length) {
+      html += '<div class="phaselist">' + phases.map(ph => {
+        const from = addDays(base, ph.lo);
+        const to = ph.hi < 900 ? addDays(base, ph.hi) : (season.harvest_end || '採收季');
+        return '<div class="ph"><div class="pn2">' + esc(ph.name) + '</div>'
+          + '<div class="pd">' + from + ' ～ ' + to + '</div>'
+          + (ph.fert ? '<div class="pf">' + esc(ph.fert) + '</div>' : '') + '</div>';
+      }).join('') + '</div>';
+    }
+    html += '<div class="foot">＊時程來自你在工具箱「最佳播種時機」排定的整季計畫；生長階段區間依本作物參數推算；📓 為你的作業日誌紀錄。</div>';
+  } else {
+    html += '<div class="kv">這塊地還沒排整季時程。</div>'
+      + '<a class="cta" href="./toolbox.html?crop=' + encodeURIComponent(plot.crop) + '">📅 到工具箱幫「' + esc(plot.crop) + '」排時程 ›</a>';
+  }
+  box.innerHTML = html;
+}
+
+function renderAll() { renderPlots(); renderCal(); renderInfo(); }
+
+document.getElementById('mPrev').onclick = () => { curMonth = new Date(curMonth.getFullYear(), curMonth.getMonth() - 1, 1); renderCal(); };
+document.getElementById('mNext').onclick = () => { curMonth = new Date(curMonth.getFullYear(), curMonth.getMonth() + 1, 1); renderCal(); };
+
+(async function boot() {
+  const p = S.get('profile', {}) || {};
+  if (p.farm_name) {
+    document.getElementById('farmTitle').textContent = '🏝 ' + p.farm_name;
+    document.getElementById('islandTitle').textContent = p.farm_name + '的島';
+  }
+  try { CHARS = await (await fetch('toolbox-assets/crop_chars.json')).json(); } catch (e) {}
+  try { PARAMS = (await (await fetch('toolbox-assets/crop-params.json')).json()).crops || {}; } catch (e) {}
+  // 預設選第一塊有作物的地
+  const k = fields.findIndex(f => f.crop);
+  selIdx = k >= 0 ? k : 0;
+  initMonth();
+  renderAll();
+})();
+</script>
+</body></html>

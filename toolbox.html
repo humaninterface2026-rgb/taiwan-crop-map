@@ -132,6 +132,7 @@ img.charimg{position:relative;width:126px;height:126px;object-fit:contain;flex:n
       <img src="toolbox-assets/logo_nongzhidao.png" alt="農知島 The Island of Harvest" style="height:37px;width:auto;display:block">
     </a>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a class="backlink" href="./myfarm.html">🏝 我的農場島</a>
       <a class="backlink" id="farmbtn" href="javascript:void 0">⚙️ 我的農場</a>
       <a class="backlink" id="dashlink" href="./crop-dashboard.html">📊 行情儀表板</a>
       <a class="backlink" href="./index.html">← 回作物地圖</a>
@@ -694,14 +695,46 @@ const CALCS = {
       return { headline: head, detail: det + ' 判斷門檻：庫存高>' + P.stockHi + 'kg／行情低<' + P.priceLo + ' 元、高>' + NZD.C.priceBand.high + ' 元（牛蕃茄口徑）。加工前先算過成本：代工費+包材若吃掉價差就別做。' };
     },
   },
-  copywrite: {
-    inputs: [
-      { key: 'sell', label: '主打賣點', unit: '', def: '新鮮直送', options: ['新鮮直送', '產地故事', '安心品質', '量大優惠', '🎲 幫我想'] },
-      { key: 'tone', label: '要發到哪', unit: '', def: 'FB/LINE 社團', options: ['FB/LINE 社團', 'IG 貼文', '拍賣/蝦皮商品文'] },
-      { key: 'price', label: '售價', unit: '元', def: '45' },
-      { key: 'custom', label: '自家亮點（選填，會編進文案）', unit: '例：在地農友吳伯伯，吃玉米長大的黑毛豬', def: '' },
-    ],
-    button: '生文案 ›',
+  // 文案生成 — 接共用引擎 v2（toolbox-product-calcs.js 的 _mkCopywrite：
+  // 口吻×3、節氣時令、作業日誌入文、亮點填空、🎲隨機池），組態依作物動態產生
+  copywrite: Object.assign(_mkCopywrite(function () {
+    const lex = CALCS.copywrite._lex();
+    const n = CROP.display, county = CROP.county;
+    return {
+      emoji: lex.emoji, noun: n, unit: lex.unit, unitNote: '', defPrice: 45,
+      defSell: '新鮮直送', fresh: lex.fresh, story: lex.story, safe: lex.safe,
+      ship: lex.ship, keep: lex.keep,
+      notice: ['農產品依當日採收狀況出貨，外觀略有差異屬自然現象',
+               '鑑賞期非試用期，生鮮品項不適用七天猶豫期'],
+      tags: lex.tags.concat([n]),
+      sells: {
+        '新鮮直送': [
+          { head: lex.emoji + ' ' + lex.fresh + '，' + n + '開賣！',
+            sub: '不進批發市場、少一層通路，到你手上就是最新鮮的狀態。' },
+          { head: lex.emoji + ' 本週' + n + '到貨——' + lex.fresh + '！',
+            sub: '從產地到你家只有一段路，鮮度自己會說話。' },
+        ],
+        '產地故事': [
+          { head: lex.emoji + ' 來自' + county + '的' + n + '，' + lex.story[0].replace(/，$/, '') + '。',
+            sub: lex.story[1] },
+          { head: lex.emoji + ' 認識一下' + county + '的' + n + '——' + lex.story[1].replace(/。$/, '') + '。',
+            sub: lex.story[0].replace(/，$/, '') + '，這是我們的日常。' },
+        ],
+        '安心品質': [
+          { head: '🌱 ' + n + '安心上架——' + lex.safe + '。',
+            sub: '吃進嘴裡的東西，我們自己每天也在吃。' },
+          { head: '🌱 給家人吃的' + n + '，才敢賣給你。',
+            sub: lex.safe + '，來源清楚、吃得放心。' },
+        ],
+        '量大優惠': [
+          { head: '📦 產季正旺、' + n + '量大直配，揪團更划算！',
+            sub: '鄰居親友湊一單，運費均攤、價格更漂亮。' },
+          { head: '📦 ' + n + '大出清——產季就是要吃個過癮！',
+            sub: '自用送禮都合適，量多另有優惠歡迎聊聊。' },
+        ],
+      },
+    };
+  }), {
     // 分類詞庫 — 文案依品項類型長出對的話（茶不會「現採番茄」、豬不會「從藤上摘」）
     _lex() {
       const n = CROP.display, county = CROP.county;
@@ -759,76 +792,7 @@ const CALCS = {
       } catch (e) {}
       calcNote('✍️ 請填你的實際售價（元/' + lex.unit + '）' + (p && p.farm_name ? '；署名用「' + p.farm_name + '」' : '——到 ⚙️ 我的農場填農場名，文案會自動署名'));
     },
-    run(v) {
-      const p = NZD.S.get('profile');
-      const farm = (p && p.farm_name) ? p.farm_name : (CROP.county + '小農');
-      const n = CROP.display, county = CROP.county;
-      const lex = this._lex();
-      const price = +v.price || 0;
-      const priceLine = price ? price + ' 元／' + lex.unit : '歡迎私訊詢價';
-      const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-      // 🎲 幫我想：隨機挑賣點；四種賣點各有多組開場，每按一次都不一樣
-      let sell = v.sell;
-      if (sell === '🎲 幫我想') sell = pick(['新鮮直送', '產地故事', '安心品質', '量大優惠']);
-      const hooks = {
-        '新鮮直送': pick([
-          { head: lex.emoji + ' ' + lex.fresh + '，' + n + '開賣！',
-            sub: '不進批發市場、少一層通路，到你手上就是最新鮮的狀態。' },
-          { head: lex.emoji + ' 本週' + n + '到貨——' + lex.fresh + '！',
-            sub: '從產地到你家只有一段路，鮮度自己會說話。' },
-        ]),
-        '產地故事': pick([
-          { head: lex.emoji + ' 來自' + county + '的' + n + '，' + lex.story[0].replace(/，$/, '') + '。',
-            sub: lex.story[1] },
-          { head: lex.emoji + ' 認識一下' + county + '的' + n + '——' + lex.story[1].replace(/。$/, '') + '。',
-            sub: lex.story[0].replace(/，$/, '') + '，這是我們的日常。' },
-        ]),
-        '安心品質': pick([
-          { head: '🌱 ' + n + '安心上架——' + lex.safe + '。',
-            sub: '吃進嘴裡的東西，我們自己每天也在吃。' },
-          { head: '🌱 給家人吃的' + n + '，才敢賣給你。',
-            sub: lex.safe + '，來源清楚、吃得放心。' },
-        ]),
-        '量大優惠': pick([
-          { head: '📦 產季正旺、' + n + '量大直配，揪團更划算！',
-            sub: '鄰居親友湊一單，運費均攤、價格更漂亮。' },
-          { head: '📦 ' + n + '大出清——產季就是要吃個過癮！',
-            sub: '自用送禮都合適，量多另有優惠歡迎聊聊。' },
-        ]),
-      };
-      const h = hooks[sell];
-      const custom = (v.custom || '').trim();
-      const customLine = custom ? '⭐ ' + custom : '';
-      const cta = pick(['要的請留言 +1 或私訊，收單後依序安排出貨！',
-                        '數量有限，留言 +1 先搶先贏，私訊也通！',
-                        '想吃的別猶豫——留言 +1 或私訊下單，額滿收單！']);
-      v = Object.assign({}, v, { sell: sell });
-      const tags = lex.tags.concat([county.slice(0, 2) + '小農', n]).map(t => '#' + t.replace(/\s/g, '')).join(' ');
-      let text;
-      if (v.tone === 'IG 貼文') {
-        // 「產地故事」賣點的開頭已是故事本身 → 不再重複故事段
-        const storyBlock = v.sell === '產地故事' ? '' : '—\n' + lex.story[0] + '\n' + lex.story[1] + '\n';
-        text = h.head + '\n' + h.sub + '\n' + (customLine ? customLine + '\n' : '') + storyBlock +
-          '—\n' + lex.emoji + ' ' + farm + '｜' + n + '\n💰 ' + priceLine +
-          '\n📦 ' + lex.ship + '\n🛒 訂購請私訊，或留言 +1\n—\n' + tags;
-      } else if (v.tone === '拍賣/蝦皮商品文') {
-        text = '【' + farm + '】' + county + n + '｜' + v.sell +
-          '\n\n' + (custom ? '✔ ' + custom + '\n' : '') +
-          '✔ ' + lex.fresh + '\n✔ ' + lex.safe + '\n✔ ' + lex.story[0] + lex.story[1] +
-          '\n\n─ 商品規格 ─\n・品項：' + n + '（' + county + '產）\n・價格：' + priceLine +
-          '\n・出貨：' + lex.ship + '\n・保存：' + lex.keep +
-          '\n\n─ 購買須知 ─\n・農產品依當日採收狀況出貨，外觀略有差異屬自然現象\n・鑑賞期非試用期，生鮮品項不適用七天猶豫期\n・大量訂購（店家/團購）歡迎聊聊議價';
-      } else {
-        text = h.head + '\n' + h.sub + '\n\n' + (customLine ? customLine + '\n\n' : '') +
-          lex.story[0] + lex.story[1] +
-          '\n\n🛒 本週供應\n・' + farm + '｜' + n + '\n・' + priceLine +
-          '\n・' + lex.ship + '\n📍 ' + county + '面交／全台宅配\n\n' + cta;
-      }
-      const short = lex.emoji + ' ' + (custom ? custom + '｜' : '') + n + ' ' + priceLine + '｜' + lex.fresh + '，要的 +1！';
-      return { headline: '文案好了，長按複製直接發！',
-               detail: text + '\n\n— 短版（限時動態／群組快發）—\n' + short };
-    },
-  },
+  }),
   buyer: {
     inputs: [
       { key: 'ch', label: '想走的通路', unit: '', def: '農會共同運銷', options: ['農會共同運銷', '果菜批發市場', '餐廳/店家直供', '社區團購', '電商平台'] },
@@ -1797,8 +1761,13 @@ const CUSTOMS = {
           + ' 存檔後施肥/預警/採收工具都會跟著這份時程走。</div>'
           + '<button class="gobtn" id="sw_save" style="margin-top:10px">就選這天，存整季時程 ›</button></div></div>';
         document.getElementById('sw_save').onclick = () => {
-          NZD.S.set('season', { sow_date: sowDate, transplant_date: tpISO, harvest_start: hw.start, harvest_end: hw.end,
-            crop: CROP.display, county: CROP.county, decided_at: new Date().toISOString() });
+          const seasonObj = { sow_date: sowDate, transplant_date: tpISO, harvest_start: hw.start, harvest_end: hw.end,
+            crop: CROP.display, county: CROP.county, decided_at: new Date().toISOString() };
+          NZD.S.set('season', seasonObj);
+          // 同步存進「按作物」的時程表 — 我的農場島月曆用（一塊地一種作物各自的時程）
+          const all = NZD.S.get('seasons', {}) || {};
+          all[CROP.display] = seasonObj;
+          NZD.S.set('seasons', all);
           document.getElementById('sw_save').textContent = '✓ 已存！施肥計畫、氣象預警現在都認得你的時程了';
           document.getElementById('sw_save').style.background = '#5d8a34';
         };
@@ -1851,11 +1820,13 @@ const CUSTOMS = {
         + '<div class="infield"><div class="l">主要通路</div><select id="fm_ch">' + ['批發','直銷','電商'].map(c => '<option' + (p.channel_pref === c ? ' selected' : '') + '>' + c + '</option>').join('') + '</select></div>'
         + '</div>'
         + '<div class="ptitle" style="margin-top:14px">🗺 我的田區（成本試算會自動帶面積）</div><div class="plist" id="fm_list"></div>'
-        + '<div class="inputs" style="grid-template-columns:2fr 1fr auto;margin-top:8px;align-items:end">'
+        + '<div class="inputs" style="grid-template-columns:2fr 1fr 1.4fr auto;margin-top:8px;align-items:end">'
         + '<div class="infield"><div class="l">田區名</div><input id="fm_fname" type="text" placeholder="例：東邊那塊" style="font-size:14px"></div>'
         + '<div class="infield"><div class="l">面積</div><div class="inrow"><input id="fm_farea" type="text" inputmode="decimal" placeholder="2"><span class="u">分</span></div></div>'
+        + '<div class="infield"><div class="l">種什麼</div><select id="fm_fcrop"><option value="">（未定）</option>' + NZD.D.cropList().map(c => '<option' + (c === CROP.display ? ' selected' : '') + '>' + c + '</option>').join('') + '</select></div>'
         + '<button class="gobtn" id="fm_addf" style="margin-top:0;padding:11px 18px;width:auto">＋</button>'
         + '</div>'
+        + '<div class="extra">設好田區和作物後，到 <a href="./myfarm.html" style="color:#5d8a34;font-weight:900">🏝 我的農場島</a> 看你的農場地圖和種植規劃月曆。</div>'
         + '<button class="gobtn" id="fm_save">儲存設定 ›</button>'
         + '<div class="ptitle" style="margin-top:16px">💾 備份（很重要！）</div>'
         + '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">'
@@ -1879,7 +1850,8 @@ const CUSTOMS = {
         const area = +document.getElementById('fm_farea').value;
         if (!name || !(area > 0)) return;
         const fs = NZD.S.get('fields', []);
-        fs.push({ id: 'f' + Date.now(), name, area_fen: area });
+        fs.push({ id: 'f' + Date.now(), name, area_fen: area,
+                  crop: document.getElementById('fm_fcrop').value || '' });
         NZD.S.set('fields', fs);
         document.getElementById('fm_fname').value = ''; document.getElementById('fm_farea').value = '';
         renderF();

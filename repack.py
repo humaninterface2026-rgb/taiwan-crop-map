@@ -456,9 +456,10 @@ except Exception:
 precache_urls = [
     "index.html",
     "assets/page-data.json",
-    # 工具箱三頁與其大檔 — 部署時就預抓，第一次點進工具箱也能秒開
+    # 工具箱各頁與其大檔 — 部署時就預抓，第一次點進工具箱也能秒開
     "toolbox.html",
     "crop-dashboard.html",
+    "myfarm.html",
     "toolbox-shared.js",
     "toolbox-entry.js",
     "toolbox-product-calcs.js",
