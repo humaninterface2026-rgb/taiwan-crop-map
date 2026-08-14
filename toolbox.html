@@ -3,8 +3,9 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>小農工具箱｜農知島</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
-<script src="toolbox-shared.js"></script>
-<script src="toolbox-product-calcs.js"></script>
+<!-- ?v= 與本頁版本配對 — 防止 CDN/SW 混版（新 HTML 配舊 JS 會整頁掛掉，2026-08-15 事故） -->
+<script src="toolbox-shared.js?v=20260815a"></script>
+<script src="toolbox-product-calcs.js?v=20260815a"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Noto Sans TC',sans-serif;background:#faf6ec;color:#5a4a30;min-height:100vh;display:flex;flex-direction:column}
@@ -697,7 +698,11 @@ const CALCS = {
   },
   // 文案生成 — 接共用引擎 v2（toolbox-product-calcs.js 的 _mkCopywrite：
   // 口吻×3、節氣時令、作業日誌入文、亮點填空、🎲隨機池），組態依作物動態產生
-  copywrite: Object.assign(_mkCopywrite(function () {
+  // 保險絲：引擎版本不配對（混版快取）時降級提示，不讓整頁掛掉
+  copywrite: Object.assign((typeof _mkCopywrite !== 'function' || !_mkCopywrite.v2)
+    ? { inputs: [], button: '請重新整理 ›',
+        run: () => ({ headline: '工具剛更新完成', detail: '瀏覽器快取正在換新版——重新整理頁面一次就好。' }) }
+    : _mkCopywrite(function () {
     const lex = CALCS.copywrite._lex();
     const n = CROP.display, county = CROP.county;
     return {

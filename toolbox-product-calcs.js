@@ -1,23 +1,52 @@
 // 產品型態工具內容覆蓋（蜂蜜/黑豬肉/石門活魚）——由 PRODUCT_SKIN 合併進 CALCS。
 // 內容依 toolbox-assets/crop-params.json 專屬參數包；連結皆實測可達。
 
-// ── 共用文案引擎（2026-08-15）：三產品的行銷文案共用一套豐富模板 ──
-// cfg：emoji/noun/unit/defPrice/fresh/story[2]/safe/ship/keep/notice[]/tags[]/
-//      sells={賣點label:[{head,sub}×N 變化]}/defSell
-// 提供：🎲幫我想（隨機賣點）、自家亮點填空、每按一次開場隨機換、三平台模板＋短版
-function _mkCopywrite(cfg) {
+// ── 共用文案引擎 v2（2026-08-15）：全品項行銷文案的唯一引擎 ──
+// cfg（物件或回傳物件的函式，後者供依作物動態組態）：
+//   emoji/noun/unit/defPrice/fresh/story[2]/safe/ship/keep/notice[]/tags[]/
+//   sells={賣點label:[{head,sub}×N]}/defSell
+// 客製維度：主打賣點(+🎲隨機)、三平台、三種口吻、自家亮點填空、
+//           節氣時令句、作業日誌入文（都是使用者自己的資料）、多層隨機池
+function _seasonPhrase() {
+  // 近似節氣（±1 天，只當文案時令語，非農事依據）
+  const T = [[1,5,'小寒'],[1,20,'大寒'],[2,3,'立春'],[2,18,'雨水'],[3,5,'驚蟄'],[3,20,'春分'],
+             [4,4,'清明'],[4,19,'穀雨'],[5,5,'立夏'],[5,20,'小滿'],[6,5,'芒種'],[6,21,'夏至'],
+             [7,6,'小暑'],[7,22,'大暑'],[8,7,'立秋'],[8,22,'處暑'],[9,7,'白露'],[9,22,'秋分'],
+             [10,8,'寒露'],[10,23,'霜降'],[11,7,'立冬'],[11,22,'小雪'],[12,6,'大雪'],[12,21,'冬至']];
+  const now = new Date(), m = now.getMonth() + 1, d = now.getDate();
+  let cur = '冬至';
+  for (let i = 0; i < T.length; i++) if (m > T[i][0] || (m === T[i][0] && d >= T[i][1])) cur = T[i][2];
+  return cur;
+}
+function _recentLogLine() {
+  // 最近 14 天的田間紀錄（跳過噴藥——用藥細節不進賣文），只有本人才寫得出的細節
+  try {
+    const logs = (NZD.S.get('logs', []) || []).slice(-40).reverse();
+    const cut = Date.now() - 14 * 86400000;
+    const hit = logs.find(x => x && x.txt && x.cat !== '噴藥' &&
+                          x.date && new Date(x.date).getTime() >= cut);
+    return hit ? { date: hit.date.slice(5).replace('-', '/'), txt: hit.txt } : null;
+  } catch (e) { return null; }
+}
+function _mkCopywrite(cfgOrFn) {
+  const getCfg = () => (typeof cfgOrFn === 'function' ? cfgOrFn() : cfgOrFn);
+  const cfg0 = typeof cfgOrFn === 'function' ? null : cfgOrFn;
   return {
     inputs: [
-      { key: 'sell', label: '主打賣點', unit: '', def: cfg.defSell,
-        options: Object.keys(cfg.sells).concat(['🎲 幫我想']) },
+      { key: 'sell', label: '主打賣點', unit: '', def: cfg0 ? cfg0.defSell : '🎲 幫我想',
+        options: (cfg0 ? Object.keys(cfg0.sells) : ['新鮮直送', '產地故事', '安心品質', '量大優惠']).concat(['🎲 幫我想']) },
+      { key: 'voice', label: '文案口吻', unit: '', def: '親切鄰家',
+        options: ['親切鄰家', '質感文青', '直球促購'] },
       { key: 'tone', label: '要發到哪', unit: '', def: 'FB/LINE 社團',
         options: ['FB/LINE 社團', 'IG 貼文', '拍賣/蝦皮商品文'] },
-      { key: 'price', label: '售價', unit: '元/' + cfg.unit, def: String(cfg.defPrice) },
+      { key: 'price', label: '售價', unit: cfg0 ? '元/' + cfg0.unit : '元',
+        def: String(cfg0 ? cfg0.defPrice : 45) },
       { key: 'custom', label: '自家亮點（選填，會編進文案）',
         unit: '例：在地農友吳伯伯，吃玉米長大的黑毛豬', def: '' },
     ],
     button: '生文案 ›',
     run(v) {
+      const cfg = getCfg();
       const pf = NZD.S.get('profile');
       const farm = (pf && pf.farm_name) ? pf.farm_name : (CROP.county + '小農');
       const county = CROP.county;
@@ -29,39 +58,80 @@ function _mkCopywrite(cfg) {
       if (!cfg.sells[sell]) sell = cfg.defSell;
       const h = pick(cfg.sells[sell]);
       const custom = (v.custom || '').trim();
-      const customLine = custom ? '⭐ ' + custom : '';
-      const cta = pick(['要的請留言 +1 或私訊，收單後依序安排出貨！',
-                        '數量有限，留言 +1 先搶先贏，私訊也通！',
-                        '想吃的別猶豫——留言 +1 或私訊下單，額滿收單！']);
-      const tags = cfg.tags.concat([county.slice(0, 2) + '小農'])
+      const szn = _seasonPhrase();
+      const log = _recentLogLine();
+      const tagsN = v.voice === '質感文青' ? 4 : 99;
+      const tags = cfg.tags.concat([county.slice(0, 2) + '小農']).slice(0, tagsN)
         .map(t => '#' + t.replace(/\s/g, '')).join(' ');
+      const specBlock = '─ 商品規格 ─\n・品項：' + cfg.noun + '（' + county + '產）\n・價格：' + priceLine +
+        '\n・出貨：' + cfg.ship + '\n・保存：' + cfg.keep +
+        '\n\n─ 購買須知 ─\n' + cfg.notice.map(x => '・' + x).join('\n') +
+        '\n・大量訂購（店家/團購）歡迎聊聊議價';
       let text;
-      if (v.tone === 'IG 貼文') {
-        text = h.head + '\n' + (h.sub || '') + '\n' + (customLine ? customLine + '\n' : '') +
-          '—\n' + cfg.story[0] + '\n' + cfg.story[1] +
-          '\n—\n' + cfg.emoji + ' ' + farm + '｜' + cfg.noun + '\n💰 ' + priceLine +
-          '\n📦 ' + cfg.ship + '\n🛒 訂購請私訊，或留言 +1\n—\n' + tags;
-      } else if (v.tone === '拍賣/蝦皮商品文') {
-        text = '【' + farm + '】' + cfg.noun + '｜' + sell +
-          '\n\n' + (custom ? '✔ ' + custom + '\n' : '') +
-          '✔ ' + cfg.fresh + '\n✔ ' + cfg.safe + '\n✔ ' + cfg.story[0] + cfg.story[1] +
-          '\n\n─ 商品規格 ─\n・品項：' + cfg.noun + '（' + county + '產）\n・價格：' + priceLine +
-          '\n・出貨：' + cfg.ship + '\n・保存：' + cfg.keep +
-          '\n\n─ 購買須知 ─\n' + cfg.notice.map(x => '・' + x).join('\n') +
-          '\n・大量訂購（店家/團購）歡迎聊聊議價';
-      } else {
-        text = h.head + '\n' + (h.sub || '') + '\n\n' + (customLine ? customLine + '\n\n' : '') +
-          cfg.story[0] + cfg.story[1] +
-          '\n\n🛒 本週供應\n・' + farm + '｜' + cfg.noun + '\n・' + priceLine +
-          '\n・' + cfg.ship + '\n📍 ' + county + '面交／全台宅配\n\n' + cta;
+
+      if (v.voice === '質感文青') {
+        const noEmoji = (s) => s.replace(/^[^一-鿿「【\w]+\s*/, '');
+        const open = pick([szn + '時節，' + noEmoji(h.head),
+                           szn + '將至。' + noEmoji(h.head),
+                           '又到了' + szn + '。' + noEmoji(h.head)]);
+        // 「產地故事」賣點開頭已是故事本身 → 內文不重講
+        const body = (sell === '產地故事' ? '' : cfg.story[0] + cfg.story[1]) +
+          (custom ? '\n——' + custom + '。' : '') +
+          (log ? '\n' + log.date + '，' + log.txt + '。日子就是這樣一天天把味道養出來的。' : '');
+        const ctaSoft = pick(['數量不多，想嚐的私訊我們。', '這一批不多，有緣再會。私訊聊。',
+                              '慢慢做，慢慢賣。想要的跟我們說一聲。']);
+        if (v.tone === '拍賣/蝦皮商品文') {
+          text = '【' + farm + '】' + cfg.noun + '\n\n' + open + '\n' + body + '\n\n' + specBlock;
+        } else {
+          text = open + '\n\n' + body + '\n\n' + cfg.noun + '｜' + priceLine + '\n' + cfg.ship +
+            '\n\n' + ctaSoft + (v.tone === 'IG 貼文' ? '\n\n' + tags : '');
+        }
+      } else if (v.voice === '直球促購') {
+        const punch = pick(['今天訂今天排單', '手刀來', '晚了就沒了', '就是這麼直接']);
+        const bullets = [custom, cfg.fresh, cfg.safe].filter(Boolean)
+          .map(x => '✅ ' + x).join('\n');
+        const ctaHard = pick(['🔥 留言 +1 直接排單，額滿為止！', '🔥 別滑走——+1 就是你的！',
+                              '🔥 私訊秒回，現在就訂！']);
+        if (v.tone === '拍賣/蝦皮商品文') {
+          text = '💥【' + farm + '】' + cfg.noun + '｜' + sell + '，' + punch + '！\n\n' +
+            bullets + '\n\n' + specBlock;
+        } else {
+          text = '💥 ' + cfg.noun + ' ' + (price ? price + ' 元／' + cfg.unit : '開賣') + '，' + punch + '！\n\n' +
+            bullets + '\n📦 ' + cfg.ship + '\n\n' + ctaHard +
+            (v.tone === 'IG 貼文' ? '\n\n' + tags : '');
+        }
+      } else {  // 親切鄰家
+        const customLine = custom ? '⭐ ' + custom : '';
+        const logLine = log ? '📓 田間小記：' + log.date + ' ' + log.txt : '';
+        const cta = pick(['要的請留言 +1 或私訊，收單後依序安排出貨！',
+                          '數量有限，留言 +1 先搶先贏，私訊也通！',
+                          '想吃的別猶豫——留言 +1 或私訊下單，額滿收單！']);
+        if (v.tone === 'IG 貼文') {
+          text = h.head + '\n' + (h.sub || '') + '\n' + (customLine ? customLine + '\n' : '') +
+            '—\n' + cfg.story[0] + '\n' + cfg.story[1] + (logLine ? '\n' + logLine : '') +
+            '\n—\n' + cfg.emoji + ' ' + farm + '｜' + cfg.noun + '\n💰 ' + priceLine +
+            '\n📦 ' + cfg.ship + '\n🛒 訂購請私訊，或留言 +1\n—\n' + tags;
+        } else if (v.tone === '拍賣/蝦皮商品文') {
+          text = '【' + farm + '】' + cfg.noun + '｜' + sell +
+            '\n\n' + (custom ? '✔ ' + custom + '\n' : '') +
+            '✔ ' + cfg.fresh + '\n✔ ' + cfg.safe + '\n✔ ' + cfg.story[0] + cfg.story[1] +
+            '\n\n' + specBlock;
+        } else {
+          text = h.head + '\n' + (h.sub || '') + '\n\n' + (customLine ? customLine + '\n\n' : '') +
+            cfg.story[0] + cfg.story[1] + (logLine ? '\n' + logLine : '') +
+            '\n\n🛒 本週供應\n・' + farm + '｜' + cfg.noun + '\n・' + priceLine +
+            '\n・' + cfg.ship + '\n📍 ' + county + '面交／全台宅配\n\n' + cta;
+        }
       }
       const short = cfg.emoji + ' ' + (custom ? custom + '｜' : '') + cfg.noun + ' ' +
         (price ? price + ' 元／' + cfg.unit : '私訊詢價') + '｜' + cfg.fresh + '，要的 +1！';
-      return { headline: '文案好了，長按複製直接發！',
+      return { headline: '文案好了，長按複製直接發！（口吻和賣點可以多試幾種）',
                detail: text + '\n\n— 短版（限時動態／群組快發）—\n' + short };
     },
   };
 }
+
+_mkCopywrite.v2 = true;   // 版本旗標 — toolbox 據此判斷引擎是否為配對版本
 
 window.PRODUCT_CALCS = {
   '蜂蜜': {
