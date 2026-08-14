@@ -116,6 +116,12 @@ img.charimg{position:relative;width:126px;height:126px;object-fit:contain;flex:n
 .gnext.done{color:#5a7028}
 .gnext-btns{display:inline-flex;gap:6px;margin-left:auto}
 .ob-btn.sm{font-size:12px;padding:5px 12px}
+.gtour{margin-top:12px;border-top:1.5px dashed #c9d69a;padding-top:12px;display:flex;flex-direction:column;gap:12px}
+.gtour .trow .th{font-size:13px;font-weight:900;color:#5a7028;cursor:pointer}
+.gtour .trow .td{font-size:12px;color:#8a9668;margin:2px 0 6px}
+.gtour .chips{display:flex;gap:6px;flex-wrap:wrap}
+.gchip{font-family:inherit;font-size:11.5px;font-weight:700;border:1.5px solid #d8dcc0;background:#fff;color:#5a4a30;border-radius:99px;padding:4px 10px;cursor:pointer}
+.gchip:hover{border-color:#8aa353;background:#f4f8e8}
 .wave{margin-top:44px;height:86px;background:radial-gradient(120% 70px at 50% 0,#faf6ec 60%,transparent 61%),#a3b86c;position:relative;flex:none}
 .wave .cp{position:absolute;bottom:18px;width:100%;text-align:center;font-size:12px;color:#f4f8e6;font-weight:700}
 </style></head><body>
@@ -1974,6 +1980,7 @@ renderTools();
   }
 
   let lastDone = -1;   // 偵測「剛完成一步」→ 顯示接棒提示
+  let tourOpen = false; // 🗺 工具導覽展開狀態
   function render() {
     const st = get();
     if (!st) {
@@ -1993,7 +2000,14 @@ renderTools();
     const justFinished = lastDone >= 0 && doneCount > lastDone && next;
     lastDone = doneCount;
 
-    // 底部導引列：剛完成→接棒提示；未完成→下一步說明；全完成→日常怎麼用
+    // 底部導引列：剛完成→接棒提示；未完成→下一步說明；全完成→日常怎麼用＋工具導覽
+    const STAGE_TIPS = [
+      '種之前的功課——選品種、排時程、算成本、查補助',
+      '每天照顧用——澆水施肥、病蟲害、天氣防災、記作業日誌',
+      '收成前後——何時採、怎麼分級保鮮、怎麼包',
+      '賣個好價——看行情、定價、寫文案、找通路、做履歷卡',
+      '看整季的帳——收支損益、成本結構、下一季怎麼調',
+    ];
     let guideLine;
     if (allDone) {
       const wIdx = TOOLS.findIndex(t => t.calc === 'water');
@@ -2002,7 +2016,19 @@ renderTools();
         + '<span class="gnext-btns">'
         + (wIdx >= 0 ? '<button class="ob-btn sm" data-open="' + wIdx + '">💧 灌溉排程</button>' : '')
         + (lIdx >= 0 ? '<button class="ob-btn sm ghost" data-open="' + lIdx + '">📝 作業日誌</button>' : '')
+        + '<button class="ob-btn sm ghost" id="gTour">' + (tourOpen ? '收合導覽 ▴' : '🗺 認識所有工具 ▾') + '</button>'
         + '</span></div>';
+      if (tourOpen) {
+        guideLine += '<div class="gtour">' + STAGES.map((s, si) => {
+          const tools = TOOLS.map((t, ti) => ({ t: t, ti: ti })).filter(x => x.t.stage === si);
+          return '<div class="trow"><div class="th" data-stage="' + si + '">' + s.icon + ' ' + s.name
+            + '（' + tools.length + ' 個工具）</div>'
+            + '<div class="td">' + (STAGE_TIPS[si] || '') + '</div>'
+            + '<div class="chips">' + tools.map(x =>
+                '<button class="gchip" data-open="' + x.ti + '" title="' + (x.t.desc || '') + '">'
+                + x.t.icon + ' ' + x.t.name + '</button>').join('') + '</div></div>';
+        }).join('') + '</div>';
+      }
     } else if (justFinished) {
       const prev = ss[nextIdx - 1] || ss[0];
       guideLine = '<div class="gnext flash">✓ ' + prev.doneMsg + '　下一步：<b>' + next.label + '</b>——' + next.tip
@@ -2024,6 +2050,14 @@ renderTools();
     });
     host.querySelectorAll('[data-open]').forEach(b => {
       b.onclick = () => { const k = b.dataset.open; (k === 'next' ? next.go() : openModal(+k)); };
+    });
+    const tourBtn = document.getElementById('gTour');
+    if (tourBtn) tourBtn.onclick = (e) => { e.stopPropagation(); tourOpen = !tourOpen; render(); };
+    host.querySelectorAll('.gtour .th').forEach(t => {
+      t.onclick = () => {   // 點區名 → 切到該分頁看全部
+        const tab = tabsEl.children[+t.dataset.stage];
+        if (tab) { tab.click(); tab.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      };
     });
   }
   render();
