@@ -9,10 +9,12 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Noto Sans TC','PingFang TC',sans-serif;background:#faf6ec;color:#5a4a30;min-height:100vh;display:flex;flex-direction:column}
 .wrap{max-width:1180px;margin:0 auto;padding:20px 22px 40px;width:100%;flex:1}
-header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+/* 固定 banner：只留置中 logo、點了回作物地圖——與工具箱同款（Keny 規格） */
+header{display:flex;align-items:center;justify-content:center;position:sticky;top:0;z-index:60;background:#faf6ec;padding:9px 0 8px;border-bottom:1.5px solid #eee2cc}
 header img.logo{height:36px;display:block}
+@media(max-width:640px){header img.logo{height:30px}}
 .backlink{font-size:13px;font-weight:900;color:#7a5418;text-decoration:none;background:#fff;border:2px solid #e0d4b4;border-radius:99px;padding:8px 16px}
-.hbtns{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.hbtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin:12px 0 2px}
 h1{font-size:24px;font-weight:900;color:#5a4a30;letter-spacing:2px;margin:10px 0 2px}
 .sub{font-size:12.5px;color:#a89070;margin-bottom:16px}
 .cols{display:grid;grid-template-columns:410px 1fr;gap:18px;align-items:start}
@@ -89,11 +91,11 @@ h1{font-size:24px;font-weight:900;color:#5a4a30;letter-spacing:2px;margin:10px 0
 <div class="wrap">
   <header>
     <a href="./index.html" title="回農知島首頁" style="line-height:0"><img class="logo" src="toolbox-assets/logo_nongzhidao.png" alt="農知島"></a>
-    <div class="hbtns">
-      <a class="backlink" id="tbLink" href="./toolbox.html">🧰 小農工具箱</a>
-      <a class="backlink" href="./index.html">← 回作物地圖</a>
-    </div>
   </header>
+  <div class="hbtns">
+    <a class="backlink" id="tbLink" href="./toolbox.html">🧰 小農工具箱</a>
+    <a class="backlink" href="./crop-dashboard.html">📊 行情儀表板</a>
+  </div>
   <h1 id="farmTitle">🏝 我的農場島</h1>
   <div class="sub">你的地、你的作物、你的整季規劃——資料都存在這支裝置的瀏覽器裡</div>
 

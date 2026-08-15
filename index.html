@@ -4063,6 +4063,8 @@ const Page = ({ selected, cropOverride, onSelect, onCropSelect, onCountyCropChan
     const eh = EXTRA_CITY_HOTSPOTS.find((h) => h.id.replace(/^extra_/, "") === selected);
     return eh ? eh.id : null;
   }, [selected]);
+  const _showId = hovered || selPolyId;
+  const litPolyId = { extra_hsinchu_city: "51_5096", extra_chiayi_city: "51_5091" }[_showId] || _showId;
   const [leftMapView, setLeftMapView] = React.useState("main");
   const [hoveredBtn, setHoveredBtn] = React.useState(null);
   const [cityScrollIdx, setCityScrollIdx] = React.useState(0);
@@ -4337,8 +4339,8 @@ const Page = ({ selected, cropOverride, onSelect, onCropSelect, onCountyCropChan
         "path",
         {
           d: c.d,
-          fill: c.isBase ? "transparent" : (hovered || selPolyId) === c.id ? HOVER_FILL : "transparent",
-          opacity: (hovered || selPolyId) === c.id ? 0.85 : 1,
+          fill: c.isBase ? "transparent" : litPolyId === c.id ? HOVER_FILL : "transparent",
+          opacity: litPolyId === c.id ? 0.85 : 1,
           style: {
             cursor: c.isBase ? "default" : "pointer",
             pointerEvents: c.isBase ? "none" : "auto",

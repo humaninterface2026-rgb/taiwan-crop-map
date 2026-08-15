@@ -256,10 +256,11 @@ document.getElementById('cards').innerHTML = shells();
   const banner = document.createElement('div');
   banner.style.cssText = 'position:sticky;top:0;z-index:20;background:#fffdf7;border-bottom:1.5px solid #eee2cc;'
     + 'padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px';
-  banner.title = '返回首頁';
-  banner.innerHTML = '<img src="toolbox-assets/logo_nongzhidao.png" alt="農知島" style="height:30px;display:block">'
-    + '<span style="margin-left:auto;font-size:13px;font-weight:900;color:#7a5418">← 回地圖</span>';
-  banner.onclick = function () { location.href = './index.html'; };
+  banner.innerHTML = '<img src="toolbox-assets/logo_nongzhidao.png" alt="農知島" title="回作物地圖" style="height:30px;display:block">'
+    + '<span style="margin-left:auto;font-size:13px;font-weight:900;color:#7a5418">← 回小農工具箱</span>';
+  // logo 回地圖；其餘區域（含右側字）回工具箱，帶著目前縣市/作物
+  banner.querySelector('img').onclick = function (e) { e.stopPropagation(); location.href = './index.html'; };
+  banner.onclick = function () { location.href = './toolbox.html' + location.search; };
   wrap.style.display = 'none';
   wrap.insertAdjacentElement('beforebegin', banner);
   wrap.insertAdjacentElement('afterend', stack);

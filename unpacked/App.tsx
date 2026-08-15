@@ -842,6 +842,9 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
     const eh = EXTRA_CITY_HOTSPOTS.find(h => h.id.replace(/^extra_/, '') === selected);
     return eh ? eh.id : null;
   }, [selected]);
+  // 新竹市/嘉義市沒有獨立 polygon（只有圓形熱點）——選到/滑到時點亮所在縣的地塊
+  const _showId = hovered || selPolyId;
+  const litPolyId = ({ extra_hsinchu_city: '51_5096', extra_chiayi_city: '51_5091' })[_showId] || _showId;
   // 左側 map 切換：'main' = 台灣全圖、'taoyuan' = 桃園鄉鎮 detail
   const [leftMapView, setLeftMapView] = React.useState('main');
   // 桃園 detail 上的按鈕 hover 狀態 (城市 pill / 加減號 / 上下箭頭)
@@ -1097,9 +1100,9 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
               fill={
                 c.isBase
                   ? 'transparent'  // 底層輪廓不填色（背景圖已是灰色）
-                  : ((hovered || selPolyId) === c.id ? HOVER_FILL : 'transparent')
+                  : (litPolyId === c.id ? HOVER_FILL : 'transparent')
               }
-              opacity={(hovered || selPolyId) === c.id ? 0.85 : 1}
+              opacity={litPolyId === c.id ? 0.85 : 1}
               style={{
                 cursor: c.isBase ? 'default' : 'pointer',
                 pointerEvents: c.isBase ? 'none' : 'auto',
