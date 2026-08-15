@@ -355,7 +355,8 @@ const CALCS = {
   /* ── 批次5：靜態知識庫（資料截至 2026-07，金額/資格以主辦單位公告為準）── */
   variety: {
     inputs: [
-      { key: 'month', label: '預計定植月', unit: '月', def: String(new Date().getMonth() + 2 > 12 ? 1 : new Date().getMonth() + 2) },
+      { key: 'month', label: '預計定植月', unit: '月', def: String(new Date().getMonth() + 2 > 12 ? 1 : new Date().getMonth() + 2),
+        options: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'] },
       { key: 'goal', label: '你最在意', unit: '', def: '價格好', options: ['價格好', '穩定不怕病', '省工好照顧'] },
     ],
     button: '推薦品種方向 ›',
