@@ -5,7 +5,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <!-- ?v= 與本頁版本配對 — 防止 CDN/SW 混版（新 HTML 配舊 JS 會整頁掛掉，2026-08-15 事故） -->
 <script src="toolbox-shared.js?v=20260815a"></script>
-<script src="toolbox-product-calcs.js?v=20260815a"></script>
+<script src="toolbox-product-calcs.js?v=20260815b"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Noto Sans TC',sans-serif;background:#faf6ec;color:#5a4a30;min-height:100vh;display:flex;flex-direction:column}
@@ -680,12 +680,15 @@ const CALCS = {
           calcNote('📡 現貨價已帶今日批發均價 ' + m.latest_price.price + ' 元/kg' + (g ? '；庫存帶入上次分級的 ' + g.kg + ' kg' : ''));
         }
       } catch (e) {}
+      _live.procBand = await getPriceBand();
     },
     run(v) {
       const s = +v.stock || 0, p = +v.price || 0;
       const P = NZD.C.processing;
+      const b = _live.procBand;
       const sLv = s > P.stockHi ? '高' : s >= 400 ? '中' : '低';
-      const pLv = p < P.priceLo ? '低' : p <= NZD.C.priceBand.high ? '中' : '高';
+      const pLv = b ? (p < b.lo ? '低' : p <= b.hi ? '中' : '高')
+        : (p < P.priceLo ? '低' : p <= NZD.C.priceBand.high ? '中' : '高');
       let head, det;
       if (sLv === '高' && pLv === '低') { head = '優先加工！庫存壓著、行情又差，硬出只會賠運費。';
         det = '建議：C 級全部轉加工（番茄醬/曬乾/醃漬），A/B 級分批慢出等價。'; }
@@ -696,7 +699,10 @@ const CALCS = {
       else if (sLv === '高') { head = '庫存偏高（' + s + 'kg）——雙軌走：好貨慢出、次貨加工。';
         det = '行情中等不用賤賣；每日出一部分 A/B 級，C 級與過熟果轉加工止損。'; }
       else { head = '不急，照正常節奏出貨就好。'; det = '庫存' + sLv + '、行情' + pLv + '——維持分級出貨；每天看一次行情再決定。'; }
-      return { headline: head, detail: det + ' 判斷門檻：庫存高>' + P.stockHi + 'kg／行情低<' + P.priceLo + ' 元、高>' + NZD.C.priceBand.high + ' 元（牛蕃茄口徑）。加工前先算過成本：代工費+包材若吃掉價差就別做。' };
+      return { headline: head, detail: det + ' 判斷門檻：庫存高>' + P.stockHi + 'kg／'
+        + (b ? '行情低<' + b.lo + ' 元、高>' + b.hi + ' 元（依「' + CROP.display + '」近年月均價自動計算）'
+             : '行情低<' + P.priceLo + ' 元、高>' + NZD.C.priceBand.high + ' 元（牛蕃茄口徑，本作物尚無足夠行情序列）')
+        + '。加工前先算過成本：代工費+包材若吃掉價差就別做。' };
     },
   },
   // 文案生成 — 接共用引擎 v2（toolbox-product-calcs.js 的 _mkCopywrite：
@@ -820,10 +826,10 @@ const CALCS = {
   },
   trace: {
     inputs: [
-      { key: 'producer', label: '生產者／農場名', unit: '', def: '' },
-      { key: 'origin', label: '產地（鄉鎮）', unit: '選填', def: '' },
+      { key: 'producer', label: '生產者／農場名', unit: '', def: '', type: 'text', ph: '例：阿明果園' },
+      { key: 'origin', label: '產地（鄉鎮）', unit: '', def: '', type: 'text', ph: '選填，例：拉拉山' },
       { key: 'harvest', label: '採收／出貨日', unit: '', def: '', type: 'date' },
-      { key: 'contact', label: '聯絡方式', unit: '選填', def: '' },
+      { key: 'contact', label: '聯絡方式', unit: '', def: '', type: 'text', ph: '選填，例：LINE ID 或電話' },
     ],
     button: '生成履歷卡 ›',
     prepare() {
@@ -1246,6 +1252,7 @@ const CALCS = {
           calcNote('📡 今日批發均價 <b>' + m.latest_price.price + ' 元/公斤</b>（AMIS ' + m.latest_price.date + '，自動作為定價基準）');
         } else calcNote('⚠️ 這個作物還沒有即時行情，將以 50 元/公斤示範計算。');
       } catch (e) { calcNote('⚠️ 行情暫時抓不到，將以 50 元/公斤示範計算。'); }
+      _live.band = await getPriceBand();
     },
     run(v) {
       const base = _live.basePrice || 50;
@@ -1253,14 +1260,19 @@ const CALCS = {
       const c = v.channel.startsWith('批發') ? 1.0 : v.channel.startsWith('直銷') ? 1.1 : 1.2;
       const p = base * q * c;
       const lo = Math.round(p * 0.95), hi = Math.round(p * 1.05);
-      const mood = base < 40 ? '目前行情偏低，別急著全出——好貨可以留給直銷/電商賣好價。'
-        : base > 55 ? '目前行情偏高，是出貨的好時機，把握這幾天！'
-        : '目前行情中等，照建議價出貨即可。';
+      const b = _live.band;
+      let mood = '', bandLine = '';
+      if (b) {
+        mood = base < b.lo ? '以「' + CROP.display + '」自己近年的價位來看，目前偏低——別急著全出，好貨可以留給直銷/電商賣好價。'
+          : base > b.hi ? '以「' + CROP.display + '」自己近年的價位來看，目前偏高——是出貨的好時機，把握這幾天！'
+          : '目前在「' + CROP.display + '」近年常見的價位區間，照建議價出貨即可。';
+        bandLine = ' 行情判讀門檻：<' + b.lo + ' 偏低、' + b.lo + '~' + b.hi + ' 中等、>' + b.hi
+          + ' 偏高（依「' + CROP.display + '」近年月均價自動計算）。';
+      }
       return {
         headline: '這批建議賣 ' + lo + '～' + hi + ' 元/公斤（約 ' + Math.round(lo / 1.5) + '～' + Math.round(hi / 1.5) + ' 元/台斤）！',
         detail: '算法：基準 ' + base + ' 元/公斤（今日批發均價）× 品質係數 ' + q + '（' + v.grade.slice(0, 2) + '）× 通路係數 ' + c
-          + '（' + v.channel.split('（')[0] + '）＝ ' + Math.round(p) + ' 元，上下 5% 為議價空間。' + mood
-          + ' 行情判讀門檻：<40 偏低、40~55 中等、>55 偏高（牛蕃茄口徑）。',
+          + '（' + v.channel.split('（')[0] + '）＝ ' + Math.round(p) + ' 元，上下 5% 為議價空間。' + mood + bandLine,
       };
     },
   },
@@ -1362,6 +1374,8 @@ function openModal(idx) {
           ? '<select id="f_' + f.key + '">' + f.options.map(o => '<option' + (o === f.def ? ' selected' : '') + '>' + o + '</option>').join('') + '</select>'
           : f.type === 'date'
           ? '<input id="f_' + f.key + '" type="date" value="' + f.def + '" style="font-size:15px">'
+          : f.type === 'text'
+          ? '<input id="f_' + f.key + '" type="text" value="' + f.def + '" placeholder="' + (f.ph || f.unit || '') + '" style="font-size:15px">'
           : '<div class="inrow"><input id="f_' + f.key + '" type="text" inputmode="decimal" value="' + f.def + '"><span class="u">' + f.unit + '</span></div>';
         return '<div class="infield"><div class="l">' + f.label + (f.unit && f.options ? '（' + f.unit + '）' : '') + '</div>' + inner + '</div>';
       }).join('') + '</div>';
@@ -1466,6 +1480,17 @@ async function getMarket() {
   const j = await (await fetch('https://wyaoguang3-code.github.io/nongzhidao/data/' + code + '.json', { cache: 'no-store' })).json();
   _live.mkt = j; _live.mktAt = Date.now();
   return j;
+}
+
+// 行情高低判讀門檻：用「這個作物自己」的近年月均價分布算（25/75 百分位）
+// ——每個作物天生有自己的口徑，跟著行情資料自動更新，不再套牛蕃茄的數字
+async function getPriceBand() {
+  try {
+    const m = await getMarket();
+    const ps = ((m && m.monthly) || []).map(x => x.price).filter(x => x > 0).sort((a, b) => a - b);
+    if (ps.length >= 8) return { lo: Math.round(ps[Math.floor(ps.length * 0.25)]), hi: Math.round(ps[Math.floor(ps.length * 0.75)]) };
+  } catch (e) {}
+  return null;
 }
 
 // ── 作物參數化：?county=桃園市&crop=水蜜桃（embed=1 時做為儀表板下方區塊嵌入） ──
@@ -1719,28 +1744,51 @@ const CUSTOMS = {
       let d;
       try { d = await NZD.D.weather(CROP.county); }
       catch (e) { st.textContent = '⚠️ 預報抓不到，稍後再試。'; return; }
+      const T = NZD.A.sowTemp, R = NZD.A.sowRain7d;
       const rate = i => {
-        const avg = (d.temperature_2m_max[i] + d.temperature_2m_min[i]) / 2;
+        const max = d.temperature_2m_max[i];
+        const avg = (max + d.temperature_2m_min[i]) / 2;
         let rain = 0, days = 0;
         for (let k = i; k < Math.min(i + 7, d.time.length); k++) { rain += d.precipitation_sum[k]; days++; }
         rain = rain * 7 / days;
-        const T = NZD.A.sowTemp, R = NZD.A.sowRain7d;
-        const tScore = (avg >= T.idealLo && avg <= T.idealHi && d.temperature_2m_max[i] < T.hardHi) ? 2
-          : (avg >= T.okLo && avg < T.idealLo) || (avg > T.idealHi && d.temperature_2m_max[i] <= T.hardHi) ? 1 : 0;
+        const tScore = (avg >= T.idealLo && avg <= T.idealHi && max < T.hardHi) ? 2
+          : (avg >= T.okLo && avg < T.idealLo) || (avg > T.idealHi && max <= T.hardHi) ? 1 : 0;
         const rScore = rain < R.ideal ? 2 : rain <= R.ok ? 1 : 0;
-        return { level: (tScore === 0 || rScore === 0) ? 0 : (tScore + rScore >= 4) ? 2 : 1, avg, rain };
+        // 是哪個條件卡住——講得出原因，農友才知道在等什麼
+        const why = [];
+        if (avg < T.okLo) why.push('均溫 ' + avg.toFixed(1) + '°C 太低（本作物至少要 ' + T.okLo + '°C）');
+        else if (max > T.hardHi) why.push('白天最高溫 ' + max.toFixed(1) + '°C 超過本作物 ' + T.hardHi + '°C 上限');
+        else if (avg > T.idealHi) why.push('均溫 ' + avg.toFixed(1) + '°C 偏高（理想 ' + T.idealLo + '~' + T.idealHi + '°C）');
+        else if (avg < T.idealLo) why.push('均溫 ' + avg.toFixed(1) + '°C 偏涼（理想 ' + T.idealLo + '~' + T.idealHi + '°C）');
+        if (rain > R.ok) why.push('往後一週雨量約 ' + rain.toFixed(0) + 'mm，超過 ' + R.ok + 'mm 上限');
+        else if (rain >= R.ideal) why.push('往後一週雨量約 ' + rain.toFixed(0) + 'mm 偏多（理想 <' + R.ideal + 'mm）');
+        return { level: (tScore === 0 || rScore === 0) ? 0 : (tScore + rScore >= 4) ? 2 : 1, avg, rain, why,
+                 tRed: tScore === 0, rRed: rScore === 0 };
       };
       const col = ['#e88', '#e8b84c', '#7fae4e'], lab = ['不建議', '可播', '理想'];
       const season = NZD.S.get('season');
-      st.innerHTML = '每天一顆球：🟢理想 🟡可播但要顧 🔴不建議。點一天看整季時程' + (season ? '（目前已存：' + season.sow_date + ' 播種）' : '') + '。';
+      st.innerHTML = '每天一顆球：🟢理想 🟡可播但要顧 🔴不建議。點一天看原因和整季時程' + (season ? '（目前已存：' + season.sow_date + ' 播種）' : '') + '。';
       const strip = document.getElementById('sw_strip');
+      const rates = d.time.map((t, i) => rate(i));
       strip.innerHTML = d.time.map((t, i) => {
-        const r = rate(i);
+        const r = rates[i];
         return '<div data-i="' + i + '" style="cursor:pointer;text-align:center;border:2px solid #e8dcc0;border-radius:12px;padding:7px 9px;background:#fff;min-width:52px">'
           + '<div style="font-size:10.5px;color:#a89070;font-weight:700">' + t.slice(5).replace('-', '/') + '</div>'
           + '<div style="font-size:17px;line-height:1.4">' + ['🔴', '🟡', '🟢'][r.level] + '</div>'
           + '<div style="font-size:10px;color:#8a7a5c;font-weight:700">' + lab[r.level] + '</div></div>';
       }).join('');
+      // 整段預報都不建議：把主因與本作物的適播條件講清楚，不留一片紅燈讓人猜
+      if (rates.length && rates.every(r => r.level === 0)) {
+        const tDays = rates.filter(r => r.tRed).length, rDays = rates.filter(r => r.rRed).length;
+        const parts = [];
+        if (tDays > rates.length / 2) parts.push('溫度不合適（' + tDays + ' 天）');
+        if (rDays > rates.length / 2) parts.push('雨量太多（' + rDays + ' 天）');
+        strip.insertAdjacentHTML('beforebegin',
+          '<div class="extra" style="margin-top:12px;background:#fdf3ec;border:2px solid #e8c9b0;border-radius:12px;padding:10px 12px;color:#9a6038;font-weight:700;line-height:1.8">'
+          + '⚠️ 未來 16 天都不建議播「' + CROP.display + '」，主因：' + (parts.join('、') || '溫度或雨量條件不合') + '。<br>'
+          + '本作物適播條件：均溫 ' + T.okLo + '~' + T.hardHi + '°C（理想 ' + T.idealLo + '~' + T.idealHi + '°C）、一週雨量 &lt;' + R.ok + 'mm。'
+          + '預報每天更新，過幾天再回來看；或用上方切換器看看其他作物現在有沒有窗口。</div>');
+      }
       const detail = document.getElementById('sw_detail');
       strip.querySelectorAll('[data-i]').forEach(el => el.onclick = async () => {
         strip.querySelectorAll('[data-i]').forEach(x => x.style.borderColor = '#e8dcc0');
@@ -1765,7 +1813,8 @@ const CUSTOMS = {
         detail.innerHTML = '<div class="result show" style="display:flex"><img src="toolbox-assets/m_assist_circle.png">'
           + '<div><div class="r1">' + sowDate.slice(5).replace('-', '/') + ' 播種（' + lab[r.level] + '）：'
           + '約 ' + tpISO.slice(5).replace('-', '/') + ' 定植、' + hw.start.slice(5).replace('-', '/') + '～' + hw.end.slice(5).replace('-', '/') + ' 採收。</div>'
-          + '<div class="r2">當日均溫 ' + r.avg.toFixed(1) + '°C、往後 7 日雨量約 ' + r.rain.toFixed(0) + 'mm。' + mktLine
+          + '<div class="r2">' + (r.why.length ? '<b>' + (r.level === 0 ? '不建議原因' : '要注意') + '：' + r.why.join('、') + '。</b><br>' : '')
+          + '當日均溫 ' + r.avg.toFixed(1) + '°C、往後 7 日雨量約 ' + r.rain.toFixed(0) + 'mm。' + mktLine
           + ' 存檔後施肥/預警/採收工具都會跟著這份時程走。</div>'
           + '<button class="gobtn" id="sw_save" style="margin-top:10px">就選這天，存整季時程 ›</button></div></div>';
         document.getElementById('sw_save').onclick = () => {

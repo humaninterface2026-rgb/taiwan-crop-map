@@ -41,8 +41,8 @@ function _mkCopywrite(cfgOrFn) {
         options: ['FB/LINE 社團', 'IG 貼文', '拍賣/蝦皮商品文'] },
       { key: 'price', label: '售價', unit: cfg0 ? '元/' + cfg0.unit : '元',
         def: String(cfg0 ? cfg0.defPrice : 45) },
-      { key: 'custom', label: '自家亮點（選填，會編進文案）',
-        unit: '例：在地農友吳伯伯，吃玉米長大的黑毛豬', def: '' },
+      { key: 'custom', label: '自家亮點（選填，會編進文案）', type: 'text', unit: '',
+        ph: '例：在地農友吳伯伯，吃玉米長大的黑毛豬', def: '' },
     ],
     button: '生文案 ›',
     run(v) {
@@ -56,6 +56,8 @@ function _mkCopywrite(cfgOrFn) {
       const pick = (a) => a[Math.floor(Math.random() * a.length)];
       let sell = v.sell === '🎲 幫我想' ? pick(Object.keys(cfg.sells)) : v.sell;
       if (!cfg.sells[sell]) sell = cfg.defSell;
+      // 商品標題位不能直接放「產地故事」這種選項名——換成實質賣點短語
+      const sellTitle = sell === '產地故事' ? county.slice(0, 2) + '產地直送' : sell;
       const h = pick(cfg.sells[sell]);
       const custom = (v.custom || '').trim();
       const szn = _seasonPhrase();
@@ -93,7 +95,7 @@ function _mkCopywrite(cfgOrFn) {
         const ctaHard = pick(['🔥 留言 +1 直接排單，額滿為止！', '🔥 別滑走——+1 就是你的！',
                               '🔥 私訊秒回，現在就訂！']);
         if (v.tone === '拍賣/蝦皮商品文') {
-          text = '💥【' + farm + '】' + cfg.noun + '｜' + sell + '，' + punch + '！\n\n' +
+          text = '💥【' + farm + '】' + cfg.noun + '｜' + sellTitle + '，' + punch + '！\n\n' +
             bullets + '\n\n' + specBlock;
         } else {
           text = '💥 ' + cfg.noun + ' ' + (price ? price + ' 元／' + cfg.unit : '開賣') + '，' + punch + '！\n\n' +
@@ -112,7 +114,7 @@ function _mkCopywrite(cfgOrFn) {
             '\n—\n' + cfg.emoji + ' ' + farm + '｜' + cfg.noun + '\n💰 ' + priceLine +
             '\n📦 ' + cfg.ship + '\n🛒 訂購請私訊，或留言 +1\n—\n' + tags;
         } else if (v.tone === '拍賣/蝦皮商品文') {
-          text = '【' + farm + '】' + cfg.noun + '｜' + sell +
+          text = '【' + farm + '】' + cfg.noun + '｜' + sellTitle +
             '\n\n' + (custom ? '✔ ' + custom + '\n' : '') +
             '✔ ' + cfg.fresh + '\n✔ ' + cfg.safe + '\n✔ ' + cfg.story[0] + cfg.story[1] +
             '\n\n' + specBlock;
@@ -650,7 +652,7 @@ window.PRODUCT_CALCS = {
   },
   pest: {
     inputs: [
-      { key: 'part', label: '看到什麼異狀', unit: '', def: '工蜂翅膀捲曲畸形、封蓋子有針孔，蜂體上看得到褐色小圓點在爬',
+      { key: 'part', label: '看到什麼異狀', unit: '', type: 'text', def: '工蜂翅膀捲曲畸形、封蓋子有針孔，蜂體上看得到褐色小圓點在爬',
         options: ['工蜂翅膀捲曲畸形、封蓋子有針孔，蜂體上看得到褐色小圓點在爬', '巢脾被蛀出隧道、掛著白色絲網和蟲糞，弱群整片脾被吃掉', '秋季蜂箱門口有大型胡蜂盤旋獵殺工蜂，工蜂嚇得不敢出勤', '封蓋子零星下陷穿孔、挑開有咖啡色黏稠物會拉絲、有腐臭味', '巢門口出現白色或灰黑色石灰塊狀的幼蟲乾屍', '大量工蜂在箱門前抽搐打轉死亡、屍體伸吻吐舌'] },
       { key: 'sev', label: '嚴重程度', unit: '', def: '輕微（少數幾箱）', options: ['輕微（少數幾箱）', '中等（好幾箱）', '嚴重（整場蔓延）'] },
     ],
