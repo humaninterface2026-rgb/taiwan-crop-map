@@ -35,6 +35,8 @@ canvas.cv{width:100%!important;height:100%!important}
 <div class="canvas-wrap"><div class="canvas" id="canvas">
   <img class="bg" src="assets/tomato_dashboard.avif" alt="作物市場儀表板">
   <a class="abs" href="./index.html" title="返回首頁" style="left:16px;top:6px;width:200px;height:56px;cursor:pointer;z-index:5"></a>
+  <!-- 底圖右上的 ☰ 是烘焙像素、無功能——白補丁蓋掉 -->
+  <div class="abs" style="left:1376px;top:14px;width:40px;height:36px;background:#fff;z-index:4"></div>
   <div id="cards"></div>
 </div></div>
 
@@ -223,6 +225,45 @@ function shells() {
   </div>`;
 }
 document.getElementById('cards').innerHTML = shells();
+
+/* ── 手機（<768px）：一區接一區直排＋固定 banner（同主站儀表板；Keny 規格）──
+ * 每張卡從 1440 畫布依設計座標裁出、等比縮放到滿版寬；卡片本身不動。 */
+(function mobileStack() {
+  if (!window.matchMedia('(max-width: 767px)').matches) return;
+  const SLOTS = [
+    [34, 87, 680, 288, [0, 1]],   // 角色卡＋價格面板同排
+    [726, 87, 681, 287, [2]],     // 行情趨勢圖
+    [34, 385, 679, 444, [3]],     // 成交量比較
+    [727, 385, 680, 444, [4]],    // 價格比較
+    [34, 842, 679, 445, [5]],     // 外銷趨勢
+    [726, 842, 681, 445, [6]],    // 災損金額
+  ];
+  const cardEls = Array.from(document.querySelectorAll('#cards .card-shell'));
+  if (cardEls.length < 7) return;
+  const wrap = document.querySelector('.canvas-wrap');
+  const stack = document.createElement('div');
+  stack.style.cssText = 'display:flex;flex-direction:column;gap:10px;padding:10px 10px 0';
+  SLOTS.forEach(function (s) {
+    const slot = document.createElement('div');
+    slot.style.cssText = 'position:relative;width:100%;aspect-ratio:' + s[2] + '/' + s[3] + ';container-type:inline-size;overflow:hidden';
+    const inner = document.createElement('div');
+    inner.style.cssText = 'position:absolute;left:0;top:0;width:1440px;height:1468px;transform-origin:top left;'
+      + 'transform:scale(calc(100cqw / ' + s[2] + 'px)) translate(' + (-s[0]) + 'px, ' + (-s[1]) + 'px)';
+    s[4].forEach(function (i) { if (cardEls[i]) inner.appendChild(cardEls[i]); });
+    slot.appendChild(inner);
+    stack.appendChild(slot);
+  });
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:sticky;top:0;z-index:20;background:#fffdf7;border-bottom:1.5px solid #eee2cc;'
+    + 'padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px';
+  banner.title = '返回首頁';
+  banner.innerHTML = '<img src="toolbox-assets/logo_nongzhidao.png" alt="農知島" style="height:30px;display:block">'
+    + '<span style="margin-left:auto;font-size:13px;font-weight:900;color:#7a5418">← 回地圖</span>';
+  banner.onclick = function () { location.href = './index.html'; };
+  wrap.style.display = 'none';
+  wrap.insertAdjacentElement('beforebegin', banner);
+  wrap.insertAdjacentElement('afterend', stack);
+})();
 
 /* ════ 角色圖 ════ */
 fetch('toolbox-assets/crop_chars.json').then(r => r.json()).then(chars => {
