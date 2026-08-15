@@ -842,12 +842,6 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
     const eh = EXTRA_CITY_HOTSPOTS.find(h => h.id.replace(/^extra_/, '') === selected);
     return eh ? eh.id : null;
   }, [selected]);
-  // 手機底列：切換縣市時把選中的膠囊捲到中間（只在切換時捲，不干擾手動滑動）
-  React.useEffect(() => {
-    if (!isNarrow) return;
-    const el = document.getElementById('cbar_sel');
-    if (el) el.scrollIntoView({inline:'center', block:'nearest'});
-  }, [selected, isNarrow]);
   // 左側 map 切換：'main' = 台灣全圖、'taoyuan' = 桃園鄉鎮 detail
   const [leftMapView, setLeftMapView] = React.useState('main');
   // 桃園 detail 上的按鈕 hover 狀態 (城市 pill / 加減號 / 上下箭頭)
@@ -1226,12 +1220,15 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
           位置從 full_page.jpg 像素量出 (pill x=61.5/y=731.5±n*40、寬 81.5、高 28.5；
           箭頭 r=13.8 在 (102.2, 625.8/865.8)、+- 在 (659.8, 825.8/865.8))。
           桃園市永遠在 slot 3 (咖)，其它 18 縣市透過 cityScrollIdx cyclic 環繞。 */}
-      {leftMapView === 'main' && !isNarrow && (() => {
+      {leftMapView === 'main' && (() => {
         // 19 縣市 cyclic list — 中央 slot 永遠是當前 selected。點任何 pill →
         // 切 selected → pill 重排把該縣市移到中央，其它 4 slot 顯示前後 2 個。
         // 上下箭頭 = selected ±1 在 cycle 裡 step。
-        // （手機 <768px 改用下方固定縣市列——畫布錨定的 pill 縮到 0.26 倍不可讀，
-        //   而且點擊後重排會讓手指下的 pill 換人，被誤認為重複點擊）
+        // 手機 <768px：按鈕留在原位、原地放大 2 倍（錨點內縮，保證完整顯示不被裁切）
+        const K = isNarrow ? 2 : 1;
+        const AY = 849.6;   // 左下按鈕列的縱向錨點：放大後底緣收在 y≈910（地圖底 917 內）
+        const AY2 = 855;    // 右下 +- 的縱向錨點：放大後底緣收在 y≈904
+        const my = (y) => AY + (y - AY) * K;
         const COUNTIES = ['新北市','基隆市','桃園市','新竹市','新竹縣','苗栗縣','台中市',
                           '彰化縣','南投縣','雲林縣','嘉義市','嘉義縣','台南市','高雄市',
                           '屏東縣','台東縣','花蓮縣','宜蘭縣','台北市'];
@@ -1256,20 +1253,21 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
           const newKey = nameToKey[newName];
           if (newKey) onSelect(newKey);
         };
-        const buttons = [
-          { key:'main_up',    baseKey:'上箭頭', cx:102.2, cy:625.8, size:ARROW_SIZE, invertHover:true,
-            onClick: () => stepSelected(-1) },
-          { key:'main_down',  baseKey:'下箭頭', cx:102.2, cy:865.8, size:ARROW_SIZE, invertHover:true,
-            onClick: () => stepSelected(+1) },
-          { key:'main_plus',  baseKey:'加號',   cx:659.8, cy:825.8, size:PM_SIZE,   invertHover:true },
-          { key:'main_minus', baseKey:'減號',   cx:659.8, cy:865.8, size:PM_SIZE,   invertHover:true },
-        ];
         // Pill icon size: rect 81.5 design wide, but pill SVG has 1.39 padding inside viewBox 159.67.
-        const PILL_W = 159.67 * (81.5 / 156.89);  // 82.93
-        const PILL_H =  56.36 * (81.5 / 156.89);  // 29.29
-        const PILL_PAD = 1.39 * (81.5 / 156.89);  // 0.722
+        const PILL_W = 159.67 * (81.5 / 156.89) * K;  // 82.93（手機 ×2）
+        const PILL_H =  56.36 * (81.5 / 156.89) * K;  // 29.29（手機 ×2）
+        const PILL_PAD = 1.39 * (81.5 / 156.89);
         const PILL_X = 61.5 - PILL_PAD;            // icon top-left x
-        const PILL_TOP_Y = [651.5, 691.5, 731.5, 771.5, 811.5].map(y => y - PILL_PAD);
+        const PILL_TOP_Y = [651.5, 691.5, 731.5, 771.5, 811.5].map(y => my(y - PILL_PAD));
+        const colCx = PILL_X + PILL_W / 2;          // 箭頭對齊（放大後的）pill 欄中心
+        const buttons = [
+          { key:'main_up',    baseKey:'上箭頭', cx:colCx, cy:my(625.8), size:ARROW_SIZE * K, invertHover:true,
+            onClick: () => stepSelected(-1) },
+          { key:'main_down',  baseKey:'下箭頭', cx:colCx, cy:my(865.8), size:ARROW_SIZE * K, invertHover:true,
+            onClick: () => stepSelected(+1) },
+          { key:'main_plus',  baseKey:'加號',   cx:659.8, cy:AY2 + (825.8 - AY2) * K, size:PM_SIZE * K, invertHover:true },
+          { key:'main_minus', baseKey:'減號',   cx:659.8, cy:AY2 + (865.8 - AY2) * K, size:PM_SIZE * K, invertHover:true },
+        ];
         // 中央 slot = selected. 前後 ±2 slot = cycle 中相鄰縣市。
         const pillNames = [
           COUNTIES[wrap(selIdx - 2)],
@@ -1300,6 +1298,7 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
                 height:`${b.size / H * 100}%`,
                 cursor: b.onClick ? 'pointer' : 'default',
                 zIndex: 12,
+                touchAction: 'manipulation',
               }}
             >
               <svg viewBox={svg.viewBox} width="100%" height="100%" preserveAspectRatio="none" style={{display:'block'}}
@@ -1335,6 +1334,7 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
                 height:`${PILL_H / H * 100}%`,
                 cursor: alwaysActive ? 'default' : 'pointer',
                 zIndex: 12,
+                touchAction: 'manipulation',
               }}
             >
               <svg viewBox={svg.viewBox} width="100%" height="100%" preserveAspectRatio="none" style={{display:'block'}}
@@ -1345,40 +1345,6 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
         return <>{buttons.map(renderIcon)}{pillNames.map((n, i) => renderPill(n, i))}</>;
       })()}
 
-      {/* 手機版縣市切換：固定底列、橫向滑動、固定像素大小——永遠完整可見可點 */}
-      {leftMapView === 'main' && isNarrow && (() => {
-        const COUNTIES = ['新北市','基隆市','桃園市','新竹市','新竹縣','苗栗縣','台中市',
-                          '彰化縣','南投縣','雲林縣','嘉義市','嘉義縣','台南市','高雄市',
-                          '屏東縣','台東縣','花蓮縣','宜蘭縣','台北市'];
-        const nameToKey = Object.fromEntries(
-          Object.entries(REGIONS_DATA).map(([k, v]) => [v.name, k])
-        );
-        const selectedName = (REGIONS_DATA[selected] || REGIONS_DATA.taoyuan).name;
-        return (
-          <div style={{position:'fixed', bottom:0, left:0, right:0, zIndex:40,
-                       background:'rgba(250,246,236,.97)', borderTop:'1.5px solid #e6d9bd',
-                       padding:'9px 10px calc(9px + env(safe-area-inset-bottom))',
-                       display:'flex', gap:7, overflowX:'auto', WebkitOverflowScrolling:'touch'}}>
-            {COUNTIES.map(n => {
-              const active = n === selectedName;
-              return (
-                <button
-                  key={n}
-                  id={active ? 'cbar_sel' : undefined}
-                  onClick={() => { const k = nameToKey[n]; if (k) onSelect(k); }}
-                  style={{flex:'none', fontFamily:"'Noto Sans TC',sans-serif", fontSize:14, fontWeight:900,
-                          padding:'7px 14px', borderRadius:99, cursor:'pointer',
-                          border: active ? '2px solid #7a5a30' : '2px solid #c6d38a',
-                          background: active ? '#8a6538' : '#a8c060',
-                          color:'#fff', letterSpacing:1}}
-                >
-                  {n}
-                </button>
-              );
-            })}
-          </div>
-        );
-      })()}
 
       {/* Animated mascot video — replaces the 3-mascot still in the middle.
           Full-width white panel (covers the entire row in the background image)

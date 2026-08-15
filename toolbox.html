@@ -10,14 +10,16 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Noto Sans TC',sans-serif;background:#faf6ec;color:#5a4a30;min-height:100vh;display:flex;flex-direction:column}
 .wrap{max-width:1200px;margin:0 auto;padding:28px 24px 0;width:100%;flex:1}
-/* 固定 banner：logo 隨時可點返回作物地圖（Keny 規格） */
-header{display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:60;background:#faf6ec;padding:10px 0 9px;border-bottom:1.5px solid #eee2cc}
-.hnav{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+/* 固定 banner：只留置中 logo、點了回作物地圖；四顆導覽鈕放頁面最上方、不跟著捲動（Keny 規格） */
+header{display:flex;align-items:center;justify-content:center;position:sticky;top:0;z-index:60;background:#faf6ec;padding:9px 0 8px;border-bottom:1.5px solid #eee2cc}
+.hnav{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin:12px 0 2px}
 @media(max-width:640px){
-  .hnav{display:grid;grid-template-columns:1fr 1fr;gap:6px;flex:1;max-width:340px}
+  .hnav{display:grid;grid-template-columns:1fr 1fr;gap:6px}
   .hnav .backlink{font-size:12.5px;padding:7px 8px;text-align:center;white-space:nowrap}
   header .brand img{height:30px !important}
 }
+/* 範例提示字縮一級，長範例（黑毛豬那句）在手機也完整顯示 */
+.infield input::placeholder{font-size:12.5px;color:#c0ae8e}
 .brand{font-size:24px;font-weight:900;color:#7a5418;letter-spacing:2px}
 .brand small{font-size:11px;font-weight:700;color:#a89070;letter-spacing:0;margin-left:8px}
 .backlink{font-size:14px;font-weight:700;color:#7a5418;text-decoration:none;background:#fff;border:2px solid #d8c9a4;border-radius:99px;padding:7px 18px}
@@ -77,7 +79,7 @@ img.charimg{position:relative;width:126px;height:126px;object-fit:contain;flex:n
 .swsel{font-size:12.5px;font-weight:700;color:#7a5418;background:#fff;border:2px solid #d8c9a4;border-radius:99px;padding:5px 10px;font-family:inherit;cursor:pointer}
 
 /* modal */
-.overlay{position:fixed;inset:0;background:rgba(90,74,48,.45);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;z-index:50}
+.overlay{position:fixed;inset:0;background:rgba(90,74,48,.45);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;z-index:80}
 .overlay.show{display:flex}
 .modal{width:640px;max-width:100%;background:#fffdf6;border:2px solid #e8dcc0;border-radius:24px;padding:24px 26px;box-shadow:0 10px 30px rgba(122,84,24,.18)}
 .modal .mhd{display:flex;align-items:center;justify-content:space-between}
@@ -141,12 +143,12 @@ img.charimg{position:relative;width:126px;height:126px;object-fit:contain;flex:n
     <a class="brand" href="./index.html" title="回農知島首頁" style="display:block;line-height:0">
       <img src="toolbox-assets/logo_nongzhidao.png" alt="農知島 The Island of Harvest" style="height:37px;width:auto;display:block">
     </a>
-    <div class="hnav">
-      <a class="backlink" href="./myfarm.html">🏝 我的農場島</a>
-      <a class="backlink" id="farmbtn" href="javascript:void 0">⚙️ 農場設置</a>
-      <a class="backlink" id="dashlink" href="./crop-dashboard.html">📊 行情儀表板</a>
-    </div>
   </header>
+  <div class="hnav">
+    <a class="backlink" href="./myfarm.html">🏝 我的農場島</a>
+    <a class="backlink" id="farmbtn" href="javascript:void 0">⚙️ 農場設置</a>
+    <a class="backlink" id="dashlink" href="./crop-dashboard.html">📊 行情儀表板</a>
+  </div>
 
   <div class="mock">
     <div class="mh"><div class="t">🧰 小農工具箱</div><div class="s" id="subline">番茄・桃園市｜30 個小幫手（MVP）</div>
@@ -1760,15 +1762,22 @@ const CUSTOMS = {
         const tScore = (avg >= T.idealLo && avg <= T.idealHi && max < T.hardHi) ? 2
           : (avg >= T.okLo && avg < T.idealLo) || (avg > T.idealHi && max <= T.hardHi) ? 1 : 0;
         const rScore = rain < R.ideal ? 2 : rain <= R.ok ? 1 : 0;
-        // 是哪個條件卡住——講得出原因，農友才知道在等什麼
-        const why = [];
-        if (avg < T.okLo) why.push('均溫 ' + avg.toFixed(1) + '°C 太低（本作物至少要 ' + T.okLo + '°C）');
-        else if (max > T.hardHi) why.push('白天最高溫 ' + max.toFixed(1) + '°C 超過本作物 ' + T.hardHi + '°C 上限');
-        else if (avg > T.idealHi) why.push('均溫 ' + avg.toFixed(1) + '°C 偏高（理想 ' + T.idealLo + '~' + T.idealHi + '°C）');
+        // 是哪個條件卡住——講得出原因，農友才知道在等什麼；
+        // bad = 硬種下去的實際後果（定性通則，不給編造的數字）
+        const why = [], bad = [];
+        if (avg < T.okLo) {
+          why.push('均溫 ' + avg.toFixed(1) + '°C 太低（本作物至少要 ' + T.okLo + '°C）');
+          bad.push('低溫下種子遲遲不發芽、出苗不整齊，幼苗容易受寒害，缺株再補播等於多花一次種子錢和工錢');
+        } else if (max > T.hardHi) {
+          why.push('白天最高溫 ' + max.toFixed(1) + '°C 超過本作物 ' + T.hardHi + '°C 上限');
+          bad.push('高溫會壓低發芽率、幼苗徒長軟弱，定植後緩苗慢、病害壓力大，出苗不整齊會一路影響到收成量和品質');
+        } else if (avg > T.idealHi) why.push('均溫 ' + avg.toFixed(1) + '°C 偏高（理想 ' + T.idealLo + '~' + T.idealHi + '°C）');
         else if (avg < T.idealLo) why.push('均溫 ' + avg.toFixed(1) + '°C 偏涼（理想 ' + T.idealLo + '~' + T.idealHi + '°C）');
-        if (rain > R.ok) why.push('往後一週雨量約 ' + rain.toFixed(0) + 'mm，超過 ' + R.ok + 'mm 上限');
-        else if (rain >= R.ideal) why.push('往後一週雨量約 ' + rain.toFixed(0) + 'mm 偏多（理想 <' + R.ideal + 'mm）');
-        return { level: (tScore === 0 || rScore === 0) ? 0 : (tScore + rScore >= 4) ? 2 : 1, avg, rain, why,
+        if (rain > R.ok) {
+          why.push('往後一週雨量約 ' + rain.toFixed(0) + 'mm，超過 ' + R.ok + 'mm 上限');
+          bad.push('大雨會把種子沖散、苗床積水悶根，爛種爛根和立枯病風險高，嚴重時整批要重播');
+        } else if (rain >= R.ideal) why.push('往後一週雨量約 ' + rain.toFixed(0) + 'mm 偏多（理想 <' + R.ideal + 'mm）');
+        return { level: (tScore === 0 || rScore === 0) ? 0 : (tScore + rScore >= 4) ? 2 : 1, avg, rain, why, bad,
                  tRed: tScore === 0, rRed: rScore === 0 };
       };
       const col = ['#e88', '#e8b84c', '#7fae4e'], lab = ['不建議', '可播', '理想'];
@@ -1820,6 +1829,7 @@ const CUSTOMS = {
           + '<div><div class="r1">' + sowDate.slice(5).replace('-', '/') + ' 播種（' + lab[r.level] + '）：'
           + '約 ' + tpISO.slice(5).replace('-', '/') + ' 定植、' + hw.start.slice(5).replace('-', '/') + '～' + hw.end.slice(5).replace('-', '/') + ' 採收。</div>'
           + '<div class="r2">' + (r.why.length ? '<b>' + (r.level === 0 ? '不建議原因' : '要注意') + '：' + r.why.join('、') + '。</b><br>' : '')
+          + (r.level === 0 && r.bad.length ? '⚠️ 這天硬種的話：' + r.bad.join('；') + '。<br>' : '')
           + '當日均溫 ' + r.avg.toFixed(1) + '°C、往後 7 日雨量約 ' + r.rain.toFixed(0) + 'mm。' + mktLine
           + ' 存檔後施肥/預警/採收工具都會跟著這份時程走。</div>'
           + '<button class="gobtn" id="sw_save" style="margin-top:10px">就選這天，存整季時程 ›</button></div></div>';
@@ -1993,8 +2003,8 @@ renderTools();
   const get = () => { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } };
   const set = (v) => { try { localStorage.setItem(KEY, v); } catch (e) {} };
 
-  // header 加常駐入口
-  const btnRow = document.querySelector('header > div');
+  // 導覽列加常駐入口（banner 只留 logo，鈕列在 header 下方的 .hnav）
+  const btnRow = document.querySelector('.hnav');
   if (btnRow) {
     const a = document.createElement('a');
     a.className = 'backlink'; a.href = 'javascript:void 0'; a.textContent = '🧭 上手引導';

@@ -4063,11 +4063,6 @@ const Page = ({ selected, cropOverride, onSelect, onCropSelect, onCountyCropChan
     const eh = EXTRA_CITY_HOTSPOTS.find((h) => h.id.replace(/^extra_/, "") === selected);
     return eh ? eh.id : null;
   }, [selected]);
-  React.useEffect(() => {
-    if (!isNarrow) return;
-    const el = document.getElementById("cbar_sel");
-    if (el) el.scrollIntoView({ inline: "center", block: "nearest" });
-  }, [selected, isNarrow]);
   const [leftMapView, setLeftMapView] = React.useState("main");
   const [hoveredBtn, setHoveredBtn] = React.useState(null);
   const [cityScrollIdx, setCityScrollIdx] = React.useState(0);
@@ -4443,7 +4438,11 @@ const Page = ({ selected, cropOverride, onSelect, onCropSelect, onCountyCropChan
         name
       )));
     })()
-  ), leftMapView === "main" && !isNarrow && (() => {
+  ), leftMapView === "main" && (() => {
+    const K = isNarrow ? 2 : 1;
+    const AY = 849.6;
+    const AY2 = 855;
+    const my = (y) => AY + (y - AY) * K;
     const COUNTIES = [
       "\u65B0\u5317\u5E02",
       "\u57FA\u9686\u5E02",
@@ -4479,33 +4478,34 @@ const Page = ({ selected, cropOverride, onSelect, onCropSelect, onCountyCropChan
       const newKey = nameToKey[newName];
       if (newKey) onSelect(newKey);
     };
+    const PILL_W = 159.67 * (81.5 / 156.89) * K;
+    const PILL_H = 56.36 * (81.5 / 156.89) * K;
+    const PILL_PAD = 1.39 * (81.5 / 156.89);
+    const PILL_X = 61.5 - PILL_PAD;
+    const PILL_TOP_Y = [651.5, 691.5, 731.5, 771.5, 811.5].map((y) => my(y - PILL_PAD));
+    const colCx = PILL_X + PILL_W / 2;
     const buttons = [
       {
         key: "main_up",
         baseKey: "\u4E0A\u7BAD\u982D",
-        cx: 102.2,
-        cy: 625.8,
-        size: ARROW_SIZE,
+        cx: colCx,
+        cy: my(625.8),
+        size: ARROW_SIZE * K,
         invertHover: true,
         onClick: () => stepSelected(-1)
       },
       {
         key: "main_down",
         baseKey: "\u4E0B\u7BAD\u982D",
-        cx: 102.2,
-        cy: 865.8,
-        size: ARROW_SIZE,
+        cx: colCx,
+        cy: my(865.8),
+        size: ARROW_SIZE * K,
         invertHover: true,
         onClick: () => stepSelected(1)
       },
-      { key: "main_plus", baseKey: "\u52A0\u865F", cx: 659.8, cy: 825.8, size: PM_SIZE, invertHover: true },
-      { key: "main_minus", baseKey: "\u6E1B\u865F", cx: 659.8, cy: 865.8, size: PM_SIZE, invertHover: true }
+      { key: "main_plus", baseKey: "\u52A0\u865F", cx: 659.8, cy: AY2 + (825.8 - AY2) * K, size: PM_SIZE * K, invertHover: true },
+      { key: "main_minus", baseKey: "\u6E1B\u865F", cx: 659.8, cy: AY2 + (865.8 - AY2) * K, size: PM_SIZE * K, invertHover: true }
     ];
-    const PILL_W = 159.67 * (81.5 / 156.89);
-    const PILL_H = 56.36 * (81.5 / 156.89);
-    const PILL_PAD = 1.39 * (81.5 / 156.89);
-    const PILL_X = 61.5 - PILL_PAD;
-    const PILL_TOP_Y = [651.5, 691.5, 731.5, 771.5, 811.5].map((y) => y - PILL_PAD);
     const pillNames = [
       COUNTIES[wrap(selIdx - 2)],
       COUNTIES[wrap(selIdx - 1)],
@@ -4535,7 +4535,8 @@ const Page = ({ selected, cropOverride, onSelect, onCropSelect, onCountyCropChan
             width: `${b.size / W * 100}%`,
             height: `${b.size / H * 100}%`,
             cursor: b.onClick ? "pointer" : "default",
-            zIndex: 12
+            zIndex: 12,
+            touchAction: "manipulation"
           }
         },
         /* @__PURE__ */ React.createElement(
@@ -4575,7 +4576,8 @@ const Page = ({ selected, cropOverride, onSelect, onCropSelect, onCountyCropChan
             width: `${PILL_W / W * 100}%`,
             height: `${PILL_H / H * 100}%`,
             cursor: alwaysActive ? "default" : "pointer",
-            zIndex: 12
+            zIndex: 12,
+            touchAction: "manipulation"
           }
         },
         /* @__PURE__ */ React.createElement(
@@ -4592,73 +4594,6 @@ const Page = ({ selected, cropOverride, onSelect, onCropSelect, onCountyCropChan
       );
     };
     return /* @__PURE__ */ React.createElement(React.Fragment, null, buttons.map(renderIcon), pillNames.map((n, i) => renderPill(n, i)));
-  })(), leftMapView === "main" && isNarrow && (() => {
-    const COUNTIES = [
-      "\u65B0\u5317\u5E02",
-      "\u57FA\u9686\u5E02",
-      "\u6843\u5712\u5E02",
-      "\u65B0\u7AF9\u5E02",
-      "\u65B0\u7AF9\u7E23",
-      "\u82D7\u6817\u7E23",
-      "\u53F0\u4E2D\u5E02",
-      "\u5F70\u5316\u7E23",
-      "\u5357\u6295\u7E23",
-      "\u96F2\u6797\u7E23",
-      "\u5609\u7FA9\u5E02",
-      "\u5609\u7FA9\u7E23",
-      "\u53F0\u5357\u5E02",
-      "\u9AD8\u96C4\u5E02",
-      "\u5C4F\u6771\u7E23",
-      "\u53F0\u6771\u7E23",
-      "\u82B1\u84EE\u7E23",
-      "\u5B9C\u862D\u7E23",
-      "\u53F0\u5317\u5E02"
-    ];
-    const nameToKey = Object.fromEntries(
-      Object.entries(REGIONS_DATA).map(([k, v]) => [v.name, k])
-    );
-    const selectedName = (REGIONS_DATA[selected] || REGIONS_DATA.taoyuan).name;
-    return /* @__PURE__ */ React.createElement("div", { style: {
-      position: "fixed",
-      bottom: 0,
-      left: 0,
-      right: 0,
-      zIndex: 40,
-      background: "rgba(250,246,236,.97)",
-      borderTop: "1.5px solid #e6d9bd",
-      padding: "9px 10px calc(9px + env(safe-area-inset-bottom))",
-      display: "flex",
-      gap: 7,
-      overflowX: "auto",
-      WebkitOverflowScrolling: "touch"
-    } }, COUNTIES.map((n) => {
-      const active = n === selectedName;
-      return /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: n,
-          id: active ? "cbar_sel" : void 0,
-          onClick: () => {
-            const k = nameToKey[n];
-            if (k) onSelect(k);
-          },
-          style: {
-            flex: "none",
-            fontFamily: "'Noto Sans TC',sans-serif",
-            fontSize: 14,
-            fontWeight: 900,
-            padding: "7px 14px",
-            borderRadius: 99,
-            cursor: "pointer",
-            border: active ? "2px solid #7a5a30" : "2px solid #c6d38a",
-            background: active ? "#8a6538" : "#a8c060",
-            color: "#fff",
-            letterSpacing: 1
-          }
-        },
-        n
-      );
-    }));
   })(), /* @__PURE__ */ React.createElement("div", { style: {
     position: "absolute",
     left: 0,
