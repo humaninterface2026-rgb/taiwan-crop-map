@@ -1224,8 +1224,8 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
         // 19 縣市 cyclic list — 中央 slot 永遠是當前 selected。點任何 pill →
         // 切 selected → pill 重排把該縣市移到中央，其它 4 slot 顯示前後 2 個。
         // 上下箭頭 = selected ±1 在 cycle 裡 step。
-        // 手機 <768px：按鈕留在原位、原地放大 2 倍（錨點內縮，保證完整顯示不被裁切）
-        const K = isNarrow ? 2 : 1;
+        // 按鈕留在原位、維持原尺寸（K=1；曾試過手機放大 2 倍，使用者回饋太大改回）
+        const K = 1;
         const AY = 849.6;   // 左下按鈕列的縱向錨點：放大後底緣收在 y≈910（地圖底 917 內）
         const AY2 = 855;    // 右下 +- 的縱向錨點：放大後底緣收在 y≈904
         const my = (y) => AY + (y - AY) * K;
