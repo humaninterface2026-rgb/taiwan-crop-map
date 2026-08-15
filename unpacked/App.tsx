@@ -3130,8 +3130,35 @@ const CharacterCard = ({county, cropOverride}) => {
   );
 };
 
+/* 手機窄版偵測：<768px 時儀表板改「一區接一區」直向堆疊（Keny 規格） */
+const useIsNarrow = () => {
+  const [n, setN] = useState(() => window.matchMedia('(max-width: 767px)').matches);
+  React.useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const f = e => setN(e.matches);
+    mq.addEventListener('change', f);
+    return () => mq.removeEventListener('change', f);
+  }, []);
+  return n;
+};
+
+/* 手機堆疊用的卡片槽：把 1440×1468 畫布上 (x,y,w,h) 那塊裁出來、
+ * 縮放到滿版寬。卡片元件本身完全不動（仍照設計座標絕對定位），
+ * translate 先把該卡平移到原點、再依容器寬等比縮放。 */
+const DashSlot = ({x, y, w, h, children}) => (
+  <div style={{position:'relative', width:'100%', aspectRatio:`${w} / ${h}`,
+               containerType:'inline-size', overflow:'hidden'}}>
+    <div style={{position:'absolute', left:0, top:0, width:1440, height:1468,
+                 transformOrigin:'top left',
+                 transform:`scale(calc(100cqw / ${w}px)) translate(${-x}px, ${-y}px)`}}>
+      {children}
+    </div>
+  </div>
+);
+
 const Dashboard = ({onBack, selected, cropOverride}) => {
   const region = REGIONS_DATA[selected] || REGIONS_DATA.taoyuan;
+  const isNarrow = useIsNarrow();
   // Precedence:
   //   1. cropOverride  (taoyuan township click — already a fully-qualified name)
   //   2. priceVariety  ("西瓜-大西瓜", "番茄-牛番茄" etc. — narrows MOA filter to
@@ -3140,6 +3167,41 @@ const Dashboard = ({onBack, selected, cropOverride}) => {
   //   3. cropApi       ("西瓜", "番茄"); broad fallback when no variety set
   //   4. literal '番茄' final safety net
   const cropName = cropOverride || region.priceVariety || region.cropApi || '番茄';
+  if (isNarrow) {
+    // 手機版：固定 banner（logo 隨時可點返回）＋六個區塊直向排列，不用底圖
+    return (
+      <div style={{fontFamily:"'Noto Sans TC',sans-serif", background:'#fff', minHeight:'100vh',
+                   display:'flex', flexDirection:'column'}}>
+        <div onClick={onBack} title="返回首頁"
+             style={{position:'sticky', top:0, zIndex:20, background:'#fffdf7',
+                     borderBottom:'1.5px solid #eee2cc', padding:'10px 14px', cursor:'pointer',
+                     display:'flex', alignItems:'center', gap:10}}>
+          <img src="toolbox-assets/logo_nongzhidao.png" alt="農知島"
+               style={{height:30, display:'block'}}/>
+          <span style={{marginLeft:'auto', fontSize:13, fontWeight:900, color:'#7a5418'}}>← 回地圖</span>
+        </div>
+        <div style={{display:'flex', flexDirection:'column', gap:10, padding:'10px 10px 0'}}>
+          <DashSlot x={34} y={87} w={680} h={288}>
+            <CharacterCard county={selected} cropOverride={cropOverride}/>
+            <PricePanelCard cropName={cropName}/>
+          </DashSlot>
+          <DashSlot x={726} y={87} w={681} h={287}><TrendChartCard cropName={cropName}/></DashSlot>
+          <DashSlot x={34} y={385} w={679} h={444}><VolumeBarsCard cropName={cropName}/></DashSlot>
+          <DashSlot x={727} y={385} w={680} h={444}><PriceBarsCard cropName={cropName}/></DashSlot>
+          <DashSlot x={34} y={842} w={679} h={445}><ExportTrendChart cropName={cropName}/></DashSlot>
+          <DashSlot x={726} y={842} w={681} h={445}><DisasterChartCard/></DashSlot>
+        </div>
+        <div style={{marginTop:'auto', paddingTop:18}}>
+          <div style={{height:70, background:'#a3b86c',
+                       borderRadius:'50% 50% 0 0 / 30px 30px 0 0',
+                       display:'flex', alignItems:'flex-end', justifyContent:'center',
+                       paddingBottom:12, fontSize:11, color:'#f4f8e6', fontWeight:700}}>
+            © 2026 農知島 The Island of Harvest 版權所有
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
   <div style={{
     position:'relative',
@@ -3169,6 +3231,8 @@ const Dashboard = ({onBack, selected, cropOverride}) => {
           zIndex: 5,
         }}
       />
+      {/* 底圖右上角的 ☰ 是烘焙像素、沒有任何功能——白補丁蓋掉，別留假按鈕 */}
+      <div style={{position:'absolute', left:1376, top:14, width:40, height:36, background:'#fff', zIndex:4}}/>
       <DesignImage
         name="tomato_dashboard"
         alt="桃園市 番茄市場儀表板"

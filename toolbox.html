@@ -5,12 +5,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <!-- ?v= 與本頁版本配對 — 防止 CDN/SW 混版（新 HTML 配舊 JS 會整頁掛掉，2026-08-15 事故） -->
 <script src="toolbox-shared.js?v=20260815a"></script>
-<script src="toolbox-product-calcs.js?v=20260815b"></script>
+<script src="toolbox-product-calcs.js?v=20260815c"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Noto Sans TC',sans-serif;background:#faf6ec;color:#5a4a30;min-height:100vh;display:flex;flex-direction:column}
 .wrap{max-width:1200px;margin:0 auto;padding:28px 24px 0;width:100%;flex:1}
-header{display:flex;align-items:center;justify-content:space-between}
+/* 固定 banner：logo 隨時可點返回作物地圖（Keny 規格） */
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:60;background:#faf6ec;padding:10px 0 9px;border-bottom:1.5px solid #eee2cc}
+.hnav{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:640px){
+  .hnav{display:grid;grid-template-columns:1fr 1fr;gap:6px;flex:1;max-width:340px}
+  .hnav .backlink{font-size:12.5px;padding:7px 8px;text-align:center;white-space:nowrap}
+  header .brand img{height:30px !important}
+}
 .brand{font-size:24px;font-weight:900;color:#7a5418;letter-spacing:2px}
 .brand small{font-size:11px;font-weight:700;color:#a89070;letter-spacing:0;margin-left:8px}
 .backlink{font-size:14px;font-weight:700;color:#7a5418;text-decoration:none;background:#fff;border:2px solid #d8c9a4;border-radius:99px;padding:7px 18px}
@@ -134,11 +141,10 @@ img.charimg{position:relative;width:126px;height:126px;object-fit:contain;flex:n
     <a class="brand" href="./index.html" title="回農知島首頁" style="display:block;line-height:0">
       <img src="toolbox-assets/logo_nongzhidao.png" alt="農知島 The Island of Harvest" style="height:37px;width:auto;display:block">
     </a>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <div class="hnav">
       <a class="backlink" href="./myfarm.html">🏝 我的農場島</a>
-      <a class="backlink" id="farmbtn" href="javascript:void 0">⚙️ 我的農場</a>
+      <a class="backlink" id="farmbtn" href="javascript:void 0">⚙️ 農場設置</a>
       <a class="backlink" id="dashlink" href="./crop-dashboard.html">📊 行情儀表板</a>
-      <a class="backlink" href="./index.html">← 回作物地圖</a>
     </div>
   </header>
 
@@ -800,11 +806,11 @@ const CALCS = {
         const m = await getMarket();
         if (m && m.latest_price && !m.annual) {
           u.value = Math.round(m.latest_price.price * 1.1 / NZD.C.taikinDiv);
-          calcNote('📡 售價預設＝今日批發價 ×1.1（直銷係數）換算' + lex.unit + (p && p.farm_name ? '；署名用「' + p.farm_name + '」' : '——到 ⚙️ 我的農場填農場名，文案會自動署名'));
+          calcNote('📡 售價預設＝今日批發價 ×1.1（直銷係數）換算' + lex.unit + (p && p.farm_name ? '；署名用「' + p.farm_name + '」' : '——到 ⚙️ 農場設置填農場名，文案會自動署名'));
           return;
         }
       } catch (e) {}
-      calcNote('✍️ 請填你的實際售價（元/' + lex.unit + '）' + (p && p.farm_name ? '；署名用「' + p.farm_name + '」' : '——到 ⚙️ 我的農場填農場名，文案會自動署名'));
+      calcNote('✍️ 請填你的實際售價（元/' + lex.unit + '）' + (p && p.farm_name ? '；署名用「' + p.farm_name + '」' : '——到 ⚙️ 農場設置填農場名，文案會自動署名'));
     },
   }),
   buyer: {
@@ -848,7 +854,7 @@ const CALCS = {
       const lines = [
         lex.emoji + ' ' + CROP.display + '自主生產履歷卡',
         '品名：' + CROP.display + '（' + (v.origin ? CROP.county + v.origin : CROP.county) + '產）',
-        '生產者：' + (v.producer || '（到 ⚙️ 我的農場填名稱）'),
+        '生產者：' + (v.producer || '（到 ⚙️ 農場設置填名稱）'),
         v.harvest ? '採收／出貨日：' + v.harvest : '',
         season ? '生產時程：' + season.transplant_date + ' 起｜採收期：' + (season.harvest_start || '—') + ' 起' : '生產時程：（到「最佳播種時機」排時程後自動帶入）',
         sprays.length ? '用藥紀錄：' + sprays.map(x => x.date.slice(5) + ' ' + x.txt).join('；') : '用藥紀錄：本季無噴藥紀錄',
@@ -1841,7 +1847,7 @@ const CUSTOMS = {
         + '<div class="infield" style="margin-top:10px"><div class="l">內容（例：B 區滴灌 20 分鐘，發現少量黃葉）</div><input id="lg_txt" type="text" placeholder="做了什麼、看到什麼" style="font-size:14px"></div>'
         + '<button class="gobtn" id="lg_add">記一筆 ›</button>'
         + '<div class="ptitle" style="margin-top:16px">📒 最近的紀錄</div><div class="plist" id="lg_list"></div>'
-        + '<div class="extra">紀錄存在這支手機的瀏覽器裡（換手機/清資料會不見）——記得到「⚙️ 我的農場」定期匯出備份。</div>';
+        + '<div class="extra">紀錄存在這支手機的瀏覽器裡（換手機/清資料會不見）——記得到「⚙️ 農場設置」定期匯出備份。</div>';
     },
     init() {
       const render = () => {
@@ -1957,7 +1963,7 @@ function openCustom(kind, title, desc) {
   CUSTOMS[kind].init();
 }
 document.getElementById('farmbtn')?.addEventListener('click', () =>
-  openCustom('farm', '⚙️ 我的農場', '田區、通路與資料備份——所有工具共用這裡的設定'));
+  openCustom('farm', '⚙️ 農場設置', '田區、通路與資料備份——所有工具共用這裡的設定'));
 
 /* ── 縣市/作物切換器 ── */
 (function initSwitcher() {

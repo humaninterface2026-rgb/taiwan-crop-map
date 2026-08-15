@@ -478,7 +478,7 @@ window.PRODUCT_CALCS = {
       const lines = [
         '🍯 蜂蜜產品履歷卡',
         '品名：台灣蜂蜜（自家蜂場採蜜）',
-        '生產者：' + (p.farm_name || '（到 ⚙️ 我的農場填名稱）'),
+        '生產者：' + (p.farm_name || '（到 ⚙️ 農場設置填名稱）'),
         season ? '春繁啟動：' + (season.sow_date || season.transplant_date || '—') + '｜採蜜：' + (season.harvest_start || '—') + ' 起' : '年度時程：（到「春繁啟動時機」排整年蜂事後自動帶入）',
         g && g.water ? '含水率：約 ' + g.water + '%（' + (g.date || '') + ' 檢測）' : '',
         meds.length ? '用藥（治蟎）紀錄：' + meds.map(x => x.date.slice(5) + ' ' + x.txt).join('；') : '用藥紀錄：本年無用藥紀錄',
@@ -1195,7 +1195,7 @@ window.PRODUCT_CALCS = {
       const lines = [
         '🐷 產品履歷卡',
         '品名：黑豬肉（' + CROP.county + '產）',
-        '生產者：' + (p.farm_name || '（到 ⚙️ 我的農場填名稱）'),
+        '生產者：' + (p.farm_name || '（到 ⚙️ 農場設置填名稱）'),
         '飼養方式：台灣黑豬慢養 12~14 個月，出欄約 110~130 公斤',
         recent.length ? '牧場紀錄：' + recent.map(x => x.date.slice(5) + ' ' + x.txt).join('；') : '牧場紀錄：（用「作業日誌」記錄，這裡會自動帶入）',
         '屠宰：合法屠宰場屠宰，屠體經屠宰衛生檢查合格',
@@ -1936,7 +1936,7 @@ window.PRODUCT_CALCS = {
       const lines = [
         '🐟 產品履歷卡',
         '品名：石門活魚（' + CROP.county + '石門水庫周邊魚塭養殖）',
-        '生產者：' + (p.farm_name || '（到 ⚙️ 我的農場填名稱）'),
+        '生產者：' + (p.farm_name || '（到 ⚙️ 農場設置填名稱）'),
         season ? '放養：' + season.transplant_date + '｜出魚：' + (season.harvest_start || '—') + ' 起' : '養殖時程：（到「放養時機」排時程後自動帶入）',
         meds.length ? '用藥紀錄：' + meds.map(x => x.date.slice(5) + ' ' + x.txt).join('；') : '用藥紀錄：本季無用藥紀錄',
         feeds.length ? '投餵紀錄：' + feeds.map(x => x.date.slice(5) + ' ' + x.txt).join('；') : '',

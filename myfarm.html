@@ -101,7 +101,7 @@ h1{font-size:24px;font-weight:900;color:#5a4a30;letter-spacing:2px;margin:10px 0
     <div class="island">
       <div class="it" id="islandTitle">我的農場</div>
       <div class="plots" id="plots"></div>
-      <div class="ihint" id="ihint" style="display:none">📍 地塊位置＝田區設定的方位、大小依面積——到工具箱「⚙️ 我的農場」調整</div>
+      <div class="ihint" id="ihint" style="display:none">📍 地塊位置＝田區設定的方位、大小依面積——到工具箱「⚙️ 農場設置」調整</div>
     </div>
     <div>
       <div class="panel">
@@ -202,7 +202,7 @@ function renderPlots() {
   const box = document.getElementById('plots');
   const hint = document.getElementById('ihint');
   if (!fields.length) {
-    box.innerHTML = '<div class="empty-state" style="grid-column:1/-1">還沒有田區。<br>到工具箱「⚙️ 我的農場」加一塊地、設定種什麼，<br>回來這裡就會看到你的農場島。</div>';
+    box.innerHTML = '<div class="empty-state" style="grid-column:1/-1">還沒有田區。<br>到工具箱「⚙️ 農場設置」加一塊地、設定種什麼，<br>回來這裡就會看到你的農場島。</div>';
     if (hint) hint.style.display = 'none';
     document.getElementById('info').innerHTML =
       '<a class="cta" href="./toolbox.html">🧰 去工具箱建立我的農場 ›</a>';
@@ -297,7 +297,7 @@ function renderInfo() {
   const p = S.get('profile', {}) || {};
   if (!plot.crop) {
     box.innerHTML = '<div class="kv"><b>' + esc(plot.name) + '</b>（' + esc(plot.area_fen) + ' 分）還沒設定作物。</div>'
-      + '<a class="cta" href="./toolbox.html">🧰 到工具箱「⚙️ 我的農場」設定作物 ›</a>';
+      + '<a class="cta" href="./toolbox.html">🧰 到工具箱「⚙️ 農場設置」設定作物 ›</a>';
     return;
   }
   const season = seasonsMap[plot.crop];
