@@ -11,6 +11,8 @@
    - https://wyaoguang3-code.github.io/taiwan-crop-map/
    - https://humaninterface2026-rgb.github.io/taiwan-crop-map/
 4. 部署後 curl 線上 service-worker.js 確認 VERSION 已換新
+5. origin 站 VERSION 遲遲不換新＝Pages 部署撞「in progress deployment」（連續 push 常見，2026-08-15 一天三次）：
+   `gh run list --repo wyaoguang3-code/taiwan-crop-map --limit 1` 看到 failure 就 `gh run rerun <id>`，等前一版跑完重跑必過
 
 ## 架構速記
 - 行情資料：前端讀 nongzhidao 靜態資料站（跨網域、兩鏡像共用、每日排程自動更新），失敗才退回官方 API
