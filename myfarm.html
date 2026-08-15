@@ -45,13 +45,20 @@ h1{font-size:24px;font-weight:900;color:#5a4a30;letter-spacing:2px;margin:10px 0
 .mnav{margin-left:auto;display:flex;gap:6px;align-items:center}
 .mnav button{font-family:inherit;font-size:14px;font-weight:900;border:none;background:#fff;color:#7a5418;border-radius:9px;width:30px;height:30px;cursor:pointer}
 .mnav .mm{font-size:14px;font-weight:900;color:#fff;min-width:96px;text-align:center;text-shadow:0 1px 2px rgba(0,0,0,.15)}
-.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
 .calgrid .wd{font-size:12px;font-weight:900;color:#fff;text-align:center;padding:4px 0;text-shadow:0 1px 2px rgba(0,0,0,.15)}
-.day{background:#fdf9ee;border-radius:10px;min-height:66px;padding:5px 6px;font-size:11px}
+.day{background:#fdf9ee;border-radius:10px;min-height:66px;padding:5px 6px;font-size:11px;position:relative}
 .day.out{opacity:.35}
 .day.today{outline:2.5px solid #ffd97a}
+.day.has{cursor:pointer}
 .day .dn{font-weight:900;color:#8a7a56;font-size:11px}
-.ev{margin-top:3px;border-radius:6px;padding:2px 5px;font-size:10.5px;font-weight:900;line-height:1.35;overflow:hidden}
+/* 事件條固定一行：字級不變、超出以 … 收尾，格子不會被長字撐高；點格子開浮層看全文 */
+.ev{margin-top:3px;border-radius:6px;padding:2px 5px;font-size:10.5px;font-weight:900;line-height:1.35;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.dpop{position:absolute;z-index:40;top:calc(100% + 4px);left:0;background:#fff;border-radius:12px;box-shadow:0 8px 26px rgba(0,0,0,.24);padding:10px 12px;width:200px;text-align:left}
+.dpop.right{left:auto;right:0}
+.dpop.up{top:auto;bottom:calc(100% + 4px)}
+.dpop .dh{font-size:12px;font-weight:900;color:#8a7a56;margin-bottom:2px}
+.dpop .ev{white-space:normal;overflow:visible;text-overflow:clip;margin-top:5px;font-size:11.5px;line-height:1.5}
 .ev.sow{background:#ffd97a;color:#7a5418}
 .ev.tp{background:#e8a952;color:#fff}
 .ev.phase{background:#57b8a2;color:#fff}
@@ -236,9 +243,14 @@ function initMonth() {
   curMonth = new Date(d.getFullYear(), d.getMonth(), 1);
 }
 
+let curEvMap = {};   // 本月事件表（日期→事件），給點擊浮層用
+let openPop = null;
+function closePop() { if (openPop) { openPop.remove(); openPop = null; } }
+
 function renderCal() {
+  closePop();
   const plot = fields[selIdx] || {};
-  const ev = buildEvents(plot);
+  const ev = curEvMap = buildEvents(plot);
   const y = curMonth.getFullYear(), m = curMonth.getMonth();
   document.getElementById('mLabel').textContent = y + ' 年 ' + (m + 1) + ' 月';
   const first = new Date(y, m, 1);
@@ -250,13 +262,32 @@ function renderCal() {
     const iso = d2iso(d);
     const out = d.getMonth() !== m;
     const evs = ev[iso] || [];
-    html += '<div class="day' + (out ? ' out' : '') + (iso === todayISO ? ' today' : '') + '">'
+    html += '<div class="day' + (out ? ' out' : '') + (iso === todayISO ? ' today' : '') + (evs.length ? ' has' : '') + '" data-iso="' + iso + '">'
       + '<div class="dn">' + (d.getMonth() + 1) + '/' + d.getDate() + '</div>'
       + evs.slice(0, 3).map(e => '<div class="ev ' + e.cls + '">' + esc(e.label) + '</div>').join('')
       + (evs.length > 3 ? '<div class="ev log">+' + (evs.length - 3) + '</div>' : '')
       + '</div>';
   }
-  document.getElementById('cal').innerHTML = html;
+  const grid = document.getElementById('cal');
+  grid.innerHTML = html;
+  // 點有事件的格子 → 原字級浮層看全文；再點一次或點外面關閉
+  grid.querySelectorAll('.day.has').forEach(el => el.onclick = e => {
+    e.stopPropagation();
+    if (openPop && openPop.parentElement === el) { closePop(); return; }
+    closePop();
+    const evs = curEvMap[el.dataset.iso] || [];
+    const pop = document.createElement('div');
+    const r = el.getBoundingClientRect(), g = grid.getBoundingClientRect();
+    let cls = 'dpop';
+    if (r.left + r.width / 2 - g.left > g.width / 2) cls += ' right';
+    if (r.top - g.top > g.height * 0.55) cls += ' up';
+    pop.className = cls;
+    const mm = +el.dataset.iso.slice(5, 7), dd = +el.dataset.iso.slice(8, 10);
+    pop.innerHTML = '<div class="dh">' + mm + '/' + dd + ' 的安排</div>'
+      + evs.map(ee => '<div class="ev ' + ee.cls + '">' + esc(ee.label) + '</div>').join('');
+    el.appendChild(pop);
+    openPop = pop;
+  });
 }
 
 function renderInfo() {
@@ -414,6 +445,7 @@ function renderAll() { renderPlots(); renderCal(); renderInfo(); }
 
 document.getElementById('mPrev').onclick = () => { curMonth = new Date(curMonth.getFullYear(), curMonth.getMonth() - 1, 1); renderCal(); };
 document.getElementById('mNext').onclick = () => { curMonth = new Date(curMonth.getFullYear(), curMonth.getMonth() + 1, 1); renderCal(); };
+document.addEventListener('click', e => { if (openPop && !openPop.contains(e.target)) closePop(); });
 
 (async function boot() {
   const p = S.get('profile', {}) || {};
