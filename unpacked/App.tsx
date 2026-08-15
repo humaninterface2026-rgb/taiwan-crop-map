@@ -831,7 +831,23 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
   usePageDataReady();
   const region = REGIONS_DATA[selected] || REGIONS_DATA.taoyuan;
   const wx = useLiveWeather(selected);
+  const isNarrow = useIsNarrow();  // 手機：縣市切換改固定底列（畫布錨定的 pill 縮太小不可用）
   const [hovered, setHovered] = React.useState(null);
+  // 目前選取縣市對應的 polygon id — 沒 hover 時地圖也常駐顯示該縣市的填色+角色
+  // （觸控裝置沒有 hover，Keny 回報「點了角色沒顯現」的根因）
+  const selPolyId = React.useMemo(() => {
+    for (const [pid, ck] of Object.entries(COUNTY_CHAR_MAP)) {
+      if (ck.replace(/^[a-q]_/, '') === selected) return pid;
+    }
+    const eh = EXTRA_CITY_HOTSPOTS.find(h => h.id.replace(/^extra_/, '') === selected);
+    return eh ? eh.id : null;
+  }, [selected]);
+  // 手機底列：切換縣市時把選中的膠囊捲到中間（只在切換時捲，不干擾手動滑動）
+  React.useEffect(() => {
+    if (!isNarrow) return;
+    const el = document.getElementById('cbar_sel');
+    if (el) el.scrollIntoView({inline:'center', block:'nearest'});
+  }, [selected, isNarrow]);
   // 左側 map 切換：'main' = 台灣全圖、'taoyuan' = 桃園鄉鎮 detail
   const [leftMapView, setLeftMapView] = React.useState('main');
   // 桃園 detail 上的按鈕 hover 狀態 (城市 pill / 加減號 / 上下箭頭)
@@ -1087,9 +1103,9 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
               fill={
                 c.isBase
                   ? 'transparent'  // 底層輪廓不填色（背景圖已是灰色）
-                  : (hovered === c.id ? HOVER_FILL : 'transparent')
+                  : ((hovered || selPolyId) === c.id ? HOVER_FILL : 'transparent')
               }
-              opacity={hovered === c.id ? 0.85 : 1}
+              opacity={(hovered || selPolyId) === c.id ? 0.85 : 1}
               style={{
                 cursor: c.isBase ? 'default' : 'pointer',
                 pointerEvents: c.isBase ? 'none' : 'auto',
@@ -1115,6 +1131,7 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
                   const regionKey = charKey.replace(/^[a-q]_/, '');
                   onSelect(regionKey);
                 }
+                setHovered(null);  // 觸控點擊後不留 hover 殘態——常駐顯示交給 selPolyId
               }}
             />
           </svg>
@@ -1138,21 +1155,22 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
           />
         ))}
 
-        {/* Hovered 角色：渲染在 polygon 中心上方 — 用 SVG <image> 把角色 SVG 浮現 */}
-        {hovered && (() => {
+        {/* 角色：hover 的縣市優先，否則常駐顯示目前選取縣市 — SVG <image> 浮現 */}
+        {(hovered || selPolyId) && (() => {
+          const showId = hovered || selPolyId;
           // 找對應的 SVG key 跟中心座標
           const charsLib = (typeof window !== 'undefined' && window.COUNTY_CHARS) || {};
-          let charKey = COUNTY_CHAR_MAP[hovered];
+          let charKey = COUNTY_CHAR_MAP[showId];
           let centerX, centerY;
           if (charKey) {
             // 從 TW_COUNTIES 找對應 polygon 中心
-            const poly = TW_COUNTIES.find(c => c.id === hovered);
+            const poly = TW_COUNTIES.find(c => c.id === showId);
             if (!poly) return null;
             centerX = poly.cx + poly.cw / 2;
             centerY = poly.cy + poly.ch / 2;
           } else {
             // 從 EXTRA_CITY_HOTSPOTS 找
-            const eh = EXTRA_CITY_HOTSPOTS.find(h => h.id === hovered);
+            const eh = EXTRA_CITY_HOTSPOTS.find(h => h.id === showId);
             if (!eh) return null;
             charKey = eh.id;
             centerX = eh.cx;
@@ -1163,7 +1181,7 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
           const w = CHAR_DISPLAY_W, h = CHAR_DISPLAY_H;
           // 縣市名稱方框 — 比照 Figma 桃園 District_button (64×24, rounded ~13)
           // 放在角色下方（與原本 桃園市 design 一致：character 站立在 polygon 上、label 在腳下）
-          const name = COUNTY_NAMES[hovered];
+          const name = COUNTY_NAMES[showId];
           const labelW = 64, labelH = 24;
           const labelX = centerX - labelW / 2;
           // character 底端 ≈ centerY + 0.15h；label 再往下 4px
@@ -1208,10 +1226,12 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
           位置從 full_page.jpg 像素量出 (pill x=61.5/y=731.5±n*40、寬 81.5、高 28.5；
           箭頭 r=13.8 在 (102.2, 625.8/865.8)、+- 在 (659.8, 825.8/865.8))。
           桃園市永遠在 slot 3 (咖)，其它 18 縣市透過 cityScrollIdx cyclic 環繞。 */}
-      {leftMapView === 'main' && (() => {
+      {leftMapView === 'main' && !isNarrow && (() => {
         // 19 縣市 cyclic list — 中央 slot 永遠是當前 selected。點任何 pill →
         // 切 selected → pill 重排把該縣市移到中央，其它 4 slot 顯示前後 2 個。
         // 上下箭頭 = selected ±1 在 cycle 裡 step。
+        // （手機 <768px 改用下方固定縣市列——畫布錨定的 pill 縮到 0.26 倍不可讀，
+        //   而且點擊後重排會讓手指下的 pill 換人，被誤認為重複點擊）
         const COUNTIES = ['新北市','基隆市','桃園市','新竹市','新竹縣','苗栗縣','台中市',
                           '彰化縣','南投縣','雲林縣','嘉義市','嘉義縣','台南市','高雄市',
                           '屏東縣','台東縣','花蓮縣','宜蘭縣','台北市'];
@@ -1323,6 +1343,41 @@ const Page = ({selected, cropOverride, onSelect, onCropSelect, onCountyCropChang
           );
         };
         return <>{buttons.map(renderIcon)}{pillNames.map((n, i) => renderPill(n, i))}</>;
+      })()}
+
+      {/* 手機版縣市切換：固定底列、橫向滑動、固定像素大小——永遠完整可見可點 */}
+      {leftMapView === 'main' && isNarrow && (() => {
+        const COUNTIES = ['新北市','基隆市','桃園市','新竹市','新竹縣','苗栗縣','台中市',
+                          '彰化縣','南投縣','雲林縣','嘉義市','嘉義縣','台南市','高雄市',
+                          '屏東縣','台東縣','花蓮縣','宜蘭縣','台北市'];
+        const nameToKey = Object.fromEntries(
+          Object.entries(REGIONS_DATA).map(([k, v]) => [v.name, k])
+        );
+        const selectedName = (REGIONS_DATA[selected] || REGIONS_DATA.taoyuan).name;
+        return (
+          <div style={{position:'fixed', bottom:0, left:0, right:0, zIndex:40,
+                       background:'rgba(250,246,236,.97)', borderTop:'1.5px solid #e6d9bd',
+                       padding:'9px 10px calc(9px + env(safe-area-inset-bottom))',
+                       display:'flex', gap:7, overflowX:'auto', WebkitOverflowScrolling:'touch'}}>
+            {COUNTIES.map(n => {
+              const active = n === selectedName;
+              return (
+                <button
+                  key={n}
+                  id={active ? 'cbar_sel' : undefined}
+                  onClick={() => { const k = nameToKey[n]; if (k) onSelect(k); }}
+                  style={{flex:'none', fontFamily:"'Noto Sans TC',sans-serif", fontSize:14, fontWeight:900,
+                          padding:'7px 14px', borderRadius:99, cursor:'pointer',
+                          border: active ? '2px solid #7a5a30' : '2px solid #c6d38a',
+                          background: active ? '#8a6538' : '#a8c060',
+                          color:'#fff', letterSpacing:1}}
+                >
+                  {n}
+                </button>
+              );
+            })}
+          </div>
+        );
       })()}
 
       {/* Animated mascot video — replaces the 3-mascot still in the middle.
